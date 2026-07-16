@@ -10,7 +10,7 @@ interface StatItem {
 }
 
 const stats: StatItem[] = [
-  { value: "5", numericPart: 5, suffix: "", label: "London Locations" },
+  { value: "23", numericPart: 23, suffix: "", label: "London Locations" },
   { value: "100%", numericPart: 100, suffix: "%", label: "Halal Certified" },
   { value: "30min", numericPart: 30, suffix: "min", label: "Average Delivery" },
   { value: "12k+", numericPart: 12, suffix: "k+", label: "Five-Star Reviews" },

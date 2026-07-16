@@ -7,9 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart } from "@/lib/redux/slices/cartSlice";
 import type { RootState } from "@/lib/redux/store";
-
-const DELIVERY_FEE = 2.99;
-const FREE_DELIVERY_THRESHOLD = 20;
+import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD } from "@/lib/data/business";
 
 type Fulfilment = "delivery" | "collection";
 type PaymentMethod = "card" | "cash";

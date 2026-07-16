@@ -51,8 +51,8 @@ function MenuIcon({ open }: { open: boolean }) {
 
 const navLinks = [
   { href: "/menu", label: "Menu" },
-  { href: "#locations", label: "Locations" },
-  { href: "#franchise", label: "Franchise" },
+  { href: "/find-us", label: "Locations" },
+  { href: "/franchise", label: "Franchise" },
 ];
 
 export default function Navbar() {
@@ -190,13 +190,13 @@ export default function Navbar() {
           {/* Right actions */}
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Delivery link — desktop */}
-            <a
-              href="#order"
+            <Link
+              href="/cart"
               className="hidden items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60 hover:text-white transition-colors duration-200 md:flex"
             >
               Delivery
               <ArrowUpRight />
-            </a>
+            </Link>
 
             {/* Cart */}
             <Link
@@ -213,12 +213,12 @@ export default function Navbar() {
             </Link>
 
             {/* Order Now CTA */}
-            <a
-              href="#order"
+            <Link
+              href="/menu"
               className="hidden rounded-full bg-brand-red px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-white transition-transform duration-300 hover:scale-105 active:scale-95 md:inline-block"
             >
               Order Now
-            </a>
+            </Link>
 
             {/* Mobile hamburger */}
             <button
@@ -258,8 +258,8 @@ export default function Navbar() {
         ))}
 
         {/* Delivery (mobile) */}
-        <a
-          href="#order"
+        <Link
+          href="/cart"
           onClick={closeMobileNav}
           className="mobile-nav-item group flex items-center justify-between border-b border-white/5 py-4"
         >
@@ -267,15 +267,15 @@ export default function Navbar() {
             Delivery
           </span>
           <ArrowUpRight />
-        </a>
+        </Link>
 
-        <a
-          href="#order"
+        <Link
+          href="/menu"
           onClick={closeMobileNav}
           className="mobile-nav-item mt-10 rounded-full bg-brand-red px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.2em] text-white transition-transform duration-300 hover:scale-105 active:scale-95"
         >
           Order Now
-        </a>
+        </Link>
       </div>
     </>
   );

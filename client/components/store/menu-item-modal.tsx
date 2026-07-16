@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
-import { type MenuItemType } from "@/lib/context/menu-context";
+import { type MenuItemType } from "@/lib/data/menu";
 
 interface MenuItemModalProps {
   item: MenuItemType;

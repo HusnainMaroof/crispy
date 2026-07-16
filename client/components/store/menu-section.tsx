@@ -1,61 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-
-interface MenuItemType {
-  id: string;
-  title: string;
-  price: string;
-  imageUrl: string;
-  tags: string[];
-}
-
-const menuItems: MenuItemType[] = [
-  {
-    id: "01",
-    title: "Chicken Tenders",
-    price: "from £7.99",
-    imageUrl:
-      "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&q=80&w=800&h=600",
-    tags: ["Crispy", "Buttermilk", "Signature Dip"],
-  },
-  {
-    id: "02",
-    title: "Big Flavour Burgers",
-    price: "from £9.49",
-    imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=800&h=600",
-    tags: ["100% Beef", "Brioche Bun", "House Sauce"],
-  },
-  {
-    id: "03",
-    title: "Flaming Grill",
-    price: "from £10.99",
-    imageUrl:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=800&h=600",
-    tags: ["Charcoal Fired", "Spicy", "Smokey"],
-  },
-  {
-    id: "04",
-    title: "Loaded Wraps",
-    price: "from £8.49",
-    imageUrl:
-      "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&q=80&w=800&h=600",
-    tags: ["Toasted", "Fresh Veg", "Generous Fill"],
-  },
-  {
-    id: "05",
-    title: "Platters",
-    price: "from £18.99",
-    imageUrl:
-      "https://images.unsplash.com/photo-1576867757603-05b134ebc379?auto=format&fit=crop&q=80&w=800&h=600",
-    tags: ["Shareable", "Party Size", "Mixed Grill"],
-  },
-];
+import { menuCategories, type MenuItemType } from "@/lib/data/menu";
 
 type MenuRowProps = {
   item: MenuItemType;
+  index: number;
   isHovered: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -63,26 +15,28 @@ type MenuRowProps = {
 
 function MenuRow({
   item,
+  index,
   isHovered,
   onMouseEnter,
   onMouseLeave,
 }: MenuRowProps) {
   return (
-    <div
+    <Link
+      href={`/menu`}
       className="group flex cursor-pointer items-center justify-between border-b border-white/10 py-4 leading-none transition-opacity duration-300 first:border-t first:pt-8 last:border-none hover:opacity-100 "
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       <div className="flex w-full items-baseline gap-4 md:gap-8 ">
         {/* Number */}
-        <div className="mt-2 w-8  text-lg font-semibold text-white/40 md:w-12 md:text-2xl group-[:hover]:text-red-500 transition-colors duration-150">
-          {item.id}.
+        <div className="mt-2 w-8 text-lg font-semibold text-white/40 md:w-12 md:text-2xl group-[:hover]:text-red-500 transition-colors duration-150">
+          {String(index + 1).padStart(2, "0")}.
         </div>
 
         {/* Title and Tags */}
         <div className="min-w-0 flex-1">
           <h4 className="font-semibold flex gap-4 bg-linear-to-r from-brand-red from-50% to-white to-50% bg-size-[200%] bg-right bg-clip-text text-lg text-nowrap uppercase text-transparent transition-[background-position] duration-700 group-hover:bg-left md:text-3xl">
-            {item.title}
+            {item.name}
 
             {/* CSS Animated SVG Link Icon */}
             <span
@@ -124,28 +78,18 @@ function MenuRow({
             </span>
           </h4>
 
-          {/* Tags / Info underneath */}
-          <div className="mt-4 flex  items-center gap-3  text-[10px] text-nowrap font-semibold uppercase tracking-widest text-white/50 md:mt-6  md:text-sm">
-            {item.tags.map((tag, idx, stackArr) => (
-              <div className="flex items-center gap-3" key={tag}>
-                <span>{tag}</span>
-                {idx !== stackArr.length - 1 && (
-                  <span
-                    className="inline-block h-1.5 w-1.5 rounded-full bg-white/30"
-                    aria-hidden
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+          {/* Description underneath */}
+          <p className="mt-2 line-clamp-2 max-w-2xl text-[10px] font-medium uppercase tracking-widest text-white/50 md:mt-3 md:text-xs">
+            {item.description}
+          </p>
         </div>
 
         {/* Price - right side */}
-        <div className="shrink-0 self-start pt-3 text-right  text-sm font-semibold uppercase tracking-widest text-white/70 md:pt-4 md:text-base">
+        <div className="shrink-0 self-start pt-3 text-right text-sm font-semibold uppercase tracking-widest text-white/70 md:pt-4 md:text-base">
           {item.price}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -156,6 +100,9 @@ export default function MenuSection() {
   const mousePos = useRef({ x: 0, y: 0 });
   const currentPos = useRef({ x: 0, y: 0 });
   const reqRef = useRef<number | undefined>(undefined);
+
+  // Pick 3 featured categories for the homepage preview
+  const featuredCategories = menuCategories.slice(0, 3);
 
   useEffect(() => {
     const reduce = window.matchMedia(
@@ -244,8 +191,8 @@ export default function MenuSection() {
           {hoveredIndex !== null && (
             <>
               <Image
-                src={menuItems[hoveredIndex].imageUrl}
-                alt={`${menuItems[hoveredIndex].title} preview`}
+                src={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.image ?? "") : ""}
+                alt="Menu item preview"
                 fill
                 sizes="320px"
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -261,10 +208,10 @@ export default function MenuSection() {
         <div className="mx-auto max-w-7xl">
           {/* Header */}
           <div className="mb-16 flex flex-col items-baseline justify-between gap-4 md:flex-row">
-            <h2 className=" text-xl uppercase md:text-4xl lg:text-5xl font-semibold">
+            <h2 className="text-xl uppercase md:text-4xl lg:text-5xl font-semibold">
               The Menu
             </h2>
-            <a
+            <Link
               href="/menu"
               className="group flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/55 transition-colors hover:text-white"
             >
@@ -285,21 +232,39 @@ export default function MenuSection() {
                 <path d="M7 7h10v10" />
                 <path d="M7 17 17 7" />
               </svg>
-            </a>
+            </Link>
           </div>
 
-          {/* Menu List */}
-          <div className="menu-container flex w-full flex-col pt-8">
-            {menuItems.map((item, index) => (
-              <MenuRow
-                key={item.id}
-                item={item}
-                isHovered={hoveredIndex === index}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-              />
-            ))}
-          </div>
+          {/* Menu Categories */}
+          {featuredCategories.map((category) => {
+            const globalStartIdx = featuredCategories.indexOf(category) * 3;
+            return (
+              <div key={category.id} className="mb-12">
+                <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/10 pb-4">
+                  <div className="flex items-baseline gap-4">
+                    <span className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-white/20 md:text-6xl">{category.number}</span>
+                    <h3 className="font-[family-name:var(--font-bebas)] text-3xl uppercase leading-none text-white md:text-4xl">{category.title}</h3>
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-white/30">{category.items.length} Items</span>
+                </div>
+                <div className="menu-container flex w-full flex-col">
+                  {category.items.map((item, index) => {
+                    const globalIdx = globalStartIdx + index;
+                    return (
+                      <MenuRow
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        isHovered={hoveredIndex === globalIdx}
+                        onMouseEnter={() => setHoveredIndex(globalIdx)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
     </>

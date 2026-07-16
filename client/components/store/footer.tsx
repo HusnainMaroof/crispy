@@ -14,7 +14,7 @@ const FOOTER_LINKS = {
     { label: "Chicken", href: "/menu#chicken" },
     { label: "Sides", href: "/menu#sides" },
     { label: "Shakes", href: "/menu#shakes" },
-    { label: "Deals", href: "/menu#deals" },
+    { label: "Deals", href: "/menu" },
   ],
   company: [
     { label: "About Us", href: "/about" },
@@ -76,7 +76,7 @@ export default function Footer() {
               <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-white/40">
                 Franchise
               </p>
-              <h2 className="font-teko text-6xl md:text-8xl lg:text-[120px] font-semibold uppercase leading-[0.8] tracking-normal">
+              <h2 className="font-[family-name:var(--font-bebas)] text-6xl md:text-8xl lg:text-[120px] font-semibold uppercase leading-[0.8] tracking-normal">
                 <span className="slice-text white-slice block" data-text="Bring Crispies">
                   Bring Crispies
                 </span>

@@ -1,7 +1,3 @@
-"use client";
-
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-
 export type MenuItemType = {
   id: string;
   name: string;
@@ -21,9 +17,7 @@ export type MenuCategoryType = {
   items: MenuItemType[];
 };
 
-export type TabId = "full-menu" | "deals";
-
-const IMG = {
+export const IMG = {
   wings: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&q=80&w=800&h=600",
   tenders:
     "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&q=80&w=800&h=600",
@@ -42,7 +36,7 @@ const IMG = {
     "https://images.unsplash.com/photo-1606313564200-e1d346c0d0a1?auto=format&fit=crop&q=80&w=800&h=600",
 };
 
-const initialMenuCategories: MenuCategoryType[] = [
+export const menuCategories: MenuCategoryType[] = [
   {
     id: "wings",
     number: "01",
@@ -153,7 +147,7 @@ const initialMenuCategories: MenuCategoryType[] = [
   },
 ];
 
-const initialDeals: MenuItemType[] = [
+export const deals: MenuItemType[] = [
   { id: "deal-wing-side", name: "Wing + Side Combo", description: "7 crispy wings paired with loaded fries and a dipping sauce of your choice.", price: "£9.99", priceValue: 9.99, image: IMG.wings, badge: "Popular" },
   { id: "deal-burger-drink", name: "Burger + Drink Deal", description: "Classic Crispies Burger with any regular drink. The perfect lunch combo.", price: "£9.49", priceValue: 9.49, image: IMG.burger, badge: "Lunch" },
   { id: "deal-family", name: "Family Feast", description: "10 wings, 5 tenders, loaded fries, and 4 dips. Feeds the whole crew.", price: "£24.99", priceValue: 24.99, image: IMG.platter, badge: "Save £8" },
@@ -163,37 +157,3 @@ const initialDeals: MenuItemType[] = [
   { id: "deal-platter-drinks", name: "Platter + 2 Drinks", description: "Family Sharer Platter with two regular soft drinks. Party time.", price: "£21.99", priceValue: 21.99, image: IMG.platter, badge: "Party" },
   { id: "deal-wrap-chips", name: "Wrap + Chips", description: "Loaded Chicken Wrap with a side of seasoned chips and a dip.", price: "£8.49", priceValue: 8.49, image: IMG.wrap },
 ];
-
-type MenuContextType = {
-  categories: MenuCategoryType[];
-  deals: MenuItemType[];
-  totalItems: number;
-  setCategories: (cats: MenuCategoryType[]) => void;
-  setDeals: (deals: MenuItemType[]) => void;
-};
-
-const MenuContext = createContext<MenuContextType | null>(null);
-
-export function MenuProvider({ children }: { children: ReactNode }) {
-  const [categories, setCategories] = useState<MenuCategoryType[]>(initialMenuCategories);
-  const [deals, setDeals] = useState<MenuItemType[]>(initialDeals);
-
-  const totalItems = useMemo(
-    () => categories.reduce((sum, cat) => sum + cat.items.length, 0),
-    [categories],
-  );
-
-  return (
-    <MenuContext.Provider
-      value={{ categories, deals, totalItems, setCategories, setDeals }}
-    >
-      {children}
-    </MenuContext.Provider>
-  );
-}
-
-export function useMenu() {
-  const ctx = useContext(MenuContext);
-  if (!ctx) throw new Error("useMenu must be used within MenuProvider");
-  return ctx;
-}
