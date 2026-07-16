@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/lib/context/ui-context";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/lib/redux/store";
+import { useLenis } from "@/components/providers/smooth-scroll";
 
 gsap.registerPlugin(useGSAP);
 
@@ -59,13 +60,12 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const { subscribeScroll, stop, start } = useLenis();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    const unsubscribe = subscribeScroll((e) => setScrolled(e.scroll > 12));
+    return unsubscribe;
+  }, [subscribeScroll]);
 
   useEffect(() => {
     closeMobileNav();
@@ -74,13 +74,16 @@ export default function Navbar() {
   useEffect(() => {
     if (isMobileNavOpen) {
       document.body.style.overflow = "hidden";
+      stop();
     } else {
       document.body.style.overflow = "";
+      start();
     }
     return () => {
       document.body.style.overflow = "";
+      start();
     };
-  }, [isMobileNavOpen]);
+  }, [isMobileNavOpen, stop, start]);
 
   useGSAP(
     () => {

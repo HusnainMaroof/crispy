@@ -1,28 +1,22 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLenis } from "@/components/providers/smooth-scroll";
 
 export default function ScrollProgressIndicator() {
   const fillRef = useRef<HTMLDivElement>(null);
+  const { subscribeScroll } = useLenis();
+
+  const apply = (progress: number) => {
+    if (!fillRef.current) return;
+    const pct = Math.min(100, Math.max(0, progress * 100));
+    fillRef.current.style.transform = `translateY(-${100 - pct}%)`;
+  };
 
   useEffect(() => {
-    const update = () => {
-      if (!fillRef.current) return;
-      const { scrollHeight, clientHeight } = document.documentElement;
-      const scrollable = scrollHeight - clientHeight;
-      if (scrollable <= 0) return;
-      const progress = (window.scrollY / scrollable) * 100;
-      fillRef.current.style.transform = `translateY(-${100 - progress}%)`;
-    };
-
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
+    const unsubscribe = subscribeScroll((e) => apply(e.progress));
+    return unsubscribe;
+  }, [subscribeScroll]);
 
   return (
     <div

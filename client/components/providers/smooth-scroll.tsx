@@ -3,34 +3,121 @@
 import Lenis from "lenis";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function SmoothScroll({ children }: { children: React.ReactNode }) {
+export type LenisScrollEvent = {
+  scroll: number;
+  limit: number;
+  progress: number;
+  velocity: number;
+};
+
+type LenisContextValue = {
+  scrollTo: (target: HTMLElement | string | number, opts?: { offset?: number }) => void;
+  subscribeScroll: (cb: (e: LenisScrollEvent) => void) => () => void;
+  stop: () => void;
+  start: () => void;
+};
+
+const LenisContext = createContext<LenisContextValue>({
+  scrollTo: () => {},
+  subscribeScroll: () => () => {},
+  stop: () => {},
+  start: () => {},
+});
+
+export function useLenis() {
+  return useContext(LenisContext);
+}
+
+export default function SmoothScroll({ children }: { children: ReactNode }) {
+  const lenisRef = useRef<Lenis | null>(null);
+  const listenersRef = useRef<Set<(e: LenisScrollEvent) => void>>(new Set());
+
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
 
-    const lenis = new Lenis({
+    const instance = new Lenis({
       duration: 1.1,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
+      autoRaf: false,
+    });
+    lenisRef.current = instance;
+
+    // Notify any subscribers that subscribed before Lenis was created
+    // (child effects run before this parent effect, so they registered
+    // against a null lenisRef; ping them now that the instance exists).
+    queueMicrotask(() => {
+      listenersRef.current.forEach((cb) =>
+        cb({ scroll: instance.scroll, limit: instance.limit, progress: instance.progress, velocity: instance.velocity }),
+      );
     });
 
-    lenis.on("scroll", ScrollTrigger.update);
+    const onScroll = (e: LenisScrollEvent) => {
+      ScrollTrigger.update();
+      listenersRef.current.forEach((cb) => cb(e));
+    };
+    instance.on("scroll", onScroll);
 
     const raf = (time: number) => {
-      lenis.raf(time);
+     instance.raf(time * 1000);
     };
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
 
     return () => {
       gsap.ticker.remove(raf);
-      lenis.destroy();
+      instance.off("scroll", onScroll);
+      instance.destroy();
+      lenisRef.current = null;
     };
   }, []);
 
-  return <>{children}</>;
+  const scrollTo = useCallback(
+    (target: HTMLElement | string | number, opts?: { offset?: number }) => {
+      const inst = lenisRef.current;
+      if (!inst) {
+        if (typeof target === "object" && target && "scrollIntoView" in target) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        return;
+      }
+      inst.scrollTo(target, { offset: opts?.offset ?? 0, immediate: false });
+    },
+    [],
+  );
+
+  const stop = useCallback(() => {
+    lenisRef.current?.stop();
+  }, []);
+
+  const start = useCallback(() => {
+    lenisRef.current?.start();
+  }, []);
+
+  const subscribeScroll = useCallback((cb: (e: LenisScrollEvent) => void) => {
+    listenersRef.current.add(cb);
+    const inst = lenisRef.current;
+    if (inst) {
+      cb({ scroll: inst.scroll, limit: inst.limit, progress: inst.progress, velocity: inst.velocity });
+    }
+    return () => {
+      listenersRef.current.delete(cb);
+    };
+  }, []);
+
+  const value = useMemo(
+    () => ({ scrollTo, subscribeScroll, stop, start }),
+    [scrollTo, subscribeScroll, stop, start],
+  );
+
+  return (
+    <LenisContext.Provider value={value}>
+      {children}
+    </LenisContext.Provider>
+  );
 }

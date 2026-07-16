@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useLenis } from "@/components/providers/smooth-scroll";
 
 const HERO_IMG =
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop";
@@ -23,6 +24,7 @@ export default function Hero({ started }: HeroProps) {
   const rootRef = useRef<HTMLElement>(null);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [videoOpen, setVideoOpen] = useState(false);
+  const { stop, start } = useLenis();
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -43,13 +45,15 @@ export default function Hero({ started }: HeroProps) {
       if (e.key === "Escape") setVideoOpen(false);
     };
     window.addEventListener("keydown", onKey);
+    stop();
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
+      start();
     };
-  }, [videoOpen]);
+  }, [videoOpen, stop, start]);
 
   return (
     <section
