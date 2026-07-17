@@ -5,6 +5,7 @@ export {
   menuItemUpdateSchema,
   dealSchema,
   dealUpdateSchema,
+  menuItemsQuerySchema,
 } from "./menu.schema.js";
 
 export {

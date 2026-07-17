@@ -5,7 +5,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import { envConfig } from "./config/env.js";
 import { httpLogger, logger } from "./middleware/logger.js";
-import { globalLimiter, authLimiter } from "./middleware/rate-limiter.js";
+import { globalLimiter, authLimiter, adminLimiter } from "./middleware/rate-limiter.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import routes from "./routes/index.js";
 
@@ -42,6 +42,9 @@ app.use((req, res, next) => {
 
 // Apply stricter rate limit to auth routes (before routes so it applies first)
 app.use("/api/admin/auth", authLimiter);
+
+// Admin rate limiter for all authenticated admin endpoints
+app.use("/api/admin", adminLimiter);
 
 // All routes
 app.use("/api", routes);

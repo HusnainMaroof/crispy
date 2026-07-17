@@ -39,3 +39,7 @@ export const locationSchema = z.object({
 });
 
 export const locationUpdateSchema = locationSchema.partial();
+
+export const setLocationSchema = z.object({
+  location_id: z.string().min(1),
+});

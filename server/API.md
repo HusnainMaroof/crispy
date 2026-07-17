@@ -4,6 +4,33 @@ All endpoints are mounted under `/api`. Admin routes require a `Bearer <token>` 
 
 ---
 
+## Response Format
+
+All successful responses:
+```json
+{ "success": true, "data": <payload> }
+```
+
+All error responses:
+```json
+{ "success": false, "error": "Human-readable message", "code": "ERR_NOT_FOUND" }
+```
+
+Error codes: `ERR_BAD_REQUEST`, `ERR_UNAUTHORIZED`, `ERR_FORBIDDEN`, `ERR_NOT_FOUND`, `ERR_CONFLICT`, `ERR_INTERNAL`, `ERR_TOO_MANY`, `ERR_VALIDATION`.
+
+---
+
+## Public — Health
+
+### `GET /api/health`
+
+**Response** `200`
+```json
+{ "status": "ok", "timestamp": "2025-01-01T00:00:00.000Z" }
+```
+
+---
+
 ## Public — Menu
 
 ### `GET /api/menu/full`
@@ -47,13 +74,15 @@ Returns categories with their items nested inside.
 
 Flat list of menu categories.
 
+**Query params** — none
+
 **Response** `200` — `MenuCategory[]`
 
 ---
 
 ### `GET /api/menu/items`
 
-Flat list of menu items.
+Flat list of menu items (active only).
 
 **Query params** — `?category_id=wings` (optional filter)
 
@@ -213,6 +242,27 @@ Submit a contact form message.
 
 ---
 
+### `POST /api/jobs/:id/apply`
+
+Submit a job application for the given job post.
+
+**Request body**
+```json
+{
+  "job_post_id": "kitchen-staff-brixton",
+  "applicant_name": "Jane Doe",
+  "email": "jane@example.com",
+  "phone": "+44 7123 456789",
+  "cv_url": "https://...",
+  "cover_letter": "I am very interested..."
+}
+```
+
+**Response** `201` — Created application
+**Error** `400` — Validation failed
+
+---
+
 ## Admin — Auth
 
 ### `POST /api/admin/auth/login`
@@ -250,23 +300,30 @@ Returns the authenticated admin's profile. Requires `Authorization: Bearer <toke
 
 ### `GET /api/admin/categories`
 
-List all categories.
+List all categories (full menu with nested items).
 
 ### `GET /api/admin/categories/:id`
 
-Single category.
+Single category by ID.
+
+**Error** `404` — Not found
 
 ### `POST /api/admin/categories`
 
 **Request body**
 ```json
 {
+  "id": "wings",
   "number": "01",
   "title": "Wings",
   "image": "https://...",
   "sort_order": 0
 }
 ```
+
+`id` is auto-generated via UUID if omitted.
+
+**Response** `201` — Created category
 
 ### `PUT /api/admin/categories/:id`
 
@@ -286,7 +343,9 @@ List all menu items (includes inactive). `?category_id=wings` to filter.
 
 ### `GET /api/admin/menu/:id`
 
-Single item.
+Single menu item by ID.
+
+**Error** `404` — Not found
 
 ### `POST /api/admin/menu`
 
@@ -305,11 +364,17 @@ Single item.
 }
 ```
 
+`id` is auto-generated via UUID if omitted.
+
+**Response** `201` — Created item
+
 ### `PUT /api/admin/menu/:id`
 
 Partial update.
 
 ### `DELETE /api/admin/menu/:id`
+
+**Response** `200` — `{ "deleted": true }`
 
 ---
 
@@ -334,6 +399,8 @@ List all deals (including inactive).
 }
 ```
 
+**Response** `201` — Created deal
+
 ### `PUT /api/admin/deals/:id`
 
 Partial update.
@@ -343,6 +410,8 @@ Partial update.
 Flips the `active` boolean.
 
 ### `DELETE /api/admin/deals/:id`
+
+**Response** `200` — `{ "deleted": true }`
 
 ---
 
@@ -364,12 +433,15 @@ Single order with its items nested.
 }
 ```
 
+**Error** `404` — Not found
+
 ### `PATCH /api/admin/orders/:id/status`
 
 **Request body**
 ```json
 { "status": "preparing" }
 ```
+
 Status values: `pending`, `preparing`, `ready`, `out-for-delivery`, `delivered`, `cancelled`.
 
 ---
@@ -380,9 +452,30 @@ Status values: `pending`, `preparing`, `ready`, `out-for-delivery`, `delivered`,
 
 All locations.
 
+### `POST /api/admin/locations`
+
+**Request body**
+```json
+{
+  "name": "Crispies Brixton",
+  "address": "45 Electric Lane, London SW9 8JZ",
+  "hours": "11:00 AM – 11:00 PM",
+  "phone": "+44 20 7946 0123",
+  "lat": 51.4613,
+  "lng": -0.1155,
+  "sort_order": 0
+}
+```
+
+`id` is auto-generated via UUID. `sort_order` defaults to `0`.
+
 ### `PATCH /api/admin/locations/:id`
 
-Update location fields (name, address, hours, phone, lat, lng, sort_order).
+Partial update (any field).
+
+### `DELETE /api/admin/locations/:id`
+
+**Response** `200` — `{ "deleted": true }`
 
 ---
 
@@ -390,7 +483,7 @@ Update location fields (name, address, hours, phone, lat, lng, sort_order).
 
 ### `GET /api/admin/settings`
 
-Business settings.
+Business settings (singleton row).
 
 ### `PUT /api/admin/settings`
 
@@ -409,7 +502,9 @@ List job posts. `?status=active` to filter.
 
 ### `GET /api/admin/jobs/:id`
 
-Single job post.
+Single job post by ID.
+
+**Error** `404` — Not found
 
 ### `POST /api/admin/jobs`
 
@@ -426,6 +521,10 @@ Single job post.
 }
 ```
 
+`id` is auto-generated via UUID. `applications` starts at `0`.
+
+**Response** `201` — Created job post
+
 ### `PUT /api/admin/jobs/:id`
 
 Partial update (any field).
@@ -440,6 +539,55 @@ Partial update (any field).
 Status values: `draft`, `active`, `closed`.
 
 ### `DELETE /api/admin/jobs/:id`
+
+**Response** `200` — `{ "deleted": true }`
+
+---
+
+## Admin — Job Applications
+
+### `GET /api/admin/job-applications`
+
+List job applications. `?job_post_id=kitchen-staff-brixton` or `?status=pending` to filter.
+
+### `GET /api/admin/job-applications/:id`
+
+Single application by ID.
+
+**Error** `404` — Not found
+
+### `POST /api/admin/job-applications`
+
+**Request body**
+```json
+{
+  "job_post_id": "kitchen-staff-brixton",
+  "applicant_name": "Jane Doe",
+  "email": "jane@example.com",
+  "phone": "+44 7123 456789",
+  "cv_url": "https://...",
+  "cover_letter": "I am very interested..."
+}
+```
+
+**Response** `201` — Created application
+
+### `PUT /api/admin/job-applications/:id`
+
+Partial update (any field — notes, status, etc.).
+
+### `PATCH /api/admin/job-applications/:id/status`
+
+**Request body**
+```json
+{ "status": "reviewed" }
+```
+
+Status values: `pending`, `reviewed`, `shortlisted`, `rejected`, `hired`.
+
+### `DELETE /api/admin/job-applications/:id`
+
+**Response** `200` — `{ "deleted": true }`
 
 ---
 
@@ -459,37 +607,8 @@ Status values: `draft`, `active`, `closed`.
 
 ---
 
-## Error response format
+## Rate Limiting
 
-All errors follow this shape:
-
-```json
-{
-  "success": false,
-  "error": "Human-readable message",
-  "code": "ERR_NOT_FOUND"
-}
-```
-
-Error codes: `ERR_BAD_REQUEST`, `ERR_UNAUTHORIZED`, `ERR_FORBIDDEN`, `ERR_NOT_FOUND`, `ERR_CONFLICT`, `ERR_INTERNAL`.
-
----
-
-## Response format
-
-All successful responses:
-
-```json
-{
-  "success": true,
-  "data": <payload>
-}
-```
-
----
-
-## Rate limiting
-
-- **Global**: 100 requests per 15 minutes per IP
+- **Global**: 100 requests per 15 minutes per IP (skipped for admin routes)
 - **Auth routes** (`/api/admin/auth`): 10 requests per 15 minutes per IP
-- Health check (`/health`) is exempt
+- **Health check** (`/health`) is exempt

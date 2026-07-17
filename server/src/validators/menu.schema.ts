@@ -34,3 +34,7 @@ export const dealSchema = z.object({
 });
 
 export const dealUpdateSchema = dealSchema.partial();
+
+export const menuItemsQuerySchema = z.object({
+  category_id: z.string().min(1).optional(),
+});

@@ -17,3 +17,11 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
 });
+
+export const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: envConfig.RATE_LIMIT.MAX,
+  message: { success: false, error: "Too many requests, please try again later", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
