@@ -1,28 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import PageHeader from "@/components/admin/ui/page-header";
 import Modal from "@/components/admin/ui/modal";
+import { CardGridSkeleton } from "@/components/admin/ui/skeleton";
 import { useCategories } from "@/lib/admin/use-categories";
 
 export default function CategoriesPage() {
-  const { categories, addCategory, updateCategory, deleteCategory } = useCategories();
+  const { categories, loading, fetchCategories, addCategory, updateCategory, deleteCategory } = useCategories();
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleEdit = (id: string) => {
     setEditingCategory(id);
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this category?")) {
-      deleteCategory(id);
+  const handleDeleteConfirm = async () => {
+    if (!deletingCategory) return;
+    try {
+      await deleteCategory(deletingCategory);
+      toast.success("Category deleted");
+    } catch {
+      toast.error("Failed to delete category");
+    } finally {
+      setDeletingCategory(null);
+    }
+  };
+
+  const handleSave = async (data: { title: string; number: string; image: string; itemCount: number }) => {
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory, data);
+        toast.success("Category updated");
+      } else {
+        await addCategory(data);
+        toast.success("Category added");
+      }
+      setShowForm(false);
+      setEditingCategory(null);
+    } catch {
+      toast.error(editingCategory ? "Failed to update category" : "Failed to add category");
     }
   };
 
   return (
-    <div>
+    <div className="admin-fade-in">
       <PageHeader
         title="Categories"
         description="Organize your menu items into categories."
@@ -32,14 +61,36 @@ export default function CategoriesPage() {
               setEditingCategory(null);
               setShowForm(true);
             }}
-            className="rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            className="btn-press rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
           >
             Add Category
           </button>
         }
       />
 
+      {loading && <CardGridSkeleton />}
+
       {/* Categories Grid */}
+      {!loading && categories.length === 0 && (
+        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
+          <svg className="mx-auto h-12 w-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h3 className="mt-4 text-sm font-medium text-white">No categories yet</h3>
+          <p className="mt-1 text-sm text-white/50">Get started by adding your first category.</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="btn-press mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Category
+          </button>
+        </div>
+      )}
+
+      {!loading && categories.length > 0 && (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((cat) => (
           <div
@@ -65,7 +116,7 @@ export default function CategoriesPage() {
                   </svg>
                 </button>
                 <button
-                  onClick={() => handleDelete(cat.id)}
+                  onClick={() => setDeletingCategory(cat.id)}
                   className="rounded-lg p-2 text-white/50 hover:bg-brand-red/20 hover:text-brand-red"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,21 +131,40 @@ export default function CategoriesPage() {
           </div>
         ))}
       </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingCategory && (
+        <Modal
+          onClose={() => setDeletingCategory(null)}
+          title="Delete Category"
+        >
+          <p className="mb-6 text-sm text-white/70">
+            Are you sure you want to delete <span className="font-medium text-white">{categories.find((c) => c.id === deletingCategory)?.title}</span>? This will also remove all items in this category.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeletingCategory(null)}
+              className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              className="rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Form Modal */}
       {showForm && (
         <CategoryForm
           categoryId={editingCategory}
           categories={categories}
-          onSave={(data) => {
-            if (editingCategory) {
-              updateCategory(editingCategory, data);
-            } else {
-              addCategory(data);
-            }
-            setShowForm(false);
-            setEditingCategory(null);
-          }}
+          onSave={handleSave}
           onClose={() => {
             setShowForm(false);
             setEditingCategory(null);

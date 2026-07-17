@@ -53,7 +53,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     <div className="fade-up border-b border-white/10">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between gap-4 py-5 text-left"
+        className="flex w-full cursor-pointer items-center justify-between gap-4 py-5 text-left"
         aria-expanded={open}
       >
         <span className="font-[family-name:var(--font-bebas)] text-xl tracking-wide text-white">
@@ -116,7 +116,7 @@ export default function FaqsPage() {
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/60">
           Everything you need to know about Crispies. Can&apos;t find what
           you&apos;re looking for?{" "}
-          <a href="/contact" className="text-brand-red underline">
+          <a href="/contact" className="text-brand-red underline cursor-pointer transition-colors hover:text-red-400">
             Get in touch
           </a>
           .

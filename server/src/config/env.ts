@@ -1,22 +1,71 @@
-import "dotenv/config";
-import { z } from "zod";
+import dotenv from "dotenv";
 
-const envSchema = z.object({
-  PORT: z.coerce.number().default(4000),
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  SUPABASE_URL: z.string().url(),
-  SUPABASE_SERVICE_KEY: z.string().min(1),
-  SUPABASE_ANON_KEY: z.string().min(1),
-  JWT_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default("7d"),
-  CORS_ORIGIN: z.string().default("http://localhost:3000"),
-});
+dotenv.config();
 
-const parsed = envSchema.safeParse(process.env);
+type SupabaseConfig = {
+  URL: string;
+  PUBLISHABLE_KEY: string;
+  SECRET_KEY: string;
+  JWKS_URL?: string;
+};
 
-if (!parsed.success) {
-  console.error("Invalid environment variables:", parsed.error.flatten().fieldErrors);
-  process.exit(1);
+type JwtConfig = {
+  SECRET: string;
+  EXPIRES_IN: string;
+};
+
+type ServerConfig = {
+  PORT: number;
+  NODE_ENV: "development" | "production" | "test";
+};
+
+type CorsConfig = {
+  ORIGIN: string;
+};
+
+type RateLimitConfig = {
+  MAX: number;
+};
+
+type LogConfig = {
+  LEVEL: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
+};
+
+function required(key: string, fallback?: string): string {
+  const val = process.env[key] ?? fallback;
+  if (!val) {
+    throw new Error(`Missing required env variable: ${key}`);
+  }
+  return val;
 }
 
-export const env = parsed.data;
+export const envConfig = {
+  SUPABASE: {
+    URL: required("SUPABASE_URL"),
+    PUBLISHABLE_KEY: required("SUPABASE_PUBLISHABLE_KEY"),
+    SECRET_KEY: required("SUPABASE_SECRET_KEY"),
+    JWKS_URL: process.env.SUPABASE_JWKS_URL,
+  } satisfies SupabaseConfig,
+
+  JWT: {
+    SECRET: required("JWT_SECRET"),
+    EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
+  } satisfies JwtConfig,
+
+  SERVER: {
+    PORT: Number(process.env.PORT) || 4000,
+    NODE_ENV: (process.env.NODE_ENV as ServerConfig["NODE_ENV"]) || "development",
+  } satisfies ServerConfig,
+
+  CORS: {
+    ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
+  } satisfies CorsConfig,
+
+  RATE_LIMIT: {
+    MAX: Number(process.env.RATE_LIMIT_MAX) || 100,
+  } satisfies RateLimitConfig,
+
+  LOG: {
+    LEVEL: (process.env.LOG_LEVEL as LogConfig["LEVEL"]) || "info",
+  } satisfies LogConfig,
+};

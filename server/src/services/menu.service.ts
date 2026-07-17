@@ -1,142 +1,168 @@
-import { supabase } from "../config/supabase.js";
-import { AppError } from "../middleware/error-handler.js";
+import { getAdminClient } from "../config/supabase.js";
+import {
+  InternalServerException,
+  NotFoundException,
+  BadRequestException,
+} from "../utils/app-error.js";
 import type { MenuCategory, MenuItem, Deal } from "../types/models.js";
 
-type DbResult<T> = T[];
+export interface CategoryWithItems extends MenuCategory {
+  items: MenuItem[];
+}
+
+export async function getFullMenu(): Promise<CategoryWithItems[]> {
+  const [categories, items] = await Promise.all([getCategories(), getMenuItems()]);
+  return categories.map((cat) => ({
+    ...cat,
+    items: items.filter((item) => item.category_id === cat.id),
+  }));
+}
 
 export async function getCategories(): Promise<MenuCategory[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_categories")
     .select("*")
     .order("sort_order");
 
-  if (error) throw new AppError(500, "Failed to fetch categories");
+  if (error) throw new InternalServerException("Failed to fetch categories");
   return (data ?? []) as MenuCategory[];
 }
 
 export async function getCategoryById(id: string): Promise<MenuCategory> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_categories")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error || !data) throw new AppError(404, "Category not found");
+  if (error || !data) throw new NotFoundException("Category not found");
   return data as MenuCategory;
 }
 
 export async function createCategory(input: Record<string, unknown>): Promise<MenuCategory> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_categories")
-    .insert(input)
+    .insert({ id: crypto.randomUUID(), ...input })
     .select()
     .single();
 
-  if (error) throw new AppError(400, error.message);
+  if (error) throw new BadRequestException(error.message);
   return data as MenuCategory;
 }
 
 export async function updateCategory(id: string, input: Record<string, unknown>): Promise<MenuCategory> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_categories")
     .update(input)
     .eq("id", id)
     .select()
     .single();
 
-  if (error) throw new AppError(400, error.message);
-  if (!data) throw new AppError(404, "Category not found");
+  if (error) throw new BadRequestException(error.message);
+  if (!data) throw new NotFoundException("Category not found");
   return data as MenuCategory;
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await getAdminClient()
     .from("menu_categories")
     .delete()
     .eq("id", id);
 
-  if (error) throw new AppError(400, error.message);
+  if (error) throw new BadRequestException(error.message);
 }
 
-export async function getMenuItems(categoryId?: string): Promise<MenuItem[]> {
-  let query = supabase.from("menu_items").select("*").eq("active", true).order("sort_order");
+export async function getMenuItems(categoryId?: string, activeOnly = true): Promise<MenuItem[]> {
+  let query = getAdminClient().from("menu_items").select("*").order("sort_order");
 
+  if (activeOnly) query = query.eq("active", true);
   if (categoryId) query = query.eq("category_id", categoryId);
 
   const { data, error } = await query;
-  if (error) throw new AppError(500, "Failed to fetch menu items");
+  if (error) throw new InternalServerException("Failed to fetch menu items");
   return (data ?? []) as MenuItem[];
 }
 
 export async function getMenuItemById(id: string): Promise<MenuItem> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_items")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error || !data) throw new AppError(404, "Menu item not found");
+  if (error || !data) throw new NotFoundException("Menu item not found");
   return data as MenuItem;
 }
 
 export async function createMenuItem(input: Record<string, unknown>): Promise<MenuItem> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_items")
-    .insert(input)
+    .insert({ id: crypto.randomUUID(), ...input })
     .select()
     .single();
 
-  if (error) throw new AppError(400, error.message);
+  if (error) throw new BadRequestException(error.message);
   return data as MenuItem;
 }
 
 export async function updateMenuItem(id: string, input: Record<string, unknown>): Promise<MenuItem> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("menu_items")
     .update(input)
     .eq("id", id)
     .select()
     .single();
 
-  if (error) throw new AppError(400, error.message);
-  if (!data) throw new AppError(404, "Menu item not found");
+  if (error) throw new BadRequestException(error.message);
+  if (!data) throw new NotFoundException("Menu item not found");
   return data as MenuItem;
 }
 
 export async function deleteMenuItem(id: string): Promise<void> {
-  const { error } = await supabase.from("menu_items").delete().eq("id", id);
-  if (error) throw new AppError(400, error.message);
+  const { error } = await getAdminClient().from("menu_items").delete().eq("id", id);
+  if (error) throw new BadRequestException(error.message);
+}
+
+export async function getDealById(id: string): Promise<Deal> {
+  const { data, error } = await getAdminClient()
+    .from("deals")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) throw new NotFoundException("Deal not found");
+  return data as Deal;
 }
 
 export async function getDeals(activeOnly = true): Promise<Deal[]> {
-  let query = supabase.from("deals").select("*").order("created_at", { ascending: false });
+  let query = getAdminClient().from("deals").select("*").order("created_at", { ascending: false });
   if (activeOnly) query = query.eq("active", true);
 
   const { data, error } = await query;
-  if (error) throw new AppError(500, "Failed to fetch deals");
+  if (error) throw new InternalServerException("Failed to fetch deals");
   return (data ?? []) as Deal[];
 }
 
 export async function createDeal(input: Record<string, unknown>): Promise<Deal> {
-  const { data, error } = await supabase.from("deals").insert(input).select().single();
-  if (error) throw new AppError(400, error.message);
+  const { data, error } = await getAdminClient().from("deals").insert({ id: crypto.randomUUID(), ...input } as Record<string, unknown>).select().single();
+  if (error) throw new BadRequestException(error.message);
   return data as Deal;
 }
 
 export async function updateDeal(id: string, input: Record<string, unknown>): Promise<Deal> {
-  const { data, error } = await supabase
+  const { data, error } = await getAdminClient()
     .from("deals")
     .update(input)
     .eq("id", id)
     .select()
     .single();
 
-  if (error) throw new AppError(400, error.message);
-  if (!data) throw new AppError(404, "Deal not found");
+  if (error) throw new BadRequestException(error.message);
+  if (!data) throw new NotFoundException("Deal not found");
   return data as Deal;
 }
 
 export async function deleteDeal(id: string): Promise<void> {
-  const { error } = await supabase.from("deals").delete().eq("id", id);
-  if (error) throw new AppError(400, error.message);
+  const { error } = await getAdminClient().from("deals").delete().eq("id", id);
+  if (error) throw new BadRequestException(error.message);
 }

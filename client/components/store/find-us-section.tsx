@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchLocations } from "@/lib/redux/slices/locationsSlice";
+import type { RootState, AppDispatch } from "@/lib/redux/store";
 
-interface LocationType {
+interface LocationRow {
   id: string;
   name: string;
   postcode: string;
@@ -10,51 +13,13 @@ interface LocationType {
   mapsUrl: string;
 }
 
-const locations: LocationType[] = [
-  {
-    id: "01",
-    name: "Stratford",
-    postcode: "E15 1DA",
-    hours: "11am\u201311pm",
-    mapsUrl: "https://maps.google.com/?q=Stratford+E15+1DA",
-  },
-  {
-    id: "02",
-    name: "Whitechapel",
-    postcode: "E1 1BJ",
-    hours: "11am\u201312am",
-    mapsUrl: "https://maps.google.com/?q=Whitechapel+E1+1BJ",
-  },
-  {
-    id: "03",
-    name: "Walthamstow",
-    postcode: "E17 7LD",
-    hours: "11am\u201311pm",
-    mapsUrl: "https://maps.google.com/?q=Walthamstow+E17+7LD",
-  },
-  {
-    id: "04",
-    name: "Ilford",
-    postcode: "IG1 1TG",
-    hours: "11am\u201311pm",
-    mapsUrl: "https://maps.google.com/?q=Ilford+IG1+1TG",
-  },
-  {
-    id: "05",
-    name: "Bethnal Green",
-    postcode: "E2 6AA",
-    hours: "11am\u201312am",
-    mapsUrl: "https://maps.google.com/?q=Bethnal+Green+E2+6AA",
-  },
-];
-
-function LocationRow({
+function LocationRowComponent({
   location,
   isHovered,
   onMouseEnter,
   onMouseLeave,
 }: {
-  location: LocationType;
+  location: LocationRow;
   isHovered: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -122,6 +87,22 @@ function LocationRow({
 
 export default function FindUsSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const locations = useSelector((state: RootState) => state.locations.locations);
+
+  useEffect(() => {
+    if (locations.length === 0) {
+      dispatch(fetchLocations());
+    }
+  }, [dispatch, locations.length]);
+
+  const mappedLocations: LocationRow[] = locations.map((l, i) => ({
+    id: String(i + 1).padStart(2, "0"),
+    name: l.name.replace("Crispies ", ""),
+    postcode: l.address.split(",").pop()?.trim() ?? "",
+    hours: l.hours,
+    mapsUrl: `https://maps.google.com/?q=${encodeURIComponent(l.address)}`,
+  }));
 
   return (
     <section className="relative overflow-hidden bg-black p-8 text-white md:p-16 lg:p-24">
@@ -138,8 +119,8 @@ export default function FindUsSection() {
 
         {/* Location List */}
         <div className="find-us-container flex w-full flex-col">
-          {locations.map((location, index) => (
-            <LocationRow
+          {mappedLocations.map((location, index) => (
+            <LocationRowComponent
               key={location.id}
               location={location}
               isHovered={hoveredIndex === index}

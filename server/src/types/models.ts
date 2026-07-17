@@ -50,7 +50,7 @@ export interface Location {
 }
 
 export interface Order {
-  id: string;
+  id: number;
   customer_name: string;
   email: string;
   phone: string;
@@ -70,8 +70,8 @@ export interface Order {
 }
 
 export interface OrderItem {
-  id: string;
-  order_id: string;
+  id: number;
+  order_id: number;
   menu_item_id: string;
   name: string;
   price: number;
@@ -80,7 +80,7 @@ export interface OrderItem {
 }
 
 export interface BusinessSettings {
-  id: string;
+  id: number;
   delivery_fee: number;
   free_delivery_threshold: number;
   updated_at: string;
@@ -100,8 +100,22 @@ export interface JobPost {
   updated_at: string;
 }
 
-export interface ContactMessage {
+export interface JobApplication {
   id: string;
+  job_post_id: string;
+  applicant_name: string;
+  email: string;
+  phone: string | null;
+  cv_url: string | null;
+  cover_letter: string | null;
+  status: "pending" | "reviewed" | "shortlisted" | "rejected" | "hired";
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactMessage {
+  id: number;
   name: string;
   email: string;
   subject: string;

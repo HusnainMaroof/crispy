@@ -112,7 +112,7 @@ export default function PressPage() {
               <a
                 key={m.headline}
                 href={m.url}
-                className="fade-up block rounded-2xl border border-white/10 p-6 transition-colors hover:border-brand-red/40"
+                className="fade-up block rounded-2xl border border-white/10 p-6 transition-all duration-300 hover:border-brand-red/40 hover:bg-white/5 cursor-pointer"
               >
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-xs font-semibold uppercase tracking-widest text-brand-red">

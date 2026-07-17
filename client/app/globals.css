@@ -162,7 +162,13 @@ html::-webkit-scrollbar {
   .hero-fade-up,
   .video-modal-enter,
   .admin-fade-in,
-  .admin-slide-up {
+  .admin-slide-up,
+  .toast-enter,
+  .toast-exit,
+  .toast-shake,
+  .toast-icon,
+  .toast-progress,
+  .toast-pending-exit {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -188,8 +194,98 @@ html::-webkit-scrollbar {
 .admin-slide-up {
   animation: admin-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+.animate-slide-up {
+  animation: admin-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 .admin-scale-in {
   animation: admin-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* --- Toast animations (Disney 12 principles) --- */
+
+/* Principle 1: Squash & Stretch — bounce overshoot on enter */
+/* Principle 6: Ease In & Ease Out — fast in, slow settle */
+.toast-enter {
+  animation: toast-enter 300ms cubic-bezier(0.68, -0.55, 0.27, 1.55) both;
+}
+
+/* Principle 4: Straight Ahead — exit slides right, fades out */
+/* Principle 6: Ease In — slow start, fast out */
+.toast-exit {
+  animation: toast-exit 220ms cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+}
+
+/* Principle 10: Exaggeration — error shakes to grab attention */
+.toast-shake {
+  animation: toast-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes toast-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(80px) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-4px) scale(1.03);
+  }
+  80% {
+    transform: translateX(2px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-exit {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+}
+
+@keyframes toast-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+/* Principle 5: Follow Through — icon animates after container settles */
+.toast-icon {
+  animation: toast-icon-pop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.25s both;
+}
+
+@keyframes toast-icon-pop {
+  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Principle 5: Follow Through — progress bar starts after entrance */
+.toast-progress {
+  transform-origin: left;
+  animation: toast-progress 4s linear 0.3s forwards;
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Principle 2: Anticipation — slight shrink before auto-dismiss */
+.toast-pending-exit {
+  animation: toast-anticipate 0.2s ease-in forwards;
+}
+
+@keyframes toast-anticipate {
+  0% { transform: scale(1); }
+  100% { transform: scale(0.96); opacity: 0.7; }
 }
 
 @keyframes admin-fade-in {

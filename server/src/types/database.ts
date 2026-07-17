@@ -7,6 +7,7 @@ import type {
   OrderItem,
   BusinessSettings,
   JobPost,
+  JobApplication,
   ContactMessage,
   AdminProfile,
 } from "./models.js";
@@ -64,6 +65,11 @@ export interface Database {
         Insert: Omit<AdminProfile, "created_at">;
         Update: Partial<Omit<AdminProfile, "id" | "created_at">>;
       };
+      job_applications: {
+        Row: JobApplication;
+        Insert: Omit<JobApplication, "created_at" | "updated_at">;
+        Update: Partial<Omit<JobApplication, "id" | "created_at" | "updated_at">>;
+      };
     };
     Functions: Record<string, unknown>;
     Enums: {
@@ -71,6 +77,7 @@ export interface Database {
       payment_method: "card" | "cash";
       order_status: "pending" | "preparing" | "ready" | "out-for-delivery" | "delivered" | "cancelled";
       job_status: "draft" | "active" | "closed";
+      application_status: "pending" | "reviewed" | "shortlisted" | "rejected" | "hired";
       admin_role: "admin" | "superadmin";
     };
   };

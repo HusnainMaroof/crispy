@@ -1,27 +1,14 @@
 import { Router } from "express";
-import { getLocations, updateLocation } from "../../services/admin.service.js";
 import { validate } from "../../middleware/validate.js";
-import { locationUpdateSchema } from "../../validators/order.schema.js";
-import { sendSuccess, sendError } from "../../utils/response.js";
+import { locationSchema, locationUpdateSchema } from "../../validators/order.schema.js";
+import { asyncHandler } from "../../utils/async-handler.js";
+import { LocationsController } from "../../controllers/admin/locations.controller.js";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
-  try {
-    const locations = await getLocations();
-    sendSuccess(res, locations);
-  } catch (e) {
-    sendError(res, e instanceof Error ? e.message : "Unknown error");
-  }
-});
-
-router.patch("/:id", validate(locationUpdateSchema), async (req, res) => {
-  try {
-    const location = await updateLocation(req.params.id as string, req.body);
-    sendSuccess(res, location);
-  } catch (e) {
-    sendError(res, e instanceof Error ? e.message : "Unknown error", 400);
-  }
-});
+router.get("/", asyncHandler(LocationsController.list));
+router.post("/", validate(locationSchema), asyncHandler(LocationsController.create));
+router.patch("/:id", validate(locationUpdateSchema), asyncHandler(LocationsController.update));
+router.delete("/:id", asyncHandler(LocationsController.remove));
 
 export default router;

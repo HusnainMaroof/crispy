@@ -7,13 +7,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLenis } from "@/components/providers/smooth-scroll";
 import { clearCart, removeItem, updateQuantity } from "@/lib/redux/slices/cartSlice";
-import type { RootState } from "@/lib/redux/store";
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD } from "@/lib/data/business";
+import { fetchSettings } from "@/lib/redux/slices/settingsSlice";
+import type { RootState, AppDispatch } from "@/lib/redux/store";
 
 export default function CartPage() {
   const items = useSelector((state: RootState) => state.cart.items);
-  const dispatch = useDispatch();
+  const settings = useSelector((state: RootState) => state.settings.settings);
+  const dispatch = useDispatch<AppDispatch>();
   const { scrollTo } = useLenis();
+
+  useEffect(() => {
+    if (!settings) dispatch(fetchSettings());
+  }, [dispatch, settings]);
+
+  const DELIVERY_FEE = settings?.delivery_fee ?? 2.99;
+  const FREE_DELIVERY_THRESHOLD = settings?.free_delivery_threshold ?? 20;
 
   const [confirmingClear, setConfirmingClear] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -84,7 +92,7 @@ export default function CartPage() {
             </p>
             <Link
               href="/menu"
-              className="group mt-8 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-transform duration-300 hover:scale-105 active:scale-95"
+              className="group mt-8 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
             >
               Browse the menu
               <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
@@ -124,14 +132,14 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={handleClear}
-                      className="rounded-full border border-brand-red/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-brand-red transition-colors hover:bg-brand-red hover:text-white"
+                      className="cursor-pointer rounded-full border border-brand-red/60 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-brand-red transition-all duration-200 hover:bg-brand-red hover:text-white active:scale-95"
                     >
                       Yes
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmingClear(false)}
-                      className="rounded-full border border-white/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/60 transition-colors hover:text-white"
+                      className="cursor-pointer rounded-full border border-white/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/60 transition-all duration-200 hover:text-white active:scale-95"
                     >
                       No
                     </button>
@@ -140,7 +148,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={() => setConfirmingClear(true)}
-                    className="text-[11px] font-bold uppercase tracking-widest text-white/40 transition-colors hover:text-brand-red"
+                    className="cursor-pointer text-[11px] font-bold uppercase tracking-widest text-white/40 transition-colors hover:text-brand-red"
                   >
                     Clear all
                   </button>
@@ -171,7 +179,7 @@ export default function CartPage() {
                         type="button"
                         onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }))}
                         disabled={item.quantity <= 1}
-                        className="grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-brand-red hover:text-brand-red disabled:opacity-30 disabled:hover:border-white/15 disabled:hover:text-white/70"
+                        className="cursor-pointer grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70 transition-all duration-200 hover:border-brand-red hover:text-brand-red active:scale-90 disabled:opacity-30 disabled:hover:border-white/15 disabled:hover:text-white/70"
                         aria-label={`Decrease ${item.name} quantity`}
                       >
                         <span className="text-lg leading-none">&minus;</span>
@@ -182,7 +190,7 @@ export default function CartPage() {
                       <button
                         type="button"
                         onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))}
-                        className="grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-brand-red hover:text-brand-red"
+                        className="cursor-pointer grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70 transition-all duration-200 hover:border-brand-red hover:text-brand-red active:scale-90"
                         aria-label={`Increase ${item.name} quantity`}
                       >
                         <span className="text-lg leading-none">+</span>
@@ -198,7 +206,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       onClick={() => dispatch(removeItem(item.id))}
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 text-white/40 transition-colors hover:border-brand-red hover:bg-brand-red hover:text-white"
+                      className="cursor-pointer grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 text-white/40 transition-all duration-200 hover:border-brand-red hover:bg-brand-red hover:text-white active:scale-90"
                       aria-label={`Remove ${item.name} from cart`}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -213,7 +221,7 @@ export default function CartPage() {
               {/* Continue shopping */}
               <Link
                 href="/menu"
-                className="group mt-6 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50 transition-colors hover:text-white"
+                className="group mt-6 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50 transition-colors hover:text-white cursor-pointer"
               >
                 <span className="transition-transform group-hover:-translate-x-1">&larr;</span>
                 Add more items
@@ -249,7 +257,7 @@ export default function CartPage() {
 
                 <Link
                   href="/checkout"
-                  className="group mt-8 flex w-full items-center justify-center gap-3 rounded-full bg-brand-red px-6 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-transform duration-300 hover:scale-[1.02] active:scale-95"
+                  className="group mt-8 flex w-full items-center justify-center gap-3 rounded-full bg-brand-red px-6 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
                   Checkout
                   <span className="transition-transform group-hover:translate-x-1">&rarr;</span>

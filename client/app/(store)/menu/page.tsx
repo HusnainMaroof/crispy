@@ -6,10 +6,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useLenis } from "@/components/providers/smooth-scroll";
 import { addItem } from "@/lib/redux/slices/cartSlice";
-import { menuCategories, deals, type MenuItemType, type MenuCategoryType } from "@/lib/data/menu";
+import { fetchFullMenu, fetchDeals } from "@/lib/redux/slices/menuSlice";
+import type { RootState, AppDispatch } from "@/lib/redux/store";
+import type { MenuItem, MenuCategory } from "@/lib/redux/types";
 import MenuItemModal from "@/components/store/menu-item-modal";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -23,7 +25,7 @@ const TABS: { id: TabId; label: string }[] = [
 
 type MenuRowProps = {
   index: string;
-  item: MenuItemType;
+  item: MenuItem;
   onOpen: () => void;
   onHover: (image: string | null) => void;
 };
@@ -97,9 +99,18 @@ function MenuRow({ index, item, onOpen, onHover }: MenuRowProps) {
 export default function FullMenuPage() {
   const [activeTab, setActiveTab] = useState<TabId>("full-menu");
   const [query, setQuery] = useState("");
-  const [selectedItem, setSelectedItem] = useState<MenuItemType | null>(null);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const hoveredImageRef = useRef<string | null>(null);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const categories = useSelector((state: RootState) => state.menu.categories);
+  const dealItems = useSelector((state: RootState) => state.menu.deals);
+
+  useEffect(() => {
+    if (categories.length === 0) dispatch(fetchFullMenu());
+    if (dealItems.length === 0) dispatch(fetchDeals());
+  }, [dispatch, categories.length, dealItems.length]);
 
   const menuListRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -108,15 +119,14 @@ export default function FullMenuPage() {
   const curPos = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number | undefined>(undefined);
 
-  const dispatch = useDispatch();
   const { stop, start } = useLenis();
 
   const isSearching = query.trim().length > 0;
   const q = query.trim().toLowerCase();
 
-  const searchMenuGroups = useMemo<MenuCategoryType[]>(() => {
+  const searchMenuGroups = useMemo<MenuCategory[]>(() => {
     if (!isSearching) return [];
-    return menuCategories
+    return categories
       .map((cat) => ({
         ...cat,
         items: cat.items.filter(
@@ -124,14 +134,14 @@ export default function FullMenuPage() {
         ),
       }))
       .filter((cat) => cat.items.length > 0);
-  }, [q, isSearching]);
+  }, [q, isSearching, categories]);
 
-  const searchDeals = useMemo<MenuItemType[]>(() => {
+  const searchDeals = useMemo<MenuItem[]>(() => {
     if (!isSearching) return [];
-    return deals.filter(
+    return dealItems.filter(
       (it) => it.name.toLowerCase().includes(q) || it.description.toLowerCase().includes(q),
     );
-  }, [q, isSearching]);
+  }, [q, isSearching, dealItems]);
 
   const searchMenuCount = searchMenuGroups.reduce((s, c) => s + c.items.length, 0);
   const searchDealsCount = searchDeals.length;
@@ -216,7 +226,7 @@ export default function FullMenuPage() {
     }
   };
 
-  const openItem = (item: MenuItemType) => setSelectedItem(item);
+  const openItem = (item: MenuItem) => setSelectedItem(item);
   const hoverItem = (image: string | null) => {
     hoveredImageRef.current = image;
     setHoveredImage(image);
@@ -375,7 +385,7 @@ export default function FullMenuPage() {
           </div>
         ) : activeTab === "full-menu" ? (
           <div className="py-12 md:py-16">
-            {menuCategories.map((cat) => (
+            {categories.map((cat) => (
               <section key={cat.id} className="menu-row-anim scroll-mt-32 pb-10">
                 <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/10 pb-4">
                   <div className="flex items-baseline gap-4">
@@ -384,7 +394,7 @@ export default function FullMenuPage() {
                   </div>
                   <span className="shrink-0 text-xs font-semibold uppercase tracking-widest text-white/30">{cat.items.length} Items</span>
                 </div>
-                <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2 lg:gap-x-16">
+                <div className={`grid gap-x-10 lg:gap-x-16 ${cat.items.length === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
                   {cat.items.map((item, i) => (
                     <MenuRow key={item.id} index={String(i + 1).padStart(2, "0")} item={item} onOpen={() => openItem(item)} onHover={hoverItem} />
                   ))}
@@ -396,10 +406,10 @@ export default function FullMenuPage() {
           <div className="py-12 md:py-16">
             <div className="mb-6 flex items-baseline justify-between gap-4 border-b border-white/10 pb-5">
               <h2 className="font-[family-name:var(--font-bebas)] text-4xl uppercase leading-none text-white md:text-5xl">Today&apos;s Deals</h2>
-              <span className="shrink-0 text-xs font-semibold uppercase tracking-widest text-white/30">{deals.length} Deals</span>
+              <span className="shrink-0 text-xs font-semibold uppercase tracking-widest text-white/30">{dealItems.length} Deals</span>
             </div>
             <div className="grid grid-cols-1 gap-x-10 md:grid-cols-2 lg:gap-x-16">
-              {deals.map((item, i) => (
+              {dealItems.map((item, i) => (
                 <div key={item.id} className="menu-row-anim">
                   <MenuRow index={String(i + 1).padStart(2, "0")} item={item} onOpen={() => openItem(item)} onHover={hoverItem} />
                 </div>

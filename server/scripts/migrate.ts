@@ -9,10 +9,10 @@ config();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in .env");
+  console.error("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env");
   process.exit(1);
 }
 

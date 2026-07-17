@@ -1,16 +1,9 @@
 import { Router } from "express";
-import { getDashboardStats } from "../../services/order.service.js";
-import { sendSuccess, sendError } from "../../utils/response.js";
+import { asyncHandler } from "../../utils/async-handler.js";
+import { DashboardController } from "../../controllers/admin/dashboard.controller.js";
 
 const router = Router();
 
-router.get("/stats", async (_req, res) => {
-  try {
-    const stats = await getDashboardStats();
-    sendSuccess(res, stats);
-  } catch (e) {
-    sendError(res, e instanceof Error ? e.message : "Unknown error");
-  }
-});
+router.get("/stats", asyncHandler(DashboardController.stats));
 
 export default router;

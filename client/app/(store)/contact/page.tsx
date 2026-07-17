@@ -4,6 +4,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef, useState } from "react";
+import { api } from "@/lib/api";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -34,9 +35,14 @@ export default function ContactPage() {
     { scope: pageRef }
   );
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
+    try {
+      await api.post("/contact", { name, email, subject, message, type: "general" });
+      setSubmitted(true);
+    } catch {
+      alert("Something went wrong. Please try again.");
+    }
   }
 
   return (
@@ -89,7 +95,7 @@ export default function ContactPage() {
                     setSubject("");
                     setMessage("");
                   }}
-                  className="mt-6 rounded-full border border-white/20 px-6 py-2.5 text-sm text-white transition-colors hover:border-white/40"
+                  className="mt-6 cursor-pointer rounded-full border border-white/20 px-6 py-2.5 text-sm text-white transition-all duration-200 hover:border-white/40 active:scale-95"
                 >
                   Send Another
                 </button>
@@ -166,7 +172,7 @@ export default function ContactPage() {
                 </div>
                 <button
                   type="submit"
-                  className="mt-2 w-full rounded-full bg-brand-red py-4 font-semibold text-white transition-colors hover:bg-red-700"
+                  className="mt-2 w-full cursor-pointer rounded-full bg-brand-red py-4 font-semibold text-white transition-all duration-300 hover:bg-red-700 hover:scale-[1.02] active:scale-95"
                 >
                   Send Message
                 </button>

@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import PageHeader from "@/components/admin/ui/page-header";
 import Modal from "@/components/admin/ui/modal";
 import Dropdown from "@/components/admin/ui/dropdown";
+import { TableSkeleton } from "@/components/admin/ui/skeleton";
 import { useMenu } from "@/lib/admin/use-menu";
 import { useCategories } from "@/lib/admin/use-categories";
 
 export default function MenuPage() {
-  const { items, addItem, updateItem, deleteItem } = useMenu();
-  const { categories } = useCategories();
+  const { items, loading, fetchItems, addItem, updateItem, deleteItem } = useMenu();
+  const { categories, fetchCategories } = useCategories();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchItems();
+    fetchCategories();
+  }, [fetchItems, fetchCategories]);
 
   const categoryOptions = [
     { value: "all", label: "All Categories" },
@@ -35,9 +42,29 @@ export default function MenuPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this item?")) {
-      deleteItem(id);
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this item?")) return;
+    try {
+      await deleteItem(id);
+      toast.success("Item deleted");
+    } catch {
+      toast.error("Failed to delete item");
+    }
+  };
+
+  const handleSave = async (data: Parameters<typeof addItem>[0]) => {
+    try {
+      if (editingItem) {
+        await updateItem(editingItem, data);
+        toast.success("Item updated");
+      } else {
+        await addItem(data);
+        toast.success("Item added");
+      }
+      setShowForm(false);
+      setEditingItem(null);
+    } catch {
+      toast.error(editingItem ? "Failed to update item" : "Failed to add item");
     }
   };
 
@@ -58,6 +85,8 @@ export default function MenuPage() {
           </button>
         }
       />
+
+      {loading && <TableSkeleton />}
 
       {/* Filters */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
@@ -163,15 +192,7 @@ export default function MenuPage() {
           itemId={editingItem}
           items={items}
           categories={categories}
-          onSave={(data) => {
-            if (editingItem) {
-              updateItem(editingItem, data);
-            } else {
-              addItem(data);
-            }
-            setShowForm(false);
-            setEditingItem(null);
-          }}
+          onSave={handleSave}
           onClose={() => {
             setShowForm(false);
             setEditingItem(null);

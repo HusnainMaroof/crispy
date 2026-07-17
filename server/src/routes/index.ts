@@ -8,6 +8,7 @@ import orderRoutes from "./admin/orders.js";
 import locationRoutes from "./admin/locations.js";
 import settingsRoutes from "./admin/settings.js";
 import jobRoutes from "./admin/jobs.js";
+import jobApplicationRoutes from "./admin/job-applications.js";
 import dashboardRoutes from "./admin/dashboard.js";
 import publicMenuRoutes from "./menu.js";
 import storeRoutes from "./store.js";
@@ -29,6 +30,7 @@ router.use("/admin/orders", authenticate, orderRoutes);
 router.use("/admin/locations", authenticate, locationRoutes);
 router.use("/admin/settings", authenticate, settingsRoutes);
 router.use("/admin/jobs", authenticate, jobRoutes);
+router.use("/admin/job-applications", authenticate, jobApplicationRoutes);
 router.use("/admin/dashboard", authenticate, dashboardRoutes);
 
 export default router;

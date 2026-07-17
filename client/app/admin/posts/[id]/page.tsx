@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import PageHeader from "@/components/admin/ui/page-header";
 import Dropdown from "@/components/admin/ui/dropdown";
 import { useJobPosts } from "@/lib/admin/use-job-posts";
-import { locationOptions } from "@/lib/admin/location-options";
+import { getLocationOptions } from "@/lib/admin/location-options";
 
 const typeOptions = [
   { value: "full-time", label: "Full-time" },
@@ -23,6 +23,7 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
   const router = useRouter();
   const { updateJobPost, deleteJobPost } = useJobPosts();
 
+  const [locationOpts, setLocationOpts] = useState<{ value: string; label: string }[]>([]);
   const [title, setTitle] = useState(post.title);
   const [location, setLocation] = useState(post.location);
   const [type, setType] = useState<string>(post.type);
@@ -32,6 +33,10 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
     post.requirements.length > 0 ? post.requirements : [""]
   );
   const [status, setStatus] = useState<string>(post.status);
+
+  useEffect(() => {
+    getLocationOptions().then(setLocationOpts);
+  }, []);
 
   const addRequirement = () => {
     setRequirements([...requirements, ""]);
@@ -111,7 +116,7 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
                   Location <span className="text-brand-red">*</span>
                 </label>
                 <Dropdown
-                  options={locationOptions}
+                  options={locationOpts}
                   value={location}
                   onChange={setLocation}
                   placeholder="Select location"
@@ -237,9 +242,30 @@ export default function EditJobPostPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  const { getJobPost } = useJobPosts();
+  const { getJobPost, fetchJobPosts } = useJobPosts();
 
-  const post = getJobPost(id);
+  const [post, setPost] = useState(getJobPost(id));
+  const [loading, setLoading] = useState(!post);
+
+  useEffect(() => {
+    if (post) return;
+    fetchJobPosts().then(() => {
+      const found = getJobPost(id);
+      setPost(found);
+      setLoading(false);
+    });
+  }, [id, post, fetchJobPosts, getJobPost]);
+
+  if (loading) {
+    return (
+      <div className="admin-fade-in">
+        <PageHeader title="Loading..." />
+        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
+          <p className="text-sm text-white/50">Loading job post...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!post) {
     return (

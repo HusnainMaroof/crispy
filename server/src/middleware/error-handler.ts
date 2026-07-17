@@ -1,27 +1,21 @@
 import type { Request, Response, NextFunction } from "express";
-
-export class AppError extends Error {
-  constructor(
-    public statusCode: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "AppError";
-  }
-}
+import { logger } from "./logger.js";
+import { AppError } from "../utils/app-error.js";
 
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       success: false,
       error: err.message,
+      code: err.errorCode,
     });
     return;
   }
 
-  console.error("Unhandled error:", err);
+  logger.error({ err, name: err.name }, "Unhandled error");
   res.status(500).json({
     success: false,
     error: "Internal server error",
+    code: "ERR_INTERNAL",
   });
 }

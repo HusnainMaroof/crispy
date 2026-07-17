@@ -1,26 +1,13 @@
 import { Router } from "express";
-import { getLocations } from "../services/admin.service.js";
-import { getSettings } from "../services/admin.service.js";
-import { sendSuccess, sendError } from "../utils/response.js";
+import { asyncHandler } from "../utils/async-handler.js";
+import { StoreController } from "../controllers/store/store.controller.js";
 
 const router = Router();
 
-router.get("/locations", async (_req, res) => {
-  try {
-    const locations = await getLocations();
-    sendSuccess(res, locations);
-  } catch (e) {
-    sendError(res, e instanceof Error ? e.message : "Unknown error");
-  }
-});
-
-router.get("/settings", async (_req, res) => {
-  try {
-    const settings = await getSettings();
-    sendSuccess(res, settings);
-  } catch (e) {
-    sendError(res, e instanceof Error ? e.message : "Unknown error");
-  }
-});
+router.get("/locations", asyncHandler(StoreController.locations));
+router.get("/locations/:id", asyncHandler(StoreController.locationById));
+router.get("/location", asyncHandler(StoreController.myLocation));
+router.patch("/location", asyncHandler(StoreController.setLocation));
+router.get("/settings", asyncHandler(StoreController.settings));
 
 export default router;

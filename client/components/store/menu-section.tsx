@@ -3,10 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { menuCategories, type MenuItemType } from "@/lib/data/menu";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchFullMenu } from "@/lib/redux/slices/menuSlice";
+import type { RootState, AppDispatch } from "@/lib/redux/store";
+import type { MenuItem } from "@/lib/redux/types";
 
 type MenuRowProps = {
-  item: MenuItemType;
+  item: MenuItem;
   index: number;
   isHovered: boolean;
   onMouseEnter: () => void;
@@ -95,6 +98,14 @@ function MenuRow({
 
 export default function MenuSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const categories = useSelector((state: RootState) => state.menu.categories);
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      dispatch(fetchFullMenu());
+    }
+  }, [dispatch, categories.length]);
 
   const imageRef = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
@@ -102,7 +113,7 @@ export default function MenuSection() {
   const reqRef = useRef<number | undefined>(undefined);
 
   // Pick 3 featured categories for the homepage preview
-  const featuredCategories = menuCategories.slice(0, 3);
+  const featuredCategories = categories.slice(0, 3);
 
   useEffect(() => {
     const reduce = window.matchMedia(

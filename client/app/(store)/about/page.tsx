@@ -147,7 +147,7 @@ export default function AboutPage() {
         </p>
         <a
           href="/menu"
-          className="fade-up mt-8 inline-block rounded-full bg-brand-red px-10 py-4 font-semibold text-white transition-colors hover:bg-red-700"
+          className="fade-up mt-8 inline-block rounded-full bg-brand-red px-10 py-4 font-semibold text-white transition-all duration-300 hover:bg-red-700 hover:scale-105 active:scale-95 cursor-pointer"
         >
           View Menu
         </a>

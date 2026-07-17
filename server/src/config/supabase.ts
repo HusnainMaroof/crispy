@@ -1,8 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
-import { env } from "./env.js";
+import { createAdminClient, createContextClient } from "@supabase/server/core";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { envConfig } from "./env.js";
 
-export const supabase = createClient(
-  env.SUPABASE_URL,
-  env.SUPABASE_SERVICE_KEY,
-  { auth: { persistSession: false } },
-);
+let admin: SupabaseClient | null = null;
+
+export function getAdminClient() {
+  if (!admin) {
+    process.env.SUPABASE_URL = envConfig.SUPABASE.URL;
+    process.env.SUPABASE_SECRET_KEY = envConfig.SUPABASE.SECRET_KEY;
+    admin = createAdminClient();
+  }
+  return admin;
+}
+
+export function getContextClient(opts?: { token?: string; keyName?: string }) {
+  process.env.SUPABASE_URL = envConfig.SUPABASE.URL;
+  process.env.SUPABASE_PUBLISHABLE_KEY = envConfig.SUPABASE.PUBLISHABLE_KEY;
+  return createContextClient(
+    opts?.token
+      ? { auth: { token: opts.token, keyName: opts.keyName ?? "default" } }
+      : undefined,
+  );
+}

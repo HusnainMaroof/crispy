@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import gsap from "gsap";
-import { type MenuItemType } from "@/lib/data/menu";
+import { type MenuItem } from "@/lib/redux/types";
 
 interface MenuItemModalProps {
-  item: MenuItemType;
+  item: MenuItem;
   onClose: () => void;
   onAdd: (quantity: number) => void;
 }

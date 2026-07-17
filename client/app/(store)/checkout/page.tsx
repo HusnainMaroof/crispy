@@ -3,11 +3,12 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart } from "@/lib/redux/slices/cartSlice";
-import type { RootState } from "@/lib/redux/store";
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD } from "@/lib/data/business";
+import { fetchSettings } from "@/lib/redux/slices/settingsSlice";
+import type { RootState, AppDispatch } from "@/lib/redux/store";
+import { api } from "@/lib/api";
 
 type Fulfilment = "delivery" | "collection";
 type PaymentMethod = "card" | "cash";
@@ -36,7 +37,15 @@ const initialForm: FormState = {
 
 export default function CheckoutPage() {
   const items = useSelector((state: RootState) => state.cart.items);
-  const dispatch = useDispatch();
+  const settings = useSelector((state: RootState) => state.settings.settings);
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    if (!settings) dispatch(fetchSettings());
+  }, [dispatch, settings]);
+
+  const DELIVERY_FEE = settings?.delivery_fee ?? 2.99;
+  const FREE_DELIVERY_THRESHOLD = settings?.free_delivery_threshold ?? 20;
 
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -108,11 +117,33 @@ export default function CheckoutPage() {
     }
 
     setSubmitting(true);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    api.post("/orders", {
+      customer_name: form.name,
+      email: form.email,
+      phone: form.phone,
+      address: fulfilment === "delivery" ? form.address : null,
+      postcode: fulfilment === "delivery" ? form.postcode : null,
+      city: fulfilment === "delivery" ? form.city : null,
+      notes: form.notes || null,
+      fulfilment,
+      payment_method: payment,
+      subtotal,
+      delivery_fee: deliveryFee,
+      total,
+      items: items.map((i) => ({
+        menu_item_id: i.id,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      })),
+    }).then(() => {
       setOrderComplete(true);
       dispatch(clearCart());
-    }, 1100);
+    }).catch(() => {
+      alert("Something went wrong placing your order. Please try again.");
+    }).finally(() => {
+      setSubmitting(false);
+    });
   };
 
   // Order complete view
@@ -139,7 +170,7 @@ export default function CheckoutPage() {
           </p>
           <Link
             href="/"
-            className="group mt-10 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-transform duration-300 hover:scale-105 active:scale-95"
+            className="group mt-10 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
           >
             Back to home
             <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
@@ -162,7 +193,7 @@ export default function CheckoutPage() {
           </p>
           <Link
             href="/menu"
-            className="group mt-8 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white transition-transform duration-300 hover:scale-105 active:scale-95"
+            className="group mt-8 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
           >
             Browse the menu
             <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
@@ -207,10 +238,10 @@ export default function CheckoutPage() {
                     }
                   }}
                   aria-pressed={fulfilment === opt}
-                  className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-4 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                  className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl border px-4 py-4 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
                     fulfilment === opt
                       ? "border-brand-red bg-brand-red text-white"
-                      : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white"
+                      : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white active:scale-95"
                   }`}
                 >
                   {opt === "delivery" ? (
@@ -337,10 +368,10 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={() => setPayment(method)}
                   aria-pressed={payment === method}
-                  className={`flex items-center justify-center gap-2 rounded-2xl border px-4 py-4 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                  className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl border px-4 py-4 text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
                     payment === method
                       ? "border-brand-red bg-brand-red text-white"
-                      : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white"
+                      : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white active:scale-95"
                   }`}
                 >
                   {method === "card" ? (
@@ -421,7 +452,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="group mt-8 flex w-full items-center justify-center gap-3 rounded-full bg-brand-red px-6 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-transform duration-300 hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-60"
+              className="group mt-8 flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-brand-red px-6 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-60"
             >
               {submitting ? (
                 <>

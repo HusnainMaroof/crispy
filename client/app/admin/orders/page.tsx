@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PageHeader from "@/components/admin/ui/page-header";
 import Dropdown from "@/components/admin/ui/dropdown";
+import { TableSkeleton } from "@/components/admin/ui/skeleton";
 import { useOrders } from "@/lib/admin/use-orders";
-import type { AdminOrder } from "@/lib/admin/mock-data";
+import type { AdminOrder } from "@/lib/admin/use-orders";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
@@ -40,8 +41,12 @@ const filterOptions = [
 ];
 
 export default function OrdersPage() {
-  const { orders, updateOrderStatus } = useOrders();
+  const { orders, loading, fetchOrders, updateOrderStatus } = useOrders();
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const filtered = orders.filter(
     (order) => filterStatus === "all" || order.status === filterStatus
@@ -57,6 +62,8 @@ export default function OrdersPage() {
         title="Orders"
         description="View and manage customer orders."
       />
+
+      {loading && <TableSkeleton />}
 
       {/* Status Filter */}
       <div className="mb-6">

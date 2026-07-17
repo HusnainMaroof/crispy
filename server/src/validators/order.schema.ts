@@ -18,6 +18,9 @@ export const createOrderSchema = z.object({
   fulfilment: z.enum(["delivery", "collection"]),
   payment_method: z.enum(["card", "cash"]),
   location_id: z.string().nullable().optional(),
+  subtotal: z.number().positive(),
+  delivery_fee: z.number().min(0),
+  total: z.number().positive(),
   items: z.array(orderItemSchema).min(1),
 });
 

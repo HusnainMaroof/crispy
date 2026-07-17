@@ -4,10 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseKey = process.env.SUPABASE_SECRET_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in .env");
+  console.error("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env");
   process.exit(1);
 }
 
@@ -88,6 +88,49 @@ async function seed() {
   ];
   const { error: jobErr } = await supabase.from("job_posts").insert(jobs);
   if (jobErr) console.error("Jobs error:", jobErr.message);
+
+  // Sample order (bigint identity — order id is auto-generated)
+  const { data: sampleOrder, error: orderErr } = await supabase
+    .from("orders")
+    .insert({
+      customer_name: "Jane Sample",
+      email: "jane@example.com",
+      phone: "+44 20 7946 0000",
+      address: "1 Main Street",
+      postcode: "SW1A 1AA",
+      city: "London",
+      fulfilment: "delivery",
+      payment_method: "card",
+      subtotal: 15.98,
+      delivery_fee: 2.99,
+      total: 18.97,
+      status: "delivered",
+      location_id: "loc-brixton",
+    })
+    .select()
+    .single();
+
+  if (orderErr) {
+    console.error("Sample order error:", orderErr.message);
+  } else {
+    const { error: itemsErr } = await supabase.from("order_items").insert([
+      {
+        order_id: sampleOrder!.id,
+        menu_item_id: "item-wings-10",
+        name: "10 Wings",
+        price: 10.99,
+        quantity: 1,
+      },
+      {
+        order_id: sampleOrder!.id,
+        menu_item_id: "item-tenders-3",
+        name: "Trio-Tastic",
+        price: 5.49,
+        quantity: 1,
+      },
+    ]);
+    if (itemsErr) console.error("Sample order items error:", itemsErr.message);
+  }
 
   console.log("Seed completed.");
 }

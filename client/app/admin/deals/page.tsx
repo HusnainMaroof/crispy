@@ -1,28 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import PageHeader from "@/components/admin/ui/page-header";
 import Modal from "@/components/admin/ui/modal";
+import { TableSkeleton } from "@/components/admin/ui/skeleton";
 import { useDeals } from "@/lib/admin/use-deals";
 
 export default function DealsPage() {
-  const { deals, addDeal, updateDeal, deleteDeal, toggleDealActive } = useDeals();
+  const { deals, loading, fetchDeals, addDeal, updateDeal, deleteDeal, toggleDealActive } = useDeals();
   const [showForm, setShowForm] = useState(false);
   const [editingDeal, setEditingDeal] = useState<string | null>(null);
+  const [deletingDeal, setDeletingDeal] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDeals();
+  }, [fetchDeals]);
 
   const handleEdit = (id: string) => {
     setEditingDeal(id);
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this deal?")) {
-      deleteDeal(id);
+  const handleDeleteConfirm = async () => {
+    if (!deletingDeal) return;
+    try {
+      await deleteDeal(deletingDeal);
+      toast.success("Deal deleted");
+    } catch {
+      toast.error("Failed to delete deal");
+    } finally {
+      setDeletingDeal(null);
+    }
+  };
+
+  const handleToggle = async (id: string) => {
+    try {
+      await toggleDealActive(id);
+      toast.success("Deal status updated");
+    } catch {
+      toast.error("Failed to update deal status");
+    }
+  };
+
+  const handleSave = async (data: Parameters<typeof addDeal>[0]) => {
+    try {
+      if (editingDeal) {
+        await updateDeal(editingDeal, data);
+        toast.success("Deal updated");
+      } else {
+        await addDeal(data);
+        toast.success("Deal added");
+      }
+      setShowForm(false);
+      setEditingDeal(null);
+    } catch {
+      toast.error(editingDeal ? "Failed to update deal" : "Failed to add deal");
     }
   };
 
   return (
-    <div>
+    <div className="admin-fade-in">
       <PageHeader
         title="Deals"
         description="Manage promotional deals and offers."
@@ -32,14 +70,36 @@ export default function DealsPage() {
               setEditingDeal(null);
               setShowForm(true);
             }}
-            className="rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            className="cursor-pointer btn-press rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
           >
             Add Deal
           </button>
         }
       />
 
+      {loading && <TableSkeleton />}
+
       {/* Deals Table */}
+      {!loading && deals.length === 0 && (
+        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
+          <svg className="mx-auto h-12 w-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a4 4 0 00-8 0v7m8 0l-8 8m8-8l8 8m-8-8H4" />
+          </svg>
+          <h3 className="mt-4 text-sm font-medium text-white">No deals yet</h3>
+          <p className="mt-1 text-sm text-white/50">Get started by adding your first deal.</p>
+          <button
+            onClick={() => { setEditingDeal(null); setShowForm(true); }}
+            className="cursor-pointer btn-press mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Deal
+          </button>
+        </div>
+      )}
+
+      {!loading && deals.length > 0 && (
       <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
         <table className="w-full">
           <thead>
@@ -87,8 +147,8 @@ export default function DealsPage() {
                 </td>
                 <td className="px-6 py-4">
                   <button
-                    onClick={() => toggleDealActive(deal.id)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    onClick={() => handleToggle(deal.id)}
+                    className={`cursor-pointer relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       deal.active ? "bg-brand-red" : "bg-white/20"
                     }`}
                   >
@@ -102,13 +162,13 @@ export default function DealsPage() {
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => handleEdit(deal.id)}
-                    className="mr-3 text-white/50 hover:text-white"
+                    className="cursor-pointer mr-3 text-white/50 hover:text-white"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(deal.id)}
-                    className="text-white/50 hover:text-brand-red"
+                    onClick={() => setDeletingDeal(deal.id)}
+                    className="cursor-pointer text-white/50 hover:text-brand-red"
                   >
                     Delete
                   </button>
@@ -117,27 +177,41 @@ export default function DealsPage() {
             ))}
           </tbody>
         </table>
-        {deals.length === 0 && (
-          <div className="py-12 text-center text-sm text-white/50">
-            No deals yet. Add your first deal to get started.
-          </div>
-        )}
       </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingDeal && (
+        <Modal
+          onClose={() => setDeletingDeal(null)}
+          title="Delete Deal"
+        >
+          <p className="mb-6 text-sm text-white/70">
+            Are you sure you want to delete <span className="font-medium text-white">{deals.find((d) => d.id === deletingDeal)?.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeletingDeal(null)}
+              className="cursor-pointer rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              className="cursor-pointer rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Form Modal */}
       {showForm && (
         <DealForm
           dealId={editingDeal}
           deals={deals}
-          onSave={(data) => {
-            if (editingDeal) {
-              updateDeal(editingDeal, data);
-            } else {
-              addDeal(data);
-            }
-            setShowForm(false);
-            setEditingDeal(null);
-          }}
+          onSave={handleSave}
           onClose={() => {
             setShowForm(false);
             setEditingDeal(null);
@@ -257,13 +331,13 @@ function DealForm({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+              className="cursor-pointer rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+              className="cursor-pointer rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
             >
               {dealId ? "Save Changes" : "Add Deal"}
             </button>

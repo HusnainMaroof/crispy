@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/admin/ui/page-header";
 import Dropdown from "@/components/admin/ui/dropdown";
 import { useJobPosts } from "@/lib/admin/use-job-posts";
-import { locationOptions } from "@/lib/admin/location-options";
+import { getLocationOptions } from "@/lib/admin/location-options";
 
 const typeOptions = [
   { value: "full-time", label: "Full-time" },
@@ -23,6 +23,7 @@ export default function CreateJobPostPage() {
   const router = useRouter();
   const { addJobPost } = useJobPosts();
 
+  const [locationOpts, setLocationOpts] = useState<{ value: string; label: string }[]>([]);
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [type, setType] = useState<string>("full-time");
@@ -30,6 +31,10 @@ export default function CreateJobPostPage() {
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState<string[]>([""]);
   const [status, setStatus] = useState<string>("draft");
+
+  useEffect(() => {
+    getLocationOptions().then(setLocationOpts);
+  }, []);
 
   const addRequirement = () => {
     setRequirements([...requirements, ""]);
@@ -102,7 +107,7 @@ export default function CreateJobPostPage() {
                   Location <span className="text-brand-red">*</span>
                 </label>
                 <Dropdown
-                  options={locationOptions}
+                  options={locationOpts}
                   value={location}
                   onChange={setLocation}
                   placeholder="Select location"
