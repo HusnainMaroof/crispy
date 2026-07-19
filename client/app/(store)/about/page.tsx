@@ -3,38 +3,30 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-const VALUES = [
-  {
-    title: "Halal by Default",
-    description:
-      "Every item on our menu is 100% halal. No compromises, no exceptions. We work with certified suppliers who share our commitment to quality and traceability.",
-  },
-  {
-    title: "Fresh, Never Frozen",
-    description:
-      "Our chicken is delivered fresh daily. Our burgers are hand-formed. Our sides are made from scratch. Freshness isn't a marketing line — it's how we operate.",
-  },
-  {
-    title: "Made for London",
-    description:
-      "We built Crispies for London's fast-paced lifestyle. Quick service, bold flavours, and a menu designed for the way this city actually eats.",
-  },
-  {
-    title: "Community First",
-    description:
-      "We hire locally, source locally, and give back locally. Every Crispies location is embedded in the community it serves.",
-  },
-];
+type Value = { title: string; description: string };
 
 export default function AboutPage() {
   const pageRef = useRef<HTMLDivElement>(null);
+  const [values, setValues] = useState<Value[]>([]);
   const reduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    api
+      .get<Record<string, unknown>>("/store/homepage")
+      .then((data) => {
+        if (data && Array.isArray(data.about)) {
+          setValues(data.about as Value[]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useGSAP(
     () => {
@@ -114,28 +106,30 @@ export default function AboutPage() {
       </section>
 
       {/* Values */}
-      <section className="border-t border-white/10 px-6 py-24">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="fade-up font-[family-name:var(--font-bebas)] text-4xl tracking-wide text-white text-center">
-            What We Stand For
-          </h2>
-          <div className="mt-12 grid gap-8 sm:grid-cols-2">
-            {VALUES.map((v) => (
-              <div
-                key={v.title}
-                className="fade-up rounded-2xl bg-white/5 p-8 transition-colors hover:bg-white/10"
-              >
-                <h3 className="font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-brand-red">
-                  {v.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/60">
-                  {v.description}
-                </p>
-              </div>
-            ))}
+      {values.length > 0 && (
+        <section className="border-t border-white/10 px-6 py-24">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="fade-up font-[family-name:var(--font-bebas)] text-4xl tracking-wide text-white text-center">
+              What We Stand For
+            </h2>
+            <div className="mt-12 grid gap-8 sm:grid-cols-2">
+              {values.map((v) => (
+                <div
+                  key={v.title}
+                  className="fade-up rounded-2xl bg-white/5 p-8 transition-colors hover:bg-white/10"
+                >
+                  <h3 className="font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-brand-red">
+                    {v.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-white/60">
+                    {v.description}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="border-t border-white/10 px-6 py-24 text-center">

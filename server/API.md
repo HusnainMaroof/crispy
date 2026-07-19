@@ -4,6 +4,92 @@ All endpoints are mounted under `/api`. Admin routes require a `Bearer <token>` 
 
 ---
 
+## Architecture
+
+Layered BFF (Backend For Frontend): Next.js rewrites proxy `/api/*` to Express on port 3001. Express uses a service-role Supabase client internally; cart stays client-side (Redux + localStorage).
+
+```
+Client (Next.js :3000)
+  │
+  ├─ Storefront fetches → /api/*
+  │   └─ Next.js rewrite proxies → Express :3001
+  │
+  └─ Admin fetches → /api/admin/*
+      └─ Next.js rewrite proxies → Express :3001
+```
+
+```
+Express :3001
+  │
+  ├─ middleware/auth.ts              ← JWT verify (Bearer token)
+  ├─ middleware/identify-customer.ts ← anonymous cookie UUID (crispy_customer_id)
+  ├─ middleware/rate-limiter.ts      ← global / auth / admin limiters
+  ├─ middleware/logger.ts            ← pino HTTP logging
+  ├─ middleware/error-handler.ts     ← catches named exceptions + Zod errors
+  │
+  ├─ routes/                    ← schema validation only, no logic
+  │   ├─ public:  menu.ts, store.ts, actions.ts
+  │   └─ admin:   auth.ts, categories.ts, menu.ts, deals.ts, ...
+  │
+  ├─ controllers/               ← thin req/res handlers, static methods
+  │   └─ calls service functions
+  │
+  ├─ services/                  ← business logic, DB queries
+  │   ├─ menu.service.ts        ← getFullMenu, getCategories, getMenuItems, getDeals
+  │   ├─ order.service.ts       ← createOrder, getOrders, getOrderById, getOrdersByCustomerId, getOrdersByEmail, updateOrderStatus, getDashboardStats
+  │   ├─ admin.service.ts       ← locations, settings, jobs, contact, job apps
+  │   └─ store.service.ts       ← re-exports getLocations/getSettings + getLocationById
+  │
+  ├─ validators/                ← Zod schemas (validated in routes)
+  │
+  └─ Supabase (PostgreSQL)
+       ├─ service-role client (getAdminClient) — bypasses RLS
+       ├─ anon client (getAnonClient) — used only for signInWithPassword
+       └─ RLS policies enforce access for anon/authenticated/admin
+```
+
+### Request lifecycle
+
+1. Client sends `GET /api/menu/full`
+2. Next.js rewrite proxies to `GET http://localhost:3001/api/menu/full`
+3. Express route `routes/menu.ts` validates query params (if any)
+4. `MenuController.full()` is called via `asyncHandler`
+5. `getFullMenu()` in `menu.service.ts` runs:
+   ```ts
+   getAdminClient()
+     .from("menu_categories")
+     .select("*, menu_items(*)")
+     .order("sort_order")
+     .order("sort_order", { foreignTable: "menu_items" })
+   ```
+6. Supabase returns categories with nested items → one DB round-trip
+7. Service filters active items in-memory and returns `CategoryWithItems[]`
+8. Controller wraps in `{ success: true, data: [...] }` via `sendSuccess()`
+9. If any step throws, `errorHandler` maps the named exception to an HTTP response
+
+### How Supabase queries work
+
+- `getAdminClient()` returns a **service-role client** that bypasses RLS — all data is accessible
+- `.from("table").select("*")` builds a SQL query → Supabase returns JSON rows
+- `.eq("col", val)` adds a `WHERE col = val` clause
+- `.order("col")` adds an `ORDER BY`
+- `.single()` expects exactly one row — returns error if 0 or 2+ rows
+- `.limit(n)` caps the result set
+- `.rpc("function_name", { params })` calls a Postgres function directly
+- `.insert()` / `.update()` / `.delete()` modify rows, chained with `.select().single()` to return the result
+
+### Auth flow
+
+1. Login: `POST /api/admin/auth/login` with email + password
+2. Controller creates anon Supabase client → `signInWithPassword()` → gets Supabase Auth user
+3. Looks up `admin_profiles` row by user ID
+4. Signs a custom JWT with `{ sub, email, role }` using `JWT_SECRET`
+5. Client stores the token and sends `Authorization: Bearer <token>` on admin requests
+6. `middleware/auth.ts` verifies the JWT, attaches `req.admin`
+7. Controllers call `getAdminClient()` which uses the service-role key — not user-scoped
+
+---
+
 ## Response Format
 
 All successful responses:
@@ -214,9 +300,74 @@ Create an order.
 
 `address` / `postcode` / `city` can be `null` for collection.
 `location_id` is optional — falls back to cookie if not provided.
+`customer_id` is automatically set from the `crispy_customer_id` cookie (see middleware).
 
 **Response** `201` — Created order
 **Error** `400` — Validation failed
+
+---
+
+### `GET /api/orders/mine`
+
+Returns orders linked to the current browser via the `crispy_customer_id` cookie. No auth required — the cookie is set on first visit by `identify-customer` middleware.
+
+**Response** `200`
+```json
+[
+  {
+    "id": 1,
+    "customer_name": "John Doe",
+    "email": "john@example.com",
+    "status": "pending",
+    "fulfilment": "delivery",
+    "subtotal": 15.97,
+    "delivery_fee": 2.99,
+    "total": 18.96,
+    "created_at": "2025-01-01T12:00:00.000Z",
+    ...
+  }
+]
+```
+
+Empty array if no orders are linked to this cookie.
+
+---
+
+### `POST /api/orders/lookup`
+
+Look up orders by email address. Useful when the user is on a different device or cleared their cookies.
+
+**Request body**
+```json
+{ "email": "john@example.com" }
+```
+
+**Response** `200` — `Order[]` (same shape as `GET /api/orders/mine`)
+**Error** `400` — Invalid email
+
+---
+
+### `GET /api/orders/:id`
+
+Returns a single order with its line items nested.
+
+**Response** `200`
+```json
+{
+  "order": { ... },
+  "items": [
+    {
+      "id": 1,
+      "menu_item_id": "wings-5",
+      "name": "5 Wings",
+      "price": 5.99,
+      "quantity": 2
+    }
+  ]
+}
+```
+
+**Error** `404` — Order not found
 
 ---
 
@@ -612,3 +763,26 @@ Status values: `pending`, `reviewed`, `shortlisted`, `rejected`, `hired`.
 - **Global**: 100 requests per 15 minutes per IP (skipped for admin routes)
 - **Auth routes** (`/api/admin/auth`): 10 requests per 15 minutes per IP
 - **Health check** (`/health`) is exempt
+
+---
+
+## Changelog
+
+### 2026-07-19 — Anonymous order tracking
+
+- **`GET /api/orders/mine`**: New endpoint returns orders linked to the `crispy_customer_id` cookie — no auth, just cookie-based anonymous identification.
+- **`POST /api/orders/lookup`**: New endpoint to look up orders by email (fallback for cookie-less users).
+- **`GET /api/orders/:id`**: Public endpoint for fetching a single order with items (previously admin-only).
+- **`POST /api/orders`**: Now saves `customer_id` from the cookie so returning users see their order history.
+- **`middleware/identify-customer.ts`**: New middleware that sets/reads the `crispy_customer_id` cookie (UUID, 1 year, httpOnly) on every request.
+- **Database**: Added `customer_id text` column and index on `orders` table (migration 005).
+
+### 2026-07-19 — Performance & architecture
+
+- **`GET /api/menu/full`**: Optimized from 2 separate queries + in-memory join to a single Supabase DB join — reduces round-trips by 50%.
+- **`GET /api/admin/dashboard/stats`**: Consolidated from 3 parallel queries into a single `get_dashboard_stats()` RPC call using aggregate filters (`count(*) filter (where ...)`).
+- **`POST /api/jobs/:id/apply`**: Application counter increment now uses an atomic RPC function instead of a read-then-write fallback, eliminating a race condition.
+- **`PUT /api/admin/settings`**: Removed redundant `getSettings()` read before update — targets `id=1` directly (singleton table).
+- **Admin login**: Anon Supabase client is now cached as a singleton instead of created on every request.
+- **Database**: Added composite indexes `menu_items(category_id, active)`, `orders(status, location_id)`, and `deals(active)` for common query patterns.
+- **Type fix**: `getOrders()` `location_id` filter parameter corrected from `string | number` to `string` to match the UUID column type.

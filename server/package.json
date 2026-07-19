@@ -12,8 +12,10 @@
     "seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.2",
     "@supabase/server": "^1.4.0",
     "@supabase/supabase-js": "^2.49.1",
+    "cloudinary": "^2.10.0",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -22,6 +24,7 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
     "pg": "^8.13.1",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
@@ -33,6 +36,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22.13.1",
     "@types/pg": "^8.11.10",
     "nodemon": "^3.1.14",

@@ -1,79 +1,37 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
+import { BRAND } from "@/lib/brand";
 
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+type Step = { number: string; title: string; description: string };
+type Stat = { value: string; label: string };
 
-const STEPS = [
-  {
-    number: "01",
-    title: "Apply",
-    description:
-      "Submit an enquiry. We'll review your background, discuss your goals, and see if the fit is right.",
-  },
-  {
-    number: "02",
-    title: "Discovery",
-    description:
-      "Meet the team, visit our locations, and get a full picture of how Crispies operates — kitchen to counter.",
-  },
-  {
-    number: "03",
-    title: "Agreement",
-    description:
-      "Sign the franchise agreement. We'll walk you through every detail so there are no surprises.",
-  },
-  {
-    number: "04",
-    title: "Build-Out",
-    description:
-      "We help you find the right location, manage the fit-out, and get your kitchen equipped and ready.",
-  },
-  {
-    number: "05",
-    title: "Training",
-    description:
-      "Full training programme — recipes, operations, systems, customer service. You'll run a Crispies before you open one.",
-  },
-  {
-    number: "06",
-    title: "Launch",
-    description:
-      "Doors open. Marketing support, ongoing ops guidance, and a network of franchisees who've got your back.",
-  },
-];
-
-const NUMBERS = [
-  { value: "23+", label: "Locations" },
-  { value: "95%", label: "Franchisee satisfaction" },
-  { value: "12 mo", label: "Average payback" },
-  { value: "4.8", label: "Google rating" },
-];
+type FranchiseData = {
+  steps: Step[];
+  numbers: Stat[];
+  investment: string;
+};
 
 export default function FranchisePage() {
-  const pageRef = useRef<HTMLDivElement>(null);
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pageRef = useScrollReveal();
+  const [data, setData] = useState<FranchiseData | null>(null);
 
-  useGSAP(
-    () => {
-      if (reduced) return;
-      gsap.utils.toArray<HTMLElement>(".fade-up").forEach((el) => {
-        gsap.from(el, {
-          y: 40,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 85%", once: true },
-        });
-      });
-    },
-    { scope: pageRef }
-  );
+  useEffect(() => {
+    api
+      .get<Record<string, unknown>>("/store/homepage")
+      .then((raw) => {
+        if (raw && raw.franchise) {
+          setData(raw.franchise as FranchiseData);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const steps = data?.steps ?? [];
+  const numbers = data?.numbers ?? [];
+  const investment = data?.investment ?? "";
 
   return (
     <div ref={pageRef} className="min-h-screen bg-black">
@@ -95,68 +53,73 @@ export default function FranchisePage() {
       </section>
 
       {/* Numbers */}
-      <section className="mx-auto max-w-4xl px-6 pb-24">
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-          {NUMBERS.map((n) => (
-            <div
-              key={n.label}
-              className="fade-up rounded-2xl bg-white/5 p-6 text-center"
-            >
-              <span className="font-[family-name:var(--font-bebas)] text-4xl text-brand-red">
-                {n.value}
-              </span>
-              <p className="mt-2 text-xs text-white/50">{n.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Steps */}
-      <section className="border-t border-white/10 px-6 py-24">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="fade-up font-[family-name:var(--font-bebas)] text-4xl tracking-wide text-white text-center">
-            How It Works
-          </h2>
-          <div className="mt-12 flex flex-col gap-6">
-            {STEPS.map((step) => (
+      {numbers.length > 0 && (
+        <section className="mx-auto max-w-4xl px-6 pb-24">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {numbers.map((n) => (
               <div
-                key={step.number}
-                className="fade-up flex gap-6 rounded-2xl bg-white/5 p-6"
+                key={n.label}
+                className="fade-up rounded-2xl bg-white/5 p-6 text-center"
               >
-                <span className="font-[family-name:var(--font-bebas)] text-4xl text-brand-red/60">
-                  {step.number}
+                <span className="font-[family-name:var(--font-bebas)] text-4xl text-brand-red">
+                  {n.value}
                 </span>
-                <div>
-                  <h3 className="font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-white">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/50">
-                    {step.description}
-                  </p>
-                </div>
+                <p className="mt-2 text-xs text-white/50">{n.label}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* Steps */}
+      {steps.length > 0 && (
+        <section className="border-t border-white/10 px-6 py-24">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="fade-up font-[family-name:var(--font-bebas)] text-4xl tracking-wide text-white text-center">
+              How It Works
+            </h2>
+            <div className="mt-12 flex flex-col gap-6">
+              {steps.map((step) => (
+                <div
+                  key={step.number}
+                  className="fade-up flex gap-6 rounded-2xl bg-white/5 p-6"
+                >
+                  <span className="font-[family-name:var(--font-bebas)] text-4xl text-brand-red/60">
+                    {step.number}
+                  </span>
+                  <div>
+                    <h3 className="font-[family-name:var(--font-bebas)] text-2xl tracking-wide text-white">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-white/50">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Investment */}
-      <section className="border-t border-white/10 px-6 py-24">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="fade-up font-[family-name:var(--font-bebas)] text-4xl tracking-wide text-white">
-            The Investment
-          </h2>
-          <p className="fade-up mt-6 text-lg leading-relaxed text-white/60">
-            Total investment starts from <span className="text-brand-red font-semibold">£150,000</span> depending on
-            location and format. This covers the full fit-out, equipment,
-            initial stock, training, and launch marketing.
-          </p>
-          <p className="fade-up mt-4 text-white/50">
-            We&apos;ll walk you through the numbers in detail during the discovery
-            phase. No hidden fees, no surprises.
-          </p>
-        </div>
-      </section>
+      {investment && (
+        <section className="border-t border-white/10 px-6 py-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="fade-up font-[family-name:var(--font-bebas)] text-4xl tracking-wide text-white">
+              The Investment
+            </h2>
+            <p
+              className="fade-up mt-6 text-lg leading-relaxed text-white/60"
+              dangerouslySetInnerHTML={{ __html: investment.replace(/\*\*(.*?)\*\*/g, '<span class="text-brand-red font-semibold">$1</span>') }}
+            />
+            <p className="fade-up mt-4 text-white/50">
+              We&apos;ll walk you through the numbers in detail during the discovery
+              phase. No hidden fees, no surprises.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="border-t border-white/10 px-6 py-24 text-center">
@@ -167,7 +130,7 @@ export default function FranchisePage() {
           Ready to build something? Start with a conversation.
         </p>
         <a
-          href="mailto:franchise@crispies.co.uk"
+          href={`mailto:${BRAND.EMAILS.FRANCHISE}`}
           className="fade-up mt-8 inline-block rounded-full bg-brand-red px-10 py-4 font-semibold text-white transition-all duration-300 hover:bg-red-700 hover:scale-105 active:scale-95 cursor-pointer"
         >
           Get in Touch

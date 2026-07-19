@@ -61,11 +61,10 @@ export async function getSettings(): Promise<BusinessSettings> {
 }
 
 export async function updateSettings(input: Record<string, unknown>): Promise<BusinessSettings> {
-  const current = await getSettings();
   const { data, error } = await getAdminClient()
     .from("business_settings")
     .update(input)
-    .eq("id", current.id)
+    .eq("id", 1)
     .select()
     .single();
 
@@ -172,23 +171,8 @@ export async function createJobApplication(input: Record<string, unknown>): Prom
 
   const jobId = input.job_post_id as string;
   if (jobId) {
-    try {
-      await getAdminClient().rpc("increment_job_applications", { job_id: jobId });
-    } catch (e) {
-      if (e instanceof Error && e.message?.includes("function not found")) {
-        const { data: post } = await getAdminClient()
-          .from("job_posts")
-          .select("applications")
-          .eq("id", jobId)
-          .single();
-        if (post) {
-          await getAdminClient()
-            .from("job_posts")
-            .update({ applications: (post.applications ?? 0) + 1 })
-            .eq("id", jobId);
-        }
-      }
-    }
+    const { error: rpcError } = await getAdminClient().rpc("increment_job_applications", { job_id: jobId });
+    if (rpcError) throw new InternalServerException("Failed to update application count");
   }
 
   return data as JobApplication;

@@ -1,4 +1,5 @@
 import { getAdminClient } from "../config/supabase.js";
+import { sendEmail } from "./email.service.js";
 import {
   BadRequestException,
   NotFoundException,
@@ -17,6 +18,7 @@ interface CreateOrderInput {
   fulfilment: "delivery" | "collection";
   payment_method: "card" | "cash";
   location_id?: string | null;
+  customer_id?: string | null;
   subtotal: number;
   delivery_fee: number;
   total: number;
@@ -53,10 +55,31 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     throw new BadRequestException(itemsError.message);
   }
 
-  return order as Order;
+  const o = order as Order;
+
+  sendEmail({
+    to: o.email,
+    subject: `Order #${o.id} confirmed — Crispies`,
+    htmlContent: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h1 style="color:#DC2626;font-size:28px;margin:0 0 8px">Crispies</h1>
+        <p style="color:#333;font-size:16px;margin:0 0 24px">Thanks, ${o.customer_name}! Your order is being prepared.</p>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+          <tr><td style="color:#666;padding:4px 0">Order</td><td style="text-align:right;font-weight:600">#${o.id}</td></tr>
+          <tr><td style="color:#666;padding:4px 0">Total</td><td style="text-align:right;font-weight:600">£${o.total.toFixed(2)}</td></tr>
+          <tr><td style="color:#666;padding:4px 0">Fulfilment</td><td style="text-align:right;text-transform:capitalize">${o.fulfilment}</td></tr>
+          <tr><td style="color:#666;padding:4px 0">Status</td><td style="text-align:right;text-transform:capitalize">${o.status.replace(/-/g, " ")}</td></tr>
+        </table>
+        <a href="https://crispies.co.uk/track" style="display:inline-block;background:#DC2626;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Track your order</a>
+        <p style="color:#999;font-size:12px;margin-top:32px">Crispies — Good Mood Food</p>
+      </div>
+    `,
+  }).catch(() => {});
+
+  return o;
 }
 
-export async function getOrders(filter?: { status?: string; location_id?: string | number }): Promise<Order[]> {
+export async function getOrders(filter?: { status?: string; location_id?: string }): Promise<Order[]> {
   let query = getAdminClient().from("orders").select("*").order("created_at", { ascending: false });
 
   if (filter?.status) query = query.eq("status", filter.status);
@@ -86,6 +109,28 @@ export async function getOrderById(id: string | number): Promise<{ order: Order;
   return { order: order as Order, items: (items ?? []) as OrderItem[] };
 }
 
+export async function getOrdersByCustomerId(customerId: string): Promise<Order[]> {
+  const { data, error } = await getAdminClient()
+    .from("orders")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new InternalServerException("Failed to fetch orders");
+  return (data ?? []) as Order[];
+}
+
+export async function getOrdersByEmail(email: string): Promise<Order[]> {
+  const { data, error } = await getAdminClient()
+    .from("orders")
+    .select("*")
+    .eq("email", email)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new InternalServerException("Failed to fetch orders");
+  return (data ?? []) as Order[];
+}
+
 export async function updateOrderStatus(id: string | number, status: Order["status"]): Promise<Order> {
   const { data, error } = await getAdminClient()
     .from("orders")
@@ -100,30 +145,14 @@ export async function updateOrderStatus(id: string | number, status: Order["stat
 }
 
 export async function getDashboardStats() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const { data, error } = await getAdminClient().rpc("get_dashboard_stats");
 
-  const [orders, activeOrders, todayOrders] = await Promise.all([
-    getAdminClient().from("orders").select("total"),
-    getAdminClient()
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .not("status", "in", '("delivered","cancelled")'),
-    getAdminClient()
-      .from("orders")
-      .select("total")
-      .gte("created_at", today.toISOString()),
-  ]);
+  if (error || !data) throw new InternalServerException("Failed to fetch dashboard stats");
 
-  const allOrders = (orders.data ?? []) as { total: number }[];
-  const revenue = allOrders.reduce((sum, o) => sum + (o.total ?? 0), 0);
-  const todayOrdersData = (todayOrders.data ?? []) as { total: number }[];
-  const todayRevenue = todayOrdersData.reduce((sum, o) => sum + (o.total ?? 0), 0);
-
-  return {
-    total_orders: allOrders.length,
-    active_orders: activeOrders.count ?? 0,
-    revenue,
-    today_revenue: todayRevenue,
+  return data as {
+    total_orders: number;
+    active_orders: number;
+    revenue: number;
+    today_revenue: number;
   };
 }

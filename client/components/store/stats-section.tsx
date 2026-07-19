@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { api } from "@/lib/api";
 
 interface StatItem {
   value: string;
@@ -9,7 +10,7 @@ interface StatItem {
   label: string;
 }
 
-const stats: StatItem[] = [
+const DEFAULT_STATS: StatItem[] = [
   { value: "23", numericPart: 23, suffix: "", label: "London Locations" },
   { value: "100%", numericPart: 100, suffix: "%", label: "Halal Certified" },
   { value: "30min", numericPart: 30, suffix: "min", label: "Average Delivery" },
@@ -86,6 +87,18 @@ function StatBlock({
 export default function StatsSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [stats, setStats] = useState<StatItem[]>(DEFAULT_STATS);
+
+  useEffect(() => {
+    api
+      .get<Record<string, unknown>>("/store/homepage")
+      .then((data) => {
+        if (data && Array.isArray(data.stats)) {
+          setStats(data.stats as StatItem[]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -111,11 +124,9 @@ export default function StatsSection() {
       className="bg-brand-black border-y border-white/10"
       aria-label="Key stats"
     >
-      {/* Mobile: 4-in-a-row flex | md+: 4-column grid with dividers */}
       <div className="mx-auto flex max-w-7xl md:grid md:grid-cols-4">
         {stats.map((stat, idx) => (
           <div key={stat.label} className="relative flex-1">
-            {/* Vertical divider — desktop only, skip first */}
             {idx > 0 && (
               <div
                 className="absolute bottom-1/2 left-0 hidden h-12 w-px -translate-y-1/2 bg-white/10 md:block"

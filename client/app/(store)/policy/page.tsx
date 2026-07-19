@@ -1,11 +1,6 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
-
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 const SECTIONS = [
   {
@@ -51,26 +46,7 @@ const SECTIONS = [
 ];
 
 export default function PolicyPage() {
-  const pageRef = useRef<HTMLDivElement>(null);
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  useGSAP(
-    () => {
-      if (reduced) return;
-      gsap.utils.toArray<HTMLElement>(".fade-up").forEach((el) => {
-        gsap.from(el, {
-          y: 40,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 85%", once: true },
-        });
-      });
-    },
-    { scope: pageRef }
-  );
+  const pageRef = useScrollReveal();
 
   return (
     <div ref={pageRef} className="min-h-screen bg-black">

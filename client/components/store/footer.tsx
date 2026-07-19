@@ -20,12 +20,10 @@ const FOOTER_LINKS = {
     { label: "About Us", href: "/about" },
     { label: "Careers", href: "/careers" },
     { label: "Franchise", href: "/franchise" },
-    { label: "Press", href: "/press" },
   ],
   support: [
     { label: "Find Us", href: "/find-us" },
     { label: "Contact", href: "/contact" },
-    { label: "FAQs", href: "/faqs" },
     { label: "Order Policy", href: "/policy" },
   ],
   social: [
@@ -95,7 +93,7 @@ export default function Footer() {
               className="group flex items-center gap-4 text-[12px] font-bold uppercase tracking-[0.2em] text-white transition-colors hover:text-[#DC2626]"
             >
               Become a Partner
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 transition-all group-hover:border-[#DC2626] group-hover:bg-[#DC2626]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 transition-all group-hover:border-[#DC2626] group-hover:bg-[#DC2626] group-hover:text-white">
                 <svg
                   className="h-4 w-4"
                   fill="none"

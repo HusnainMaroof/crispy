@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/lib/api";
 import type { MenuCategory, Deal, MenuItem } from "../types";
-import { mockMenuFull, mockMenuDeals } from "@/lib/data";
 
 type MenuState = {
   categories: MenuCategory[];
@@ -43,21 +42,13 @@ function mapMenuCategory(raw: Record<string, unknown>): MenuCategory {
 }
 
 export const fetchFullMenu = createAsyncThunk("menu/fetchFullMenu", async () => {
-  try {
-    const data = await api.get<Record<string, unknown>[]>("/menu/full");
-    return data.map(mapMenuCategory) as unknown as MenuCategory[];
-  } catch {
-    return mockMenuFull as unknown as MenuCategory[];
-  }
+  const data = await api.get<Record<string, unknown>[]>("/menu/full");
+  return data.map(mapMenuCategory) as unknown as MenuCategory[];
 });
 
 export const fetchDeals = createAsyncThunk("menu/fetchDeals", async () => {
-  try {
-    const data = await api.get<Record<string, unknown>[]>("/menu/deals");
-    return data.map(mapMenuItem) as unknown as Deal[];
-  } catch {
-    return mockMenuDeals as unknown as Deal[];
-  }
+  const data = await api.get<Record<string, unknown>[]>("/menu/deals");
+  return data.map(mapMenuItem) as unknown as Deal[];
 });
 
 const menuSlice = createSlice({

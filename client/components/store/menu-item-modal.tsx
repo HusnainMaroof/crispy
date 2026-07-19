@@ -65,11 +65,11 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
   const total = (item.priceValue * quantity).toFixed(2);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div
         ref={backdropRef}
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+        className="absolute inset-0 cursor-pointer bg-black/80 backdrop-blur-md"
         onClick={onClose}
         aria-hidden
       />
@@ -80,13 +80,13 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
         role="dialog"
         aria-modal="true"
         aria-label={`${item.name} order details`}
-        className="relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#0a0a0a] shadow-2xl sm:rounded-3xl"
+        className="relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] shadow-2xl"
       >
         {/* Close */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:bg-white/15 hover:text-white"
+          className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center cursor-pointer rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:bg-white/15 hover:text-white"
           aria-label="Close"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
@@ -134,7 +134,7 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:opacity-30"
+                className="grid h-9 w-9 place-items-center cursor-pointer rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:opacity-30"
                 disabled={quantity <= 1}
                 aria-label="Decrease quantity"
               >
@@ -144,7 +144,7 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.min(20, q + 1))}
-                className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                className="grid h-9 w-9 place-items-center cursor-pointer rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/30 hover:text-white"
                 aria-label="Increase quantity"
               >
                 <span className="text-lg leading-none">+</span>
@@ -158,7 +158,7 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
           <button
             type="button"
             onClick={handleAdd}
-            className="group relative w-full overflow-hidden rounded-full bg-brand-red px-6 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-transform duration-300 hover:scale-[1.02] active:scale-95"
+            className="group relative w-full cursor-pointer overflow-hidden rounded-full bg-brand-red px-6 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-transform duration-300 hover:scale-[1.02] active:scale-95"
           >
             <span className="relative z-10 flex items-center justify-center gap-3">
               {added ? (

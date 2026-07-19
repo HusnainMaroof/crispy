@@ -55,6 +55,7 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       listenersRef.current.forEach((cb) =>
         cb({ scroll: instance.scroll, limit: instance.limit, progress: instance.progress, velocity: instance.velocity }),
       );
+      ScrollTrigger.refresh();
     });
 
     const onScroll = (e: LenisScrollEvent) => {

@@ -26,6 +26,17 @@ type RateLimitConfig = {
   MAX: number;
 };
 
+type CloudinaryConfig = {
+  CLOUD_NAME: string;
+  API_KEY: string;
+  API_SECRET: string;
+};
+
+type EmailConfig = {
+  BREVO_SMTP_SDK_KEY: string;
+  EMAIL_FROM: string;
+};
+
 type LogConfig = {
   LEVEL: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 };
@@ -56,12 +67,23 @@ export const envConfig = {
   } satisfies ServerConfig,
 
   CORS: {
-    ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",
+    ORIGIN: process.env.CORS_ORIGIN || "*",
   } satisfies CorsConfig,
 
   RATE_LIMIT: {
     MAX: Number(process.env.RATE_LIMIT_MAX) || 100,
   } satisfies RateLimitConfig,
+
+  CLOUDINARY: {
+    CLOUD_NAME: required("CLOUDINARY_CLOUD_NAME"),
+    API_KEY: required("CLOUDINARY_API_KEY"),
+    API_SECRET: required("CLOUDINARY_API_SECRET"),
+  } satisfies CloudinaryConfig,
+
+  EMAIL: {
+    BREVO_SMTP_SDK_KEY: required("BREVO_SMTP_SDK_KEY"),
+    EMAIL_FROM: required("EMAIL_FROM"),
+  } satisfies EmailConfig,
 
   LOG: {
     LEVEL: (process.env.LOG_LEVEL as LogConfig["LEVEL"]) || "info",

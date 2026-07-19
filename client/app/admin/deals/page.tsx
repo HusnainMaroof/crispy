@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { api } from "@/lib/api";
 import PageHeader from "@/components/admin/ui/page-header";
 import Modal from "@/components/admin/ui/modal";
 import { TableSkeleton } from "@/components/admin/ui/skeleton";
 import { useDeals } from "@/lib/admin/use-deals";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function DealsPage() {
   const { deals, loading, fetchDeals, addDeal, updateDeal, deleteDeal, toggleDealActive } = useDeals();
@@ -307,25 +309,51 @@ function DealForm({
           {badge && (
             <div>
               <label className="mb-1 block text-sm text-white/50">Badge Type</label>
-              <select
+              <Select
                 value={badgeVariant}
-                onChange={(e) => setBadgeVariant(e.target.value as "default" | "vegan")}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-brand-red/50"
+                onValueChange={(value) => setBadgeVariant(value as "default" | "vegan")}
               >
-                <option value="default">Default</option>
-                <option value="vegan">Vegan</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  <SelectItem value="vegan">Vegan</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
           <div>
-            <label className="mb-1 block text-sm text-white/50">Image URL</label>
-            <input
-              type="url"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://..."
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-brand-red/50"
-            />
+            <label className="mb-1 block text-sm text-white/50">Image</label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+                placeholder="https://... or upload"
+                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-brand-red/50"
+              />
+              <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+                Upload
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append("image", file);
+                    try {
+                      const { url } = await api.upload<{ url: string }>("/admin/upload", formData);
+                      setImage(url);
+                    } catch {
+                      toast.error("Upload failed");
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button

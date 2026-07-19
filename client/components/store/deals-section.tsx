@@ -2,47 +2,32 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { api } from "@/lib/api";
 
-type PromoDeal = {
+type Deal = {
   id: string;
-  badge: string;
-  title: string;
-  price: string;
-  imageUrl: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  badge: string | null;
 };
-
-const deals: PromoDeal[] = [
-  {
-    id: "01",
-    badge: "SIGNATURE",
-    title: "THE SMASH\nBURGER",
-    price: "£9.49",
-    imageUrl:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=1600&h=900",
-  },
-  {
-    id: "02",
-    badge: "LIMITED TIME",
-    title: "SPICY CRISP\nCHICKEN",
-    price: "£8.99",
-    imageUrl:
-      "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&q=80&w=1600&h=900",
-  },
-  {
-    id: "03",
-    badge: "CROWD FAVORITE",
-    title: "DOUBLE\nTROUBLE",
-    price: "£11.49",
-    imageUrl:
-      "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=1600&h=900",
-  },
-];
 
 const SLIDE_DURATION = 6;
 
 export default function DealsSection() {
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    api
+      .get<Deal[]>("/menu/deals")
+      .then((data) => setDeals(data ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const goToSlide = useCallback((index: number) => {
     setCurrentIndex(index);
@@ -50,19 +35,19 @@ export default function DealsSection() {
 
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % deals.length);
-  }, []);
+  }, [deals.length]);
 
   const prevSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + deals.length) % deals.length);
-  }, []);
+  }, [deals.length]);
 
   useEffect(() => {
-    if (isPaused) return;
-    const timer = setInterval(() => {
-      nextSlide();
-    }, SLIDE_DURATION * 1000);
+    if (isPaused || deals.length === 0) return;
+    const timer = setInterval(nextSlide, SLIDE_DURATION * 1000);
     return () => clearInterval(timer);
-  }, [currentIndex, isPaused, nextSlide]);
+  }, [currentIndex, isPaused, nextSlide, deals.length]);
+
+  if (loading || deals.length === 0) return null;
 
   return (
     <>
@@ -107,6 +92,7 @@ export default function DealsSection() {
               </div>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={prevSlide}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 backdrop-blur-sm transition-colors hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red md:h-11 md:w-11"
                   aria-label="Previous deal"
@@ -114,6 +100,7 @@ export default function DealsSection() {
                   <ArrowLeftIcon />
                 </button>
                 <button
+                  type="button"
                   onClick={nextSlide}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 backdrop-blur-sm transition-colors hover:bg-white hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red md:h-11 md:w-11"
                   aria-label="Next deal"
@@ -144,8 +131,8 @@ export default function DealsSection() {
                   }`}
                 >
                   <Image
-                    src={deal.imageUrl}
-                    alt={deal.title.replace("\n", " ")}
+                    src={deal.image}
+                    alt={deal.name}
                     fill
                     sizes="100vw"
                     className="object-cover object-center"
@@ -172,7 +159,7 @@ export default function DealsSection() {
                         : "translate-y-16 opacity-0"
                     }`}
                   >
-                    {deal.title.replace("\n", " ")}
+                    {deal.name}
                   </h2>
                 </div>
 
@@ -181,32 +168,33 @@ export default function DealsSection() {
                   <div className="pointer-events-auto flex flex-col gap-6 md:flex-row md:items-end md:justify-between md:gap-8">
                     {/* Badge & Title */}
                     <div className="relative max-w-2xl overflow-hidden">
-                      {/* Badge */}
-                      <div
-                        className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                          isActive
-                            ? "translate-y-0 opacity-100 delay-400"
-                            : "translate-y-12 opacity-0"
-                        }`}
-                      >
-                        <div className="mb-4 inline-flex items-center gap-3 md:mb-6">
-                          <span className="flex items-center gap-2 rounded bg-brand-red px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] sm:text-sm">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="14"
-                              height="14"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              stroke="none"
-                              className="animate-pulse"
-                              aria-hidden
-                            >
-                              <path d="M12 2c-.546 2.37-3.146 4.792-4.838 7.025-1.926 2.544-2.825 5.518-1.558 8.653 1.096 2.71 3.565 4.322 6.396 4.322 2.83 0 5.3-1.612 6.396-4.322 1.267-3.135.368-6.109-1.558-8.653-1.692-2.233-4.292-4.655-4.838-7.025z" />
-                            </svg>
-                            {deal.badge}
-                          </span>
+                      {deal.badge && (
+                        <div
+                          className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                            isActive
+                              ? "translate-y-0 opacity-100 delay-400"
+                              : "translate-y-12 opacity-0"
+                          }`}
+                        >
+                          <div className="mb-4 inline-flex items-center gap-3 md:mb-6">
+                            <span className="flex items-center gap-2 rounded bg-brand-red px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.4)] sm:text-sm">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                stroke="none"
+                                className="animate-pulse"
+                                aria-hidden
+                              >
+                                <path d="M12 2c-.546 2.37-3.146 4.792-4.838 7.025-1.926 2.544-2.825 5.518-1.558 8.653 1.096 2.71 3.565 4.322 6.396 4.322 2.83 0 5.3-1.612 6.396-4.322 1.267-3.135.368-6.109-1.558-8.653-1.692-2.233-4.292-4.655-4.838-7.025z" />
+                              </svg>
+                              {deal.badge}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Title */}
                       <div
@@ -217,7 +205,7 @@ export default function DealsSection() {
                         }`}
                       >
                         <h2 className="font-display whitespace-pre-line text-[3.5rem] uppercase leading-[0.9] text-white drop-shadow-2xl sm:text-6xl md:text-8xl lg:text-[7rem]">
-                          {deal.title}
+                          {deal.name}
                         </h2>
                       </div>
                     </div>
@@ -230,9 +218,12 @@ export default function DealsSection() {
                           : "translate-x-12 opacity-0"
                       }`}
                     >
-                      <button className="group/btn relative flex w-full items-center justify-between overflow-hidden rounded-full border border-white/20 bg-white/10 py-2 pl-6 pr-2 backdrop-blur-md transition-all duration-500 hover:border-brand-red hover:bg-brand-red sm:w-auto md:justify-center md:gap-6 md:pl-8">
+                      <button
+                        type="button"
+                        className="group/btn relative flex w-full items-center justify-between overflow-hidden rounded-full border border-white/20 bg-white/10 py-2 pl-6 pr-2 backdrop-blur-md transition-all duration-500 hover:border-brand-red hover:bg-brand-red sm:w-auto md:justify-center md:gap-6 md:pl-8"
+                      >
                         <span className="text-xs font-bold uppercase tracking-widest text-white sm:text-sm">
-                          {deal.price}
+                          &pound;{deal.price.toFixed(2)}
                         </span>
                         <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform duration-500 group-hover/btn:scale-95 group-hover/btn:-rotate-45">
                           <svg

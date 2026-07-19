@@ -17,16 +17,20 @@ function mapOrder(raw: Record<string, unknown>): AdminOrder {
   return {
     id: raw.id as string,
     customer: raw.customer_name as string,
-    items: ((raw.items as Record<string, unknown>[]) ?? []).map((i) => ({
-      name: i.name as string,
-      quantity: i.quantity as number,
-      price: i.price as number,
-    })),
+    items: [],
     total: raw.total as number,
     status: raw.status as AdminOrder["status"],
     createdAt: raw.created_at as string,
     location: raw.location_id as string,
   };
+}
+
+function mapOrderItems(items: Record<string, unknown>[]): AdminOrder["items"] {
+  return items.map((i) => ({
+    name: i.name as string,
+    quantity: i.quantity as number,
+    price: i.price as number,
+  }));
 }
 
 export function useOrders() {
@@ -45,6 +49,13 @@ export function useOrders() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const fetchOrderById = useCallback(async (id: string): Promise<AdminOrder> => {
+    const data = await api.get<{ order: Record<string, unknown>; items: Record<string, unknown>[] }>(
+      `/admin/orders/${id}`
+    );
+    return { ...mapOrder(data.order), items: mapOrderItems(data.items) };
   }, []);
 
   const updateOrderStatus = useCallback(
@@ -68,5 +79,5 @@ export function useOrders() {
     [orders]
   );
 
-  return { orders, loading, fetchOrders, updateOrderStatus, getOrder, getOrdersByStatus };
+  return { orders, loading, fetchOrders, fetchOrderById, updateOrderStatus, getOrder, getOrdersByStatus };
 }

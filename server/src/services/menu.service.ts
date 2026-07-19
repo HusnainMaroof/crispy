@@ -11,10 +11,17 @@ export interface CategoryWithItems extends MenuCategory {
 }
 
 export async function getFullMenu(): Promise<CategoryWithItems[]> {
-  const [categories, items] = await Promise.all([getCategories(), getMenuItems()]);
-  return categories.map((cat) => ({
+  const { data, error } = await getAdminClient()
+    .from("menu_categories")
+    .select("*, menu_items(*)")
+    .order("sort_order")
+    .order("sort_order", { foreignTable: "menu_items" });
+
+  if (error) throw new InternalServerException("Failed to fetch full menu");
+
+  return ((data ?? []) as (MenuCategory & { menu_items: MenuItem[] })[]).map((cat) => ({
     ...cat,
-    items: items.filter((item) => item.category_id === cat.id),
+    items: cat.menu_items.filter((item) => item.active),
   }));
 }
 

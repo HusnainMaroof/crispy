@@ -12,16 +12,86 @@ const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   console.error("Missing DATABASE_URL in .env");
-  console.error("Set DATABASE_URL to your Supabase PostgreSQL connection string, e.g.:");
-  console.error("  postgresql://postgres.your-project:password@aws-0-eu-west-1.pooler.supabase.com:6543/postgres");
   process.exit(1);
 }
 
-// Use the connection string directly for migrations (bypasses Supabase RPC limitations)
 const pool = new Pool({
   connectionString: databaseUrl,
   ssl: { rejectUnauthorized: false },
 });
+
+function splitStatements(sql: string): string[] {
+  const statements: string[] = [];
+  let current = "";
+  let inDollar = false;
+  let dollarTag = "";
+
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    const rest = sql.slice(i);
+
+    if (!inDollar && rest.startsWith("$$")) {
+      inDollar = true;
+      dollarTag = "$$";
+      current += "$$";
+      i++;
+      continue;
+    }
+
+    if (inDollar && dollarTag === "$$" && rest.startsWith("$$")) {
+      inDollar = false;
+      dollarTag = "";
+      current += "$$";
+      i++;
+      continue;
+    }
+
+    if (!inDollar && /^\$[^$]*\$/.test(rest)) {
+      const m = rest.match(/^\$([^$]*)\$/);
+      if (m) {
+        inDollar = true;
+        dollarTag = m[0];
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        continue;
+      }
+    }
+
+    if (inDollar && rest.startsWith(dollarTag)) {
+      inDollar = false;
+      current += dollarTag;
+      i += dollarTag.length - 1;
+      continue;
+    }
+
+    if (!inDollar && ch === ";") {
+      const trimmed = current.trim();
+      if (trimmed) statements.push(trimmed);
+      current = "";
+      i++;
+      continue;
+    }
+
+    if (ch === "\n" || ch === "\r") {
+      if (!/^\s*--/.test(current)) {
+        current += ch;
+      }
+      continue;
+    }
+
+    if (ch === "-" && rest.startsWith("--")) {
+      while (i < sql.length && sql[i] !== "\n") i++;
+      continue;
+    }
+
+    current += ch;
+  }
+
+  const trimmed = current.trim();
+  if (trimmed && !trimmed.startsWith("--")) statements.push(trimmed);
+
+  return statements;
+}
 
 async function migrate() {
   const migrationsDir = join(__dirname, "..", "supabase", "migrations");
@@ -35,29 +105,48 @@ async function migrate() {
   }
 
   const client = await pool.connect();
+  let hasError = false;
+
   try {
     for (const file of files) {
       const sqlPath = join(migrationsDir, file);
       const sql = readFileSync(sqlPath, "utf-8");
+      const statements = splitStatements(sql);
 
       console.log(`Running ${file}...`);
-      try {
-        await client.query(sql);
-        console.log(`  ${file} completed.`);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(`Migration ${file} failed:`, message);
-        console.log("Tip: Run the SQL manually in Supabase SQL Editor at:");
-        console.log(`  ${databaseUrl}/project/default/sql/new`);
-        console.log("\nFile:", sqlPath);
-        process.exit(1);
+
+      for (const stmt of statements) {
+        try {
+          await client.query(stmt);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          // Ignore "already exists" errors for idempotent re-runs
+          if (
+            message.includes("already exists") ||
+            message.includes("duplicate key") ||
+            message.includes("duplicate object")
+          ) {
+            continue;
+          }
+          console.error(`  Error in ${file}:`, message);
+          console.error("  Statement (first 200 chars):", stmt.slice(0, 200));
+          hasError = true;
+        }
       }
+
+      console.log(`  ${file} done.`);
     }
-    console.log("\nAll migrations completed successfully.");
   } finally {
     client.release();
     await pool.end();
   }
+
+  if (hasError) {
+    console.log("\nSome statements failed — check logs above.");
+    process.exit(1);
+  }
+
+  console.log("\nAll migrations completed successfully.");
 }
 
 migrate().catch((err) => {

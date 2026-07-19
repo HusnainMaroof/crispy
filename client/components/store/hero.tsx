@@ -4,12 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLenis } from "@/components/providers/smooth-scroll";
+import { api } from "@/lib/api";
 
-const HERO_IMG =
+const DEFAULT_HERO_IMG =
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop";
-const PILL_IMG =
+const DEFAULT_PILL_IMG =
   "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop";
-const HERO_VIDEO = "/sizzle-reel.mp4";
+const DEFAULT_HERO_VIDEO = "/sizzle-reel.mp4";
 
 const SLICE_LINES: { text: string; cls: string; reveal: string; delay: string }[] = [
   { text: "GOOD", cls: "white-slice", reveal: "reveal-left", delay: "0.05s" },
@@ -19,11 +20,33 @@ const SLICE_LINES: { text: string; cls: string; reveal: string; delay: string }[
 
 type HeroProps = { started: boolean };
 
+type HeroData = {
+  heroImage?: string;
+  pillImage?: string;
+  heroVideo?: string;
+};
+
 export default function Hero({ started }: HeroProps) {
   const rootRef = useRef<HTMLElement>(null);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [videoOpen, setVideoOpen] = useState(false);
+  const [heroData, setHeroData] = useState<HeroData>({});
   const { stop, start } = useLenis();
+
+  const HERO_IMG = heroData.heroImage ?? DEFAULT_HERO_IMG;
+  const PILL_IMG = heroData.pillImage ?? DEFAULT_PILL_IMG;
+  const HERO_VIDEO = heroData.heroVideo ?? DEFAULT_HERO_VIDEO;
+
+  useEffect(() => {
+    api
+      .get<Record<string, unknown>>("/store/homepage")
+      .then((data) => {
+        if (data && data.hero && typeof data.hero === "object") {
+          setHeroData(data.hero as HeroData);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

@@ -88,23 +88,15 @@ export default function Navbar() {
   useGSAP(
     () => {
       if (!mobileMenuRef.current) return;
-
-      const el = mobileMenuRef.current;
-      const items = el.querySelectorAll(".mobile-nav-item");
+      const items = mobileMenuRef.current.querySelectorAll(".mobile-nav-item");
 
       if (isMobileNavOpen) {
-        // Immediately show container
-        el.style.display = "flex";
-        el.style.opacity = "1";
-        el.style.pointerEvents = "auto";
-
-        // Animate items in
         gsap.fromTo(
           items,
-          { y: 30, autoAlpha: 0 },
+          { y: 30, opacity: 0 },
           {
             y: 0,
-            autoAlpha: 1,
+            opacity: 1,
             duration: 0.4,
             stagger: 0.06,
             ease: "power3.out",
@@ -112,24 +104,12 @@ export default function Navbar() {
           },
         );
       } else {
-        // Animate items out
         gsap.to(items, {
           y: 20,
-          autoAlpha: 0,
-          duration: 0.25,
+          opacity: 0,
+          duration: 0.2,
           stagger: 0.03,
           ease: "power2.in",
-        });
-
-        // Hide container after items animate out
-        gsap.to(el, {
-          opacity: 0,
-          duration: 0.3,
-          delay: 0.15,
-          onComplete: () => {
-            el.style.pointerEvents = "none";
-            el.style.display = "none";
-          },
         });
       }
     },
@@ -189,19 +169,10 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Delivery link — desktop */}
+            {/* Cart — visible on all sizes */}
             <Link
               href="/cart"
-              className="hidden items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60 hover:text-white transition-colors duration-200 md:flex"
-            >
-              Delivery
-              <ArrowUpRight />
-            </Link>
-
-            {/* Cart */}
-            <Link
-              href="/cart"
-              className="relative hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors duration-200 hover:bg-white/5 hover:text-white md:flex"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors duration-200 hover:bg-white/5 hover:text-white"
               aria-label={`Cart ${itemCount > 0 ? `(${itemCount} items)` : ""}`}
             >
               <BagIcon />
@@ -212,7 +183,7 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Order Now CTA */}
+            {/* Order Now CTA — desktop only */}
             <Link
               href="/menu"
               className="hidden rounded-full bg-brand-red px-5 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-white transition-transform duration-300 hover:scale-105 active:scale-95 md:inline-block"
@@ -233,13 +204,16 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile menu overlay — GSAP controls visibility */}
+      {/* Mobile menu overlay — CSS transition for show/hide, GSAP for item stagger */}
       <div
         ref={mobileMenuRef}
-        className="fixed inset-0 top-16 z-[60] flex flex-col bg-black px-6 py-8 md:hidden"
-        style={{ display: "none", opacity: 0, pointerEvents: "none" }}
+        className={`fixed inset-0 top-16 z-[60] flex flex-col overflow-y-auto bg-black px-6 py-8 transition-opacity duration-300 md:hidden ${
+          isMobileNavOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
       >
-        <p className="mobile-nav-item mb-6 text-[10px] font-bold uppercase tracking-[0.35em] text-brand-red">
+        <p className="mb-6 text-[10px] font-bold uppercase tracking-[0.35em] text-brand-red">
           Good Mood Food
         </p>
 
@@ -256,18 +230,6 @@ export default function Navbar() {
             <ArrowUpRight />
           </Link>
         ))}
-
-        {/* Delivery (mobile) */}
-        <Link
-          href="/cart"
-          onClick={closeMobileNav}
-          className="mobile-nav-item group flex items-center justify-between border-b border-white/5 py-4"
-        >
-          <span className="font-display text-3xl font-bold uppercase tracking-wide text-white transition-colors duration-200 group-hover:text-brand-red">
-            Delivery
-          </span>
-          <ArrowUpRight />
-        </Link>
 
         <Link
           href="/menu"

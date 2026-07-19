@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { createClient } from "@supabase/supabase-js";
-import { getAdminClient } from "../../config/supabase.js";
+import { getAdminClient, getAnonClient } from "../../config/supabase.js";
 import { envConfig } from "../../config/env.js";
 import { ForbiddenException, NotFoundException, UnauthorizedException } from "../../utils/app-error.js";
 import { sendSuccess } from "../../utils/response.js";
@@ -18,8 +17,7 @@ export const AuthController = {
   async login(req: Request, res: Response) {
     const { email, password } = req.body;
 
-    const anonClient = createClient(envConfig.SUPABASE.URL, envConfig.SUPABASE.PUBLISHABLE_KEY);
-    const { data: authData, error: authError } = await anonClient.auth.signInWithPassword({
+    const { data: authData, error: authError } = await getAnonClient().auth.signInWithPassword({
       email,
       password,
     });

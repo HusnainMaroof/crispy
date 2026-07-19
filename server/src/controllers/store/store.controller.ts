@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { getLocations, getLocationById, getSettings } from "../../services/store.service.js";
+import { getLocations, getLocationById, getSettings, getHomepageContent } from "../../services/store.service.js";
 import { sendSuccess } from "../../utils/response.js";
 import { envConfig } from "../../config/env.js";
 
@@ -45,5 +45,10 @@ export const StoreController = {
   async settings(_req: Request, res: Response) {
     const settings = await getSettings();
     sendSuccess(res, settings);
+  },
+
+  async homepage(_req: Request, res: Response) {
+    const content = await getHomepageContent();
+    sendSuccess(res, content);
   },
 };

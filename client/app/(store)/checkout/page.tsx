@@ -10,6 +10,8 @@ import { fetchSettings } from "@/lib/redux/slices/settingsSlice";
 import { fetchLocations } from "@/lib/redux/slices/locationsSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
 import { api } from "@/lib/api";
+import type { Order } from "@/lib/redux/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Fulfilment = "delivery" | "collection";
 type PaymentMethod = "card" | "cash";
@@ -66,6 +68,7 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [orderId, setOrderId] = useState<number | null>(null);
 
   const subtotal = useMemo(
     () => items.reduce((sum, i) => sum + i.price * i.quantity, 0),
@@ -128,7 +131,7 @@ export default function CheckoutPage() {
     }
 
     setSubmitting(true);
-    api.post("/orders", {
+    api.post<Order>("/orders", {
       customer_name: form.name,
       email: form.email,
       phone: form.phone,
@@ -148,7 +151,8 @@ export default function CheckoutPage() {
         price: i.price,
         quantity: i.quantity,
       })),
-    }).then(() => {
+    }).then((order) => {
+      setOrderId(order.id);
       setOrderComplete(true);
       dispatch(clearCart());
     }).catch(() => {
@@ -173,19 +177,32 @@ export default function CheckoutPage() {
           <h1 className="checkout-title mt-4 font-[family-name:var(--font-bebas)] text-6xl uppercase leading-[0.85] text-white md:text-7xl">
             You&apos;re sorted.
           </h1>
+          {orderId && (
+            <p className="mt-3 text-sm font-semibold text-white/60">
+              Order #{orderId}
+            </p>
+          )}
           <p className="mt-4 max-w-md text-sm leading-relaxed text-white/50">
             Thanks for your order. We&apos;ve sent a confirmation to your email.
             {fulfilment === "delivery"
               ? " Your food will arrive hot, fresh, and crispy."
-              : " Pop in at your chosen time and we&apos;ll have it ready."}
+              : " Pop in at your chosen time and we'll have it ready."}
           </p>
-          <Link
-            href="/"
-            className="group mt-10 inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            Back to home
-            <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
-          </Link>
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
+            <Link
+              href="/cart?tab=orders"
+              className="group inline-flex items-center gap-3 rounded-full bg-brand-red px-7 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-[0_20px_60px_-15px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              Track order
+              <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-3 rounded-full border border-white/15 px-7 py-4 text-xs font-bold uppercase tracking-widest text-white/60 transition-all duration-300 hover:border-white/30 hover:text-white active:scale-95 cursor-pointer"
+            >
+              Back to home
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -279,32 +296,27 @@ export default function CheckoutPage() {
             <legend className="mb-4 text-[11px] font-bold uppercase tracking-widest text-white/40">
               Choose a location
             </legend>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {locations.map((loc) => (
-                <button
-                  key={loc.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedLocationId(loc.id);
-                    api.patch("/store/location", { location_id: loc.id }).catch(() => {});
-                  }}
-                  aria-pressed={selectedLocationId === loc.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-left text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
-                    selectedLocationId === loc.id
-                      ? "border-brand-red bg-brand-red text-white"
-                      : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white active:scale-95"
-                  }`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <span className="truncate">{loc.name.replace("Crispies ", "")}</span>
-                </button>
-              ))}
-            </div>
-            {locations.length === 0 && (
+            {locations.length === 0 ? (
               <p className="text-[11px] text-white/40">Loading locations…</p>
+            ) : (
+              <Select
+                value={selectedLocationId}
+                onValueChange={(value) => {
+                  setSelectedLocationId(value);
+                  api.patch("/store/location", { location_id: value }).catch(() => {});
+                }}
+              >
+                <SelectTrigger className="h-12 rounded-2xl text-sm">
+                  <SelectValue placeholder="Select a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name.replace("Crispies ", "")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </fieldset>
 

@@ -68,6 +68,12 @@ html::-webkit-scrollbar {
   color: #fff;
 }
 
+/* --- Scroll reveal base state (hidden until GSAP animates in) --- */
+.fade-up {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
 /* --- Reveal animations --- */
 .reveal-left {
   opacity: 0;

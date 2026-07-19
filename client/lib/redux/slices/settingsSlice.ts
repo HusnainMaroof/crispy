@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/lib/api";
 import type { Settings } from "../types";
-import { mockSettings } from "@/lib/data";
 
 type SettingsState = {
   settings: Settings | null;
@@ -16,16 +15,12 @@ const initialState: SettingsState = {
 };
 
 export const fetchSettings = createAsyncThunk("settings/fetchSettings", async () => {
-  try {
-    const data = await api.get<Record<string, unknown>>("/store/settings");
-    return {
-      id: data.id as number,
-      delivery_fee: data.delivery_fee as number,
-      free_delivery_threshold: data.free_delivery_threshold as number,
-    };
-  } catch {
-    return mockSettings as Settings;
-  }
+  const data = await api.get<Record<string, unknown>>("/store/settings");
+  return {
+    id: data.id as number,
+    delivery_fee: data.delivery_fee as number,
+    free_delivery_threshold: data.free_delivery_threshold as number,
+  };
 });
 
 const settingsSlice = createSlice({

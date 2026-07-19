@@ -95,4 +95,15 @@ export const api = {
   patch: <T>(path: string, data: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(data) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  upload: async <T>(path: string, formData: FormData): Promise<T> => {
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${BASE}/api${path}`, {
+      method: "POST", body: formData, credentials: "include", headers,
+    });
+    const body: ApiResponse<T> = await res.json();
+    if (!body.success) throw new Error(body.error ?? "Upload failed");
+    return body.data as T;
+  },
 };

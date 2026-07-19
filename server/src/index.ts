@@ -6,21 +6,29 @@ import cookieParser from "cookie-parser";
 import { envConfig } from "./config/env.js";
 import { httpLogger, logger } from "./middleware/logger.js";
 import { globalLimiter, authLimiter, adminLimiter } from "./middleware/rate-limiter.js";
+import { identifyCustomer } from "./middleware/identify-customer.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import routes from "./routes/index.js";
 
 const app = express();
 const { SERVER, CORS } = envConfig;
 
+// Trust proxy for correct IP behind Next.js rewrites
+app.set("trust proxy", 1);
+
 // Security
 app.use(helmet());
-app.use(cors({ origin: CORS.ORIGIN, credentials: true }));
+const corsOrigin = CORS.ORIGIN === "*" ? true : CORS.ORIGIN;
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 // Performance
 app.use(compression());
 
 // Cookie parsing
 app.use(cookieParser());
+
+// Anonymous customer identification (cookie-based)
+app.use(identifyCustomer);
 
 // Body parsing
 app.use(express.json({ limit: "10mb" }));

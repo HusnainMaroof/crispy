@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 type UIContextType = {
   isMobileNavOpen: boolean;
@@ -17,17 +17,25 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  const toggleMobileNav = useCallback(() => setIsMobileNavOpen((p) => !p), []);
+  const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
+  const toggleCart = useCallback(() => setIsCartOpen((p) => !p), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
+
+  const value = useMemo(
+    () => ({
+      isMobileNavOpen,
+      isCartOpen,
+      toggleMobileNav,
+      closeMobileNav,
+      toggleCart,
+      closeCart,
+    }),
+    [isMobileNavOpen, isCartOpen, toggleMobileNav, closeMobileNav, toggleCart, closeCart],
+  );
+
   return (
-    <UIContext.Provider
-      value={{
-        isMobileNavOpen,
-        isCartOpen,
-        toggleMobileNav: () => setIsMobileNavOpen((p) => !p),
-        closeMobileNav: () => setIsMobileNavOpen(false),
-        toggleCart: () => setIsCartOpen((p) => !p),
-        closeCart: () => setIsCartOpen(false),
-      }}
-    >
+    <UIContext.Provider value={value}>
       {children}
     </UIContext.Provider>
   );

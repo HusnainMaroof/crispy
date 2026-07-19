@@ -1,8 +1,10 @@
 import { createAdminClient, createContextClient } from "@supabase/server/core";
+import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { envConfig } from "./env.js";
 
 let admin: SupabaseClient | null = null;
+let anon: SupabaseClient | null = null;
 
 export function getAdminClient() {
   if (!admin) {
@@ -11,6 +13,13 @@ export function getAdminClient() {
     admin = createAdminClient();
   }
   return admin;
+}
+
+export function getAnonClient() {
+  if (!anon) {
+    anon = createClient(envConfig.SUPABASE.URL, envConfig.SUPABASE.PUBLISHABLE_KEY);
+  }
+  return anon;
 }
 
 export function getContextClient(opts?: { token?: string; keyName?: string }) {

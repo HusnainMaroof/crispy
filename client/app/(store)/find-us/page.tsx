@@ -1,14 +1,10 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchLocations } from "@/lib/redux/slices/locationsSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
-
-gsap.registerPlugin(ScrollTrigger, useGSAP);
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 function LocationSkeleton() {
   return (
@@ -44,30 +40,11 @@ function LocationSkeleton() {
 }
 
 export default function FindUsPage() {
-  const pageRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch<AppDispatch>();
   const locations = useSelector((state: RootState) => state.locations.locations);
   const loading = useSelector((state: RootState) => state.locations.loading);
   const [selected, setSelected] = useState(0);
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  useGSAP(
-    () => {
-      if (reduced) return;
-      gsap.utils.toArray<HTMLElement>(".fade-up").forEach((el) => {
-        gsap.from(el, {
-          y: 40,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 85%", once: true },
-        });
-      });
-    },
-    { scope: pageRef }
-  );
+  const pageRef = useScrollReveal("top 88%", [locations]);
 
   useEffect(() => {
     if (locations.length === 0) {

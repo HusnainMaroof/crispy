@@ -14,3 +14,18 @@ export async function getLocationById(id: string): Promise<Location> {
   if (error || !data) throw new NotFoundException("Location not found");
   return data as Location;
 }
+
+export type HomepageContent = Record<string, unknown>;
+
+export async function getHomepageContent(): Promise<HomepageContent> {
+  const { data, error } = await getAdminClient()
+    .from("homepage_content")
+    .select("key, content");
+
+  if (error) return {};
+  const result: HomepageContent = {};
+  for (const row of data ?? []) {
+    result[row.key] = row.content;
+  }
+  return result;
+}
