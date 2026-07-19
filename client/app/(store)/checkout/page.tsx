@@ -7,6 +7,7 @@ import { useMemo, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart } from "@/lib/redux/slices/cartSlice";
 import { fetchSettings } from "@/lib/redux/slices/settingsSlice";
+import { fetchLocations } from "@/lib/redux/slices/locationsSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
 import { api } from "@/lib/api";
 
@@ -38,11 +39,21 @@ const initialForm: FormState = {
 export default function CheckoutPage() {
   const items = useSelector((state: RootState) => state.cart.items);
   const settings = useSelector((state: RootState) => state.settings.settings);
+  const locations = useSelector((state: RootState) => state.locations.locations);
   const dispatch = useDispatch<AppDispatch>();
+
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
 
   useEffect(() => {
     if (!settings) dispatch(fetchSettings());
-  }, [dispatch, settings]);
+    if (locations.length === 0) dispatch(fetchLocations());
+  }, [dispatch, settings, locations.length]);
+
+  useEffect(() => {
+    api.get<{ id: string }>("/store/location").then((loc) => {
+      if (loc?.id) setSelectedLocationId(loc.id);
+    }).catch(() => {});
+  }, []);
 
   const DELIVERY_FEE = settings?.delivery_fee ?? 2.99;
   const FREE_DELIVERY_THRESHOLD = settings?.free_delivery_threshold ?? 20;
@@ -124,6 +135,7 @@ export default function CheckoutPage() {
       address: fulfilment === "delivery" ? form.address : null,
       postcode: fulfilment === "delivery" ? form.postcode : null,
       city: fulfilment === "delivery" ? form.city : null,
+      location_id: selectedLocationId || null,
       notes: form.notes || null,
       fulfilment,
       payment_method: payment,
@@ -140,9 +152,8 @@ export default function CheckoutPage() {
       setOrderComplete(true);
       dispatch(clearCart());
     }).catch(() => {
-      alert("Something went wrong placing your order. Please try again.");
-    }).finally(() => {
       setSubmitting(false);
+      setErrors((p) => ({ ...p, name: "Something went wrong placing your order. Please try again." }));
     });
   };
 
@@ -261,6 +272,40 @@ export default function CheckoutPage() {
                 </button>
               ))}
             </div>
+          </fieldset>
+
+          {/* Location selector */}
+          <fieldset className="form-section">
+            <legend className="mb-4 text-[11px] font-bold uppercase tracking-widest text-white/40">
+              Choose a location
+            </legend>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {locations.map((loc) => (
+                <button
+                  key={loc.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedLocationId(loc.id);
+                    api.patch("/store/location", { location_id: loc.id }).catch(() => {});
+                  }}
+                  aria-pressed={selectedLocationId === loc.id}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-left text-xs font-bold uppercase tracking-widest transition-all duration-200 ${
+                    selectedLocationId === loc.id
+                      ? "border-brand-red bg-brand-red text-white"
+                      : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white active:scale-95"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span className="truncate">{loc.name.replace("Crispies ", "")}</span>
+                </button>
+              ))}
+            </div>
+            {locations.length === 0 && (
+              <p className="text-[11px] text-white/40">Loading locations…</p>
+            )}
           </fieldset>
 
           {/* Contact details */}

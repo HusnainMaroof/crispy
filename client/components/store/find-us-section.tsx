@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchLocations } from "@/lib/redux/slices/locationsSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
+import JsonLd from "@/components/seo/json-ld";
 
 interface LocationRow {
   id: string;
@@ -104,11 +105,28 @@ export default function FindUsSection() {
     mapsUrl: `https://maps.google.com/?q=${encodeURIComponent(l.address)}`,
   }));
 
+  const locationSchema = mappedLocations.map((l, i) => ({
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: `${locations[i]?.name ?? "Crispies"}`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: locations[i]?.address ?? "",
+      addressLocality: "London",
+      postalCode: l.postcode,
+      addressCountry: "GB",
+    },
+    servesCuisine: ["Burgers", "Chicken", "Halal"],
+    areaServed: "London",
+    url: l.mapsUrl,
+  }));
+
   return (
     <section className="relative overflow-hidden bg-black p-8 text-white md:p-16 lg:p-24">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-12 flex flex-col items-baseline justify-between gap-4 md:mb-16 md:flex-row">
+          {locationSchema.length > 0 && <JsonLd data={locationSchema} />}
           <h2 className="font-display text-4xl uppercase md:text-5xl lg:text-6xl">
             Find Us
           </h2>

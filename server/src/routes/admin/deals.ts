@@ -7,6 +7,7 @@ import { DealsController } from "../../controllers/admin/deals.controller.js";
 const router = Router();
 
 router.get("/", asyncHandler(DealsController.list));
+router.get("/:id", asyncHandler(DealsController.getById));
 router.post("/", validate(dealSchema), asyncHandler(DealsController.create));
 router.put("/:id", validate(dealUpdateSchema), asyncHandler(DealsController.update));
 router.patch("/:id/toggle", asyncHandler(DealsController.toggle));

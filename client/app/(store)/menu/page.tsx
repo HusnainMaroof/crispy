@@ -386,7 +386,7 @@ export default function FullMenuPage() {
         ) : activeTab === "full-menu" ? (
           <div className="py-12 md:py-16">
             {categories.map((cat) => (
-              <section key={cat.id} className="menu-row-anim scroll-mt-32 pb-10">
+              <section key={cat.id} id={cat.id} className="menu-row-anim scroll-mt-32 pb-10">
                 <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/10 pb-4">
                   <div className="flex items-baseline gap-4">
                     <span className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-white/20 md:text-6xl">{cat.number}</span>

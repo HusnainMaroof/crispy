@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
 import { getLocations, getLocationById, getSettings } from "../../services/store.service.js";
 import { sendSuccess } from "../../utils/response.js";
+import { envConfig } from "../../config/env.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
   maxAge: 90 * 24 * 60 * 60 * 1000,
-  secure: true,
+  secure: envConfig.SERVER.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
 };

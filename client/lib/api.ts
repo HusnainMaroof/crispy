@@ -29,10 +29,13 @@ async function tryRefreshToken(): Promise<boolean> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
+      const token = getAuthToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${BASE}/api/admin/auth/refresh`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers,
       });
       const body: ApiResponse<{ token: string }> = await res.json();
       if (body.success && body.data?.token) {

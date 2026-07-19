@@ -33,9 +33,9 @@ export async function createLocation(input: Record<string, unknown>): Promise<Lo
   const { data, error } = await getAdminClient()
     .from("locations")
     .insert({
+      ...input,
       id: crypto.randomUUID(),
       sort_order: 0,
-      ...input,
     } as Record<string, unknown>)
     .select()
     .single();
@@ -170,23 +170,23 @@ export async function createJobApplication(input: Record<string, unknown>): Prom
 
   if (error) throw new BadRequestException(error.message);
 
-  // Increment application count on the job post
   const jobId = input.job_post_id as string;
   if (jobId) {
     try {
       await getAdminClient().rpc("increment_job_applications", { job_id: jobId });
-    } catch {
-      // Fallback: manual increment if RPC doesn't exist
-      const { data: post } = await getAdminClient()
-        .from("job_posts")
-        .select("applications")
-        .eq("id", jobId)
-        .single();
-      if (post) {
-        await getAdminClient()
+    } catch (e) {
+      if (e instanceof Error && e.message?.includes("function not found")) {
+        const { data: post } = await getAdminClient()
           .from("job_posts")
-          .update({ applications: (post.applications ?? 0) + 1 })
-          .eq("id", jobId);
+          .select("applications")
+          .eq("id", jobId)
+          .single();
+        if (post) {
+          await getAdminClient()
+            .from("job_posts")
+            .update({ applications: (post.applications ?? 0) + 1 })
+            .eq("id", jobId);
+        }
       }
     }
   }

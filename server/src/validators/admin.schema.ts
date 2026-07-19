@@ -38,6 +38,8 @@ export const jobApplicationSchema = z.object({
   cover_letter: z.string().max(5000).optional(),
 });
 
+export const jobApplicationPublicSchema = jobApplicationSchema.omit({ job_post_id: true });
+
 export const jobApplicationUpdateSchema = z.object({
   status: z.enum(["pending", "reviewed", "shortlisted", "rejected", "hired"]).optional(),
   notes: z.string().max(2000).optional(),

@@ -8,6 +8,11 @@ export const DealsController = {
     sendSuccess(res, deals);
   },
 
+  async getById(req: Request, res: Response) {
+    const deal = await getDealById(req.params.id as string);
+    sendSuccess(res, deal);
+  },
+
   async create(req: Request, res: Response) {
     const deal = await createDeal(req.body);
     sendSuccess(res, deal, 201);

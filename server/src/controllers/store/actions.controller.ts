@@ -15,7 +15,7 @@ export const ActionsController = {
   },
 
   async applyForJob(req: Request, res: Response) {
-    const application = await createJobApplication(req.body);
+    const application = await createJobApplication({ ...req.body, job_post_id: req.params.id });
     sendSuccess(res, application, 201);
   },
 };

@@ -3,15 +3,15 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
-interface DealType {
+type PromoDeal = {
   id: string;
   badge: string;
   title: string;
   price: string;
   imageUrl: string;
-}
+};
 
-const deals: DealType[] = [
+const deals: PromoDeal[] = [
   {
     id: "01",
     badge: "SIGNATURE",

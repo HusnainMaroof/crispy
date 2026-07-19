@@ -1,11 +1,17 @@
 import type { Request, Response } from "express";
 import { getLocations, createLocation, updateLocation, deleteLocation } from "../../services/admin.service.js";
+import { getLocationById } from "../../services/store.service.js";
 import { sendSuccess } from "../../utils/response.js";
 
 export const LocationsController = {
   async list(_req: Request, res: Response) {
     const locations = await getLocations();
     sendSuccess(res, locations);
+  },
+
+  async getById(req: Request, res: Response) {
+    const location = await getLocationById(req.params.id as string);
+    sendSuccess(res, location);
   },
 
   async create(req: Request, res: Response) {

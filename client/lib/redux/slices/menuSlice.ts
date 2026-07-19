@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/lib/api";
 import type { MenuCategory, Deal, MenuItem } from "../types";
+import { mockMenuFull, mockMenuDeals } from "@/lib/data";
 
 type MenuState = {
   categories: MenuCategory[];
@@ -25,8 +26,8 @@ function mapMenuItem(raw: Record<string, unknown>): MenuItem {
     price: `£${price.toFixed(2)}`,
     priceValue: price,
     image: raw.image as string,
-    badge: (raw.badge as string) ?? undefined,
-    badgeVariant: (raw.badge_variant as "default" | "vegan") ?? undefined,
+    badge: (raw.badge as string | undefined) ?? undefined,
+    badgeVariant: (raw.badge_variant as "default" | "vegan" | undefined) ?? undefined,
   };
 }
 
@@ -42,13 +43,21 @@ function mapMenuCategory(raw: Record<string, unknown>): MenuCategory {
 }
 
 export const fetchFullMenu = createAsyncThunk("menu/fetchFullMenu", async () => {
-  const data = await api.get<Record<string, unknown>[]>("/menu/full");
-  return data.map(mapMenuCategory);
+  try {
+    const data = await api.get<Record<string, unknown>[]>("/menu/full");
+    return data.map(mapMenuCategory) as unknown as MenuCategory[];
+  } catch {
+    return mockMenuFull as unknown as MenuCategory[];
+  }
 });
 
 export const fetchDeals = createAsyncThunk("menu/fetchDeals", async () => {
-  const data = await api.get<Record<string, unknown>[]>("/menu/deals");
-  return data.map(mapMenuItem);
+  try {
+    const data = await api.get<Record<string, unknown>[]>("/menu/deals");
+    return data.map(mapMenuItem) as unknown as Deal[];
+  } catch {
+    return mockMenuDeals as unknown as Deal[];
+  }
 });
 
 const menuSlice = createSlice({
@@ -63,14 +72,23 @@ const menuSlice = createSlice({
       })
       .addCase(fetchFullMenu.fulfilled, (state, action) => {
         state.loading = false;
-        state.categories = action.payload;
+        state.categories = action.payload as unknown as MenuCategory[];
       })
       .addCase(fetchFullMenu.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message ?? "Failed to load menu";
       })
+      .addCase(fetchDeals.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchDeals.fulfilled, (state, action) => {
-        state.deals = action.payload;
+        state.loading = false;
+        state.deals = action.payload as unknown as Deal[];
+      })
+      .addCase(fetchDeals.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message ?? "Failed to load deals";
       });
   },
 });

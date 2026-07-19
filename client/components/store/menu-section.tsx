@@ -10,6 +10,7 @@ import type { MenuItem } from "@/lib/redux/types";
 
 type MenuRowProps = {
   item: MenuItem;
+  categorySlug: string;
   index: number;
   isHovered: boolean;
   onMouseEnter: () => void;
@@ -18,6 +19,7 @@ type MenuRowProps = {
 
 function MenuRow({
   item,
+  categorySlug,
   index,
   isHovered,
   onMouseEnter,
@@ -25,7 +27,7 @@ function MenuRow({
 }: MenuRowProps) {
   return (
     <Link
-      href={`/menu`}
+      href={`/menu#${categorySlug}`}
       className="group flex cursor-pointer items-center justify-between border-b border-white/10 py-4 leading-none transition-opacity duration-300 first:border-t first:pt-8 last:border-none hover:opacity-100 "
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -201,9 +203,9 @@ export default function MenuSection() {
         >
           {hoveredIndex !== null && (
             <>
-              <Image
+               <Image
                 src={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.image ?? "") : ""}
-                alt="Menu item preview"
+                alt={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.name ?? "Crispies menu item") : "Crispies menu item"}
                 fill
                 sizes="320px"
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -250,7 +252,7 @@ export default function MenuSection() {
           {featuredCategories.map((category) => {
             const globalStartIdx = featuredCategories.indexOf(category) * 3;
             return (
-              <div key={category.id} className="mb-12">
+              <div key={category.id} id={category.id} className="mb-12 scroll-mt-32">
                 <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/10 pb-4">
                   <div className="flex items-baseline gap-4">
                     <span className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-white/20 md:text-6xl">{category.number}</span>
@@ -259,12 +261,13 @@ export default function MenuSection() {
                   <span className="text-xs font-semibold uppercase tracking-widest text-white/30">{category.items.length} Items</span>
                 </div>
                 <div className="menu-container flex w-full flex-col">
-                  {category.items.map((item, index) => {
+                   {category.items.map((item, index) => {
                     const globalIdx = globalStartIdx + index;
                     return (
                       <MenuRow
                         key={item.id}
                         item={item}
+                        categorySlug={category.id}
                         index={index}
                         isHovered={hoveredIndex === globalIdx}
                         onMouseEnter={() => setHoveredIndex(globalIdx)}

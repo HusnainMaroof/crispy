@@ -6,6 +6,14 @@ import { envConfig } from "../../config/env.js";
 import { ForbiddenException, NotFoundException, UnauthorizedException } from "../../utils/app-error.js";
 import { sendSuccess } from "../../utils/response.js";
 
+function signToken(profile: { id: string; email: string; role: string }): string {
+  return jwt.sign(
+    { sub: profile.id, email: profile.email, role: profile.role },
+    envConfig.JWT.SECRET,
+    { expiresIn: envConfig.JWT.EXPIRES_IN as jwt.SignOptions["expiresIn"] },
+  );
+}
+
 export const AuthController = {
   async login(req: Request, res: Response) {
     const { email, password } = req.body;
@@ -30,13 +38,29 @@ export const AuthController = {
       throw new ForbiddenException("Not authorized as admin");
     }
 
-    const token = jwt.sign(
-      { sub: profile.id, email: profile.email, role: profile.role },
-      envConfig.JWT.SECRET,
-      { expiresIn: envConfig.JWT.EXPIRES_IN as jwt.SignOptions["expiresIn"] },
-    );
+    const token = signToken(profile);
 
     sendSuccess(res, { token, user: profile });
+  },
+
+  async refresh(req: Request, res: Response) {
+    const payload = req.admin;
+    if (!payload) {
+      throw new UnauthorizedException("Not authenticated");
+    }
+
+    const { data: profile } = await getAdminClient()
+      .from("admin_profiles")
+      .select("*")
+      .eq("id", payload.sub)
+      .single();
+
+    if (!profile) {
+      throw new NotFoundException("Profile not found");
+    }
+
+    const token = signToken(profile);
+    sendSuccess(res, { token });
   },
 
   async me(req: Request, res: Response) {

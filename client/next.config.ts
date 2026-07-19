@@ -21,8 +21,8 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' https://images.unsplash.com https://commondatastorage.googleapis.com https://www.zycocudi.us",
-              "media-src 'self' https://commondatastorage.googleapis.com",
+              "img-src 'self' https://images.unsplash.com https://www.zycocudi.us",
+              "media-src 'self'",
               "font-src 'self'",
               `connect-src ${connectSrc}`,
               "frame-src 'none'",
@@ -34,15 +34,13 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    if (!apiBase) {
-      return [
-        {
-          source: "/api/:path*",
-          destination: "http://localhost:3001/api/:path*",
-        },
-      ];
-    }
-    return [];
+    const target = apiBase || "http://localhost:3001";
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${target}/api/:path*`,
+      },
+    ];
   },
 };
 

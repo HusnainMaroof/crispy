@@ -9,8 +9,7 @@ const HERO_IMG =
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop";
 const PILL_IMG =
   "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop";
-const HERO_VIDEO =
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+const HERO_VIDEO = "/sizzle-reel.mp4";
 
 const SLICE_LINES: { text: string; cls: string; reveal: string; delay: string }[] = [
   { text: "GOOD", cls: "white-slice", reveal: "reveal-left", delay: "0.05s" },
@@ -65,10 +64,14 @@ export default function Hero({ started }: HeroProps) {
     >
       {/* Ambient background image */}
       <div className="absolute inset-0 z-0">
-        <img
+        <Image
           src={HERO_IMG}
-          alt="Dark, moody burger on a plate"
-          className="h-full w-full object-cover object-center"
+          alt="Crispies signature halal smash burger served in London"
+          fill
+          priority
+          fetchPriority="high"
+          sizes="100vw"
+          className="object-cover object-center"
         />
         {/* Horizontal gradient - lighter for clearer image */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" aria-hidden />

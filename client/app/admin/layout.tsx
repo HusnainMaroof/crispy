@@ -10,11 +10,7 @@ function useAuthGate() {
   const router = useRouter();
   const pathname = usePathname();
   const redirected = useRef(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted, setMounted] = useState(() => typeof window !== "undefined");
 
   const isLogin = pathname === "/admin/login";
   const hasToken = mounted && !!getAuthToken();

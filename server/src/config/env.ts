@@ -6,7 +6,6 @@ type SupabaseConfig = {
   URL: string;
   PUBLISHABLE_KEY: string;
   SECRET_KEY: string;
-  JWKS_URL?: string;
 };
 
 type JwtConfig = {
@@ -44,7 +43,6 @@ export const envConfig = {
     URL: required("SUPABASE_URL"),
     PUBLISHABLE_KEY: required("SUPABASE_PUBLISHABLE_KEY"),
     SECRET_KEY: required("SUPABASE_SECRET_KEY"),
-    JWKS_URL: process.env.SUPABASE_JWKS_URL,
   } satisfies SupabaseConfig,
 
   JWT: {

@@ -13,6 +13,60 @@ import StatsSection from "@/components/store/stats-section";
 import AppPromo from "@/components/store/app-promo";
 import FindUsSection from "@/components/store/find-us-section";
 import MenuSection from "@/components/store/menu-section";
+import JsonLd from "@/components/seo/json-ld";
+
+const restaurantSchema = {
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  name: "Crispies",
+  description:
+    "Crispies — halal burgers and chicken in London. Crispy on the outside, juicy on the inside. Delivery and click & collect.",
+  servesCuisine: ["Burgers", "Chicken", "Halal", "Fast Food"],
+  priceRange: "£",
+  areaServed: {
+    "@type": "City",
+    name: "London",
+  },
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "London",
+    addressCountry: "GB",
+  },
+  url: "https://crispies.co.uk",
+  logo: "https://crispies.co.uk/icon.svg",
+  image:
+    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop",
+  acceptsReservations: false,
+  hasMenu: "https://crispies.co.uk/menu",
+  openingHoursSpecification: [
+    {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ],
+      opens: "11:00",
+      closes: "23:00",
+    },
+  ],
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Crispies",
+  url: "https://crispies.co.uk",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: "https://crispies.co.uk/menu?q={search_term_string}",
+    "query-input": "required name=search_term_string",
+  },
+};
 
 export default function StoreHomePage() {
   const [preloaderDone, setPreloaderDone] = useState(false);
@@ -27,6 +81,7 @@ export default function StoreHomePage() {
 
   return (
     <>
+      <JsonLd data={[restaurantSchema, websiteSchema]} />
       <Hero started={preloaderDone} />
       <MenuSection />
       <DealsSection />

@@ -11,6 +11,7 @@ const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
   preparing: "bg-blue-500/20 text-blue-400",
   ready: "bg-green-500/20 text-green-400",
+  "out-for-delivery": "bg-purple-500/20 text-purple-400",
   delivered: "bg-white/10 text-white/50",
   cancelled: "bg-red-500/20 text-red-400",
 };
@@ -19,6 +20,7 @@ const statusLabels: Record<string, string> = {
   pending: "Pending",
   preparing: "Preparing",
   ready: "Ready",
+  "out-for-delivery": "Out for Delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
 };

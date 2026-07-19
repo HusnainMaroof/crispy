@@ -45,7 +45,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchOrders();
     fetchItems();
-    api.get<DashboardStats>("/admin/dashboard/stats").then(setStats).catch(() => {});
+    api.get<DashboardStats>("/admin/dashboard/stats").then(setStats).catch((err) => {
+      if (process.env.NODE_ENV === "development") console.warn("Failed to load dashboard stats:", err);
+    });
   }, [fetchOrders, fetchItems]);
 
   const loading = ordersLoading || menuLoading;
@@ -164,7 +166,7 @@ export default function AdminDashboard() {
               {orders.slice(0, 5).map((order) => (
                 <tr key={order.id} className="cursor-pointer transition-colors hover:bg-white/5">
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
-                    {order.id.slice(0, 8)}
+                    {String(order.id).slice(0, 8)}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-white/70">
                     {order.customer}

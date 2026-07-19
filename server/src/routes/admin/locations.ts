@@ -7,6 +7,7 @@ import { LocationsController } from "../../controllers/admin/locations.controlle
 const router = Router();
 
 router.get("/", asyncHandler(LocationsController.list));
+router.get("/:id", asyncHandler(LocationsController.getById));
 router.post("/", validate(locationSchema), asyncHandler(LocationsController.create));
 router.patch("/:id", validate(locationUpdateSchema), asyncHandler(LocationsController.update));
 router.delete("/:id", asyncHandler(LocationsController.remove));

@@ -75,13 +75,8 @@ export default function FindUsPage() {
     }
   }, [dispatch, locations.length]);
 
-  useEffect(() => {
-    if (selected >= locations.length) {
-      setSelected(0);
-    }
-  }, [locations.length, selected]);
-
-  const loc = locations[selected];
+  const safeSelected = locations.length > 0 ? Math.min(selected, locations.length - 1) : 0;
+  const loc = locations[safeSelected];
 
   return (
     <div ref={pageRef} className="min-h-screen bg-black">
@@ -113,7 +108,7 @@ export default function FindUsPage() {
                   key={loc.name}
                   onClick={() => setSelected(i)}
                   className={`fade-up cursor-pointer w-full rounded-2xl border p-5 text-left transition-all ${
-                    selected === i
+                    safeSelected === i
                       ? "border-brand-red bg-brand-red/10"
                       : "border-white/10 bg-white/5 hover:border-white/20"
                   }`}
