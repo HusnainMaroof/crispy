@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import type { ApiResponse } from "../types/responses.js";
 
 export function sendSuccess<T>(res: Response, data?: T, status = 200) {

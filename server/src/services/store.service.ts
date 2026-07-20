@@ -1,6 +1,6 @@
 import { getAdminClient } from "../config/supabase.js";
 import { NotFoundException } from "../utils/app-error.js";
-import type { Location, BusinessSettings } from "../types/models.js";
+import type { Location } from "../types/models.js";
 
 export { getLocations, getSettings } from "./admin.service.js";
 

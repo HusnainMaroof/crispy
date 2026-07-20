@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import gsap from "gsap";
 import { type MenuItem } from "@/lib/redux/types";
+import OptimizedImage from "@/components/ui/optimized-image";
 
 interface MenuItemModalProps {
   item: MenuItem;
@@ -97,13 +97,13 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
 
         {/* Image */}
         <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden sm:aspect-[2/1]">
-          <Image
+          <OptimizedImage
             src={item.image}
             alt={item.name}
             fill
             sizes="(max-width: 640px) 100vw, 672px"
             className="object-cover"
-            priority
+            loading="eager"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent" aria-hidden />
           {item.badge && (

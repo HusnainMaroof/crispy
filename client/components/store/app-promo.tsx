@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import OptimizedImage from "@/components/ui/optimized-image";
 
 const features = [
   "One-tap reorder",
@@ -121,7 +121,7 @@ export default function AppPromo() {
 
                   {/* Food card */}
                   <div className="relative mb-6 h-[140px] overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900">
-                    <Image
+                    <OptimizedImage
                       src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600"
                       alt="Smash burger"
                       fill

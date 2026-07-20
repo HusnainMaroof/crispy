@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import OptimizedImage from "@/components/ui/optimized-image";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchFullMenu } from "@/lib/redux/slices/menuSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
@@ -203,7 +203,7 @@ export default function MenuSection() {
         >
           {hoveredIndex !== null && (
             <>
-               <Image
+               <OptimizedImage
                 src={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.image ?? "") : ""}
                 alt={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.name ?? "Crispies menu item") : "Crispies menu item"}
                 fill

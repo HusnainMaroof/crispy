@@ -3,11 +3,9 @@ import jwt from "jsonwebtoken";
 import { envConfig } from "../config/env.js";
 import type { AuthPayload } from "../types/responses.js";
 
-declare global {
-  namespace Express {
-    interface Request {
-      admin?: AuthPayload;
-    }
+declare module "express" {
+  interface Request {
+    admin?: AuthPayload;
   }
 }
 

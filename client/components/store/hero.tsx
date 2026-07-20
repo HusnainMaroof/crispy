@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLenis } from "@/components/providers/smooth-scroll";
 import { api } from "@/lib/api";
+import OptimizedImage from "@/components/ui/optimized-image";
 
 const DEFAULT_HERO_IMG =
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop";
@@ -87,7 +87,7 @@ export default function Hero({ started }: HeroProps) {
     >
       {/* Ambient background image */}
       <div className="absolute inset-0 z-0">
-        <Image
+        <OptimizedImage
           src={HERO_IMG}
           alt="Crispies signature halal smash burger served in London"
           fill
@@ -141,7 +141,7 @@ export default function Hero({ started }: HeroProps) {
                 className="group relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 shadow-2xl transition-transform duration-300 hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red sm:h-28 sm:w-48 md:h-32 md:w-60 lg:h-36 lg:w-72 xl:h-40 xl:w-80"
                 aria-label="Watch the sizzle reel"
               >
-                <Image
+                <OptimizedImage
                   src={PILL_IMG}
                   alt="Burger on the grill"
                   fill

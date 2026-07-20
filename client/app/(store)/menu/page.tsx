@@ -3,11 +3,11 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLenis } from "@/components/providers/smooth-scroll";
+import OptimizedImage from "@/components/ui/optimized-image";
 import { addItem } from "@/lib/redux/slices/cartSlice";
 import { fetchFullMenu, fetchDeals } from "@/lib/redux/slices/menuSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
@@ -446,7 +446,7 @@ export default function FullMenuPage() {
       >
         {hoveredImage && (
           <>
-            <Image src={hoveredImage} alt="Preview" fill sizes="320px" className="object-cover transition-transform duration-700" />
+            <OptimizedImage src={hoveredImage} alt="Preview" fill sizes="320px" className="object-cover transition-transform duration-700" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" aria-hidden />
           </>
         )}

@@ -1,11 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import { envConfig } from "../config/env.js";
 
-declare global {
-  namespace Express {
-    interface Request {
-      customerId: string;
-    }
+declare module "express" {
+  interface Request {
+    customerId: string;
   }
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import { api } from "@/lib/api";
+import OptimizedImage from "@/components/ui/optimized-image";
 
 type Deal = {
   id: string;
@@ -130,7 +130,7 @@ export default function DealsSection() {
                     isActive ? "scale-100" : "scale-110"
                   }`}
                 >
-                  <Image
+                  <OptimizedImage
                     src={deal.image}
                     alt={deal.name}
                     fill
