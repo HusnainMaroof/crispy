@@ -1,39 +1,55 @@
-services:
-  - type: web
-    name: crispy-server
-    runtime: node
-    rootDir: server
-    buildCommand: pnpm install && pnpm build
-    startCommand: node dist/index.js
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_PUBLISHABLE_KEY
-        sync: false
-      - key: SUPABASE_SECRET_KEY
-        sync: false
-      - key: DATABASE_URL
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: JWT_EXPIRES_IN
-        value: 7d
-      - key: CORS_ORIGIN
-        sync: false
-      - key: CLOUDINARY_CLOUD_NAME
+# Exported from Render on 2026-07-21T14:02:48Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: crispyuk
+      runtime: node
+      repo: https://github.com/HusnainMaroof/crispy
+      plan: free
+      envVars:
+      - key: CLOUDINARY_API_SECRET
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-      - key: BREVO_SMTP_SDK_KEY
-        sync: false
-      - key: EMAIL_FROM
+      - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: ADMIN_EMAIL
         sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: BREVO_SMTP_SDK_KEY
+        sync: false
+      - key: DATABASE_URL_PASS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: LOG_LEVEL
+        sync: false
       - key: RATE_LIMIT_MAX
-        value: "100"
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: NODE_ENV
+        sync: false
+      - key: PORT
+        sync: false
+      - key: JWT_EXPIRES_IN
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_JWKS_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      region: oregon
+      buildCommand: yarn install; yarn build
+      startCommand: yarn start
+      autoDeployTrigger: commit
