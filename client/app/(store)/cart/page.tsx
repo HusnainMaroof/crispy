@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "next/navigation";
 import { useLenis } from "@/components/providers/smooth-scroll";
@@ -101,7 +101,7 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
-export default function CartPage() {
+function CartContent() {
   const items = useSelector((state: RootState) => state.cart.items);
   const settings = useSelector((state: RootState) => state.settings.settings);
   const dispatch = useDispatch<AppDispatch>();
@@ -467,5 +467,21 @@ export default function CartPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black text-white">
+          <div className="mx-auto max-w-5xl px-6 pt-28 md:px-16 lg:px-24">
+            <div className="h-12 w-48 animate-pulse rounded bg-white/10" />
+          </div>
+        </div>
+      }
+    >
+      <CartContent />
+    </Suspense>
   );
 }
