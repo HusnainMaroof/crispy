@@ -1,9 +1,0 @@
-{
-  "name": "crispy",
-  "private": true,
-  "scripts": {
-    "postinstall": "cd server && pnpm install",
-    "build": "cd server && pnpm build",
-    "start": "cd server && pnpm start"
-  }
-}

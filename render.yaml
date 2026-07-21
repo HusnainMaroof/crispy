@@ -4,7 +4,8 @@ services:
     runtime: node
     rootDir: server
     buildCommand: pnpm install && pnpm build
-    startCommand: pnpm start
+    startCommand: node dist/index.js
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,9 +15,25 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
       - key: CORS_ORIGIN
         sync: false
-      - key: PORT
-        value: "8081"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: BREVO_SMTP_SDK_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: RATE_LIMIT_MAX
+        value: "100"
