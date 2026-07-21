@@ -9,6 +9,7 @@ import Dropdown from "@/components/admin/ui/dropdown";
 import { TableSkeleton } from "@/components/admin/ui/skeleton";
 import { useMenu } from "@/lib/admin/use-menu";
 import { useCategories } from "@/lib/admin/use-categories";
+import OptimizedImage from "@/components/ui/optimized-image";
 
 export default function MenuPage() {
   const { items, loading, fetchItems, addItem, updateItem, deleteItem } = useMenu();
@@ -17,6 +18,7 @@ export default function MenuPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<string | null>(null);
 
   useEffect(() => {
     fetchItems();
@@ -43,13 +45,15 @@ export default function MenuPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return;
     try {
-      await deleteItem(id);
+      await deleteItem(deletingItem);
       toast.success("Item deleted");
     } catch {
       toast.error("Failed to delete item");
+    } finally {
+      setDeletingItem(null);
     }
   };
 
@@ -130,11 +134,16 @@ export default function MenuPage() {
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-10 w-10 rounded-lg object-cover"
-                    />
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                      <OptimizedImage
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                        blur={false}
+                      />
+                    </div>
                     <div>
                       <p className="text-sm font-medium text-white">{item.name}</p>
                       <p className="max-w-xs truncate text-xs text-white/50">
@@ -170,7 +179,7 @@ export default function MenuPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => setDeletingItem(item.id)}
                     className="btn-press text-white/50 hover:text-brand-red"
                   >
                     Delete
@@ -186,6 +195,32 @@ export default function MenuPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deletingItem && (
+        <Modal
+          onClose={() => setDeletingItem(null)}
+          title="Delete Item"
+        >
+          <p className="mb-6 text-sm text-white/70">
+            Are you sure you want to delete <span className="font-medium text-white">{items.find((i) => i.id === deletingItem)?.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeletingItem(null)}
+              className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteConfirm}
+              className="rounded-lg bg-brand-red px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Form Modal */}
       {showForm && (
@@ -290,16 +325,51 @@ function MenuForm({
           </div>
           <div>
             <label className="mb-1 block text-sm text-white/50">Image</label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
-                placeholder="https://... or upload"
-                className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-brand-red/50"
-              />
-              <label className="cursor-pointer rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-                Upload
+            {image ? (
+              <div className="relative overflow-hidden rounded-lg border border-white/10">
+                <img
+                  src={image}
+                  alt="Preview"
+                  className="h-48 w-full object-cover"
+                />
+                <div className="absolute right-2 top-2 flex gap-2">
+                  <label className="cursor-pointer rounded-lg bg-black/60 px-3 py-1.5 text-xs text-white/80 transition-colors hover:bg-black/80 hover:text-white">
+                    Replace
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/avif"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        try {
+                          const { url } = await api.upload<{ url: string; publicId: string }>("/admin/upload", formData);
+                          setImage(url);
+                        } catch {
+                          toast.error("Upload failed");
+                        }
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setImage("")}
+                    className="rounded-lg bg-black/60 px-3 py-1.5 text-xs text-white/80 transition-colors hover:bg-brand-red/80 hover:text-white"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-white/10 bg-white/5 h-32 transition-colors hover:border-white/30 hover:bg-white/10">
+                <div className="text-center">
+                  <svg className="mx-auto h-8 w-8 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-white/50">Click to upload image</p>
+                </div>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/avif"
@@ -308,9 +378,9 @@ function MenuForm({
                     const file = e.target.files?.[0];
                     if (!file) return;
                     const formData = new FormData();
-                    formData.append("image", file);
+                    formData.append("file", file);
                     try {
-                      const { url } = await api.upload<{ url: string }>("/admin/upload", formData);
+                      const { url } = await api.upload<{ url: string; publicId: string }>("/admin/upload", formData);
                       setImage(url);
                     } catch {
                       toast.error("Upload failed");
@@ -318,7 +388,7 @@ function MenuForm({
                   }}
                 />
               </label>
-            </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

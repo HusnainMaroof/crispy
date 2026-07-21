@@ -9,6 +9,7 @@ import { useUI } from "@/lib/context/ui-context";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/lib/redux/store";
 import { useLenis } from "@/components/providers/smooth-scroll";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 
 gsap.registerPlugin(useGSAP);
 
@@ -73,16 +74,10 @@ export default function Navbar() {
 
   useEffect(() => {
     if (isMobileNavOpen) {
-      document.body.style.overflow = "hidden";
-      stop();
-    } else {
-      document.body.style.overflow = "";
-      start();
+      lockBodyScroll({ onStop: stop, onStart: start });
+      return () => unlockBodyScroll();
     }
-    return () => {
-      document.body.style.overflow = "";
-      start();
-    };
+    return;
   }, [isMobileNavOpen, stop, start]);
 
   useGSAP(

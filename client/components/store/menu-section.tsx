@@ -98,6 +98,9 @@ function MenuRow({
   );
 }
 
+const FEATURED_CATEGORY_COUNT = 3;
+const HOMEPAGE_ITEMS_PER_CATEGORY = 5;
+
 export default function MenuSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const dispatch = useDispatch<AppDispatch>();
@@ -114,8 +117,19 @@ export default function MenuSection() {
   const currentPos = useRef({ x: 0, y: 0 });
   const reqRef = useRef<number | undefined>(undefined);
 
-  // Pick 3 featured categories for the homepage preview
-  const featuredCategories = categories.slice(0, 3);
+  // Pick featured categories for the homepage preview, cap their items at N each
+  const featuredCategories = categories
+    .slice(0, FEATURED_CATEGORY_COUNT)
+    .map((category) => ({
+       ...category,
+       items: category.items.slice(0, HOMEPAGE_ITEMS_PER_CATEGORY),
+    }));
+
+  // Build a flat index → {category, item} map once per render so the cursor
+  // follower's hovered image resolves correctly regardless of the per-category cap.
+  const flatItems = featuredCategories.flatMap((category) =>
+    category.items.map((item) => ({ category, item })),
+  );
 
   useEffect(() => {
     const reduce = window.matchMedia(
@@ -190,7 +204,7 @@ export default function MenuSection() {
         }}
       />
 
-      <section className="relative min-h-screen overflow-hidden bg-black p-8 text-white md:p-16 lg:p-24">
+      <section className="relative overflow-hidden bg-black px-6 py-20 text-white sm:px-8 sm:py-24 md:px-12 md:py-28 lg:px-16 lg:py-36">
         {/* Floating Image Cursor Follower */}
         <div
           ref={imageRef}
@@ -201,27 +215,27 @@ export default function MenuSection() {
           }`}
           aria-hidden
         >
-          {hoveredIndex !== null && (
+{hoveredIndex !== null && flatItems[hoveredIndex] && (
             <>
                <OptimizedImage
-                src={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.image ?? "") : ""}
-                alt={hoveredIndex !== null ? (featuredCategories[Math.floor(hoveredIndex / 3)]?.items[hoveredIndex % 3]?.name ?? "Crispies menu item") : "Crispies menu item"}
-                fill
-                sizes="320px"
-                className="object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div
-                className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"
-                aria-hidden
-              />
+                 src={flatItems[hoveredIndex].item.image}
+                 alt={flatItems[hoveredIndex].item.name ?? "Crispies menu item"}
+                 fill
+                 sizes="320px"
+                 className="object-cover transition-transform duration-700 group-hover:scale-105"
+               />
+               <div
+                 className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"
+                 aria-hidden
+               />
             </>
           )}
         </div>
 
         <div className="mx-auto max-w-7xl">
           {/* Header */}
-          <div className="mb-16 flex flex-col items-baseline justify-between gap-4 md:flex-row">
-            <h2 className="text-xl uppercase md:text-4xl lg:text-5xl font-semibold">
+          <div className="mb-12 flex flex-col items-baseline justify-between gap-4 md:mb-16 md:flex-row">
+            <h2 className="font-[family-name:var(--font-bebas)] text-5xl uppercase leading-none md:text-7xl lg:text-8xl">
               The Menu
             </h2>
             <Link
@@ -248,34 +262,54 @@ export default function MenuSection() {
             </Link>
           </div>
 
-          {/* Menu Categories */}
-          {featuredCategories.map((category) => {
-            const globalStartIdx = featuredCategories.indexOf(category) * 3;
+{/* Menu Categories */}
+          {featuredCategories.map((category, catIdx) => {
+            const globalStartIdx = featuredCategories
+              .slice(0, catIdx)
+              .reduce((sum, c) => sum + c.items.length, 0);
+            const moreCount = (categories[catIdx]?.items.length ?? 0) - category.items.length;
             return (
-              <div key={category.id} id={category.id} className="mb-12 scroll-mt-32">
-                <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/10 pb-4">
+              <div
+                key={category.id}
+                id={category.id}
+                className={`scroll-mt-32 ${
+                  catIdx < featuredCategories.length - 1 ? "mb-12 md:mb-16" : "mb-0"
+                }`}
+              >
+                <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/10 pb-4 md:mb-6">
                   <div className="flex items-baseline gap-4">
                     <span className="font-[family-name:var(--font-bebas)] text-5xl leading-none text-white/20 md:text-6xl">{category.number}</span>
                     <h3 className="font-[family-name:var(--font-bebas)] text-3xl uppercase leading-none text-white md:text-4xl">{category.title}</h3>
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-widest text-white/30">{category.items.length} Items</span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-white/30">
+                    {category.items.length} Items{moreCount > 0 ? ` (+${moreCount})` : ""}
+                  </span>
                 </div>
                 <div className="menu-container flex w-full flex-col">
                    {category.items.map((item, index) => {
-                    const globalIdx = globalStartIdx + index;
-                    return (
-                      <MenuRow
-                        key={item.id}
-                        item={item}
-                        categorySlug={category.id}
-                        index={index}
-                        isHovered={hoveredIndex === globalIdx}
-                        onMouseEnter={() => setHoveredIndex(globalIdx)}
-                        onMouseLeave={() => setHoveredIndex(null)}
-                      />
-                    );
-                  })}
+                     const globalIdx = globalStartIdx + index;
+                     return (
+                       <MenuRow
+                         key={item.id}
+                         item={item}
+                         categorySlug={category.id}
+                         index={index}
+                         isHovered={hoveredIndex === globalIdx}
+                         onMouseEnter={() => setHoveredIndex(globalIdx)}
+                         onMouseLeave={() => setHoveredIndex(null)}
+                       />
+                     );
+                   })}
                 </div>
+                {moreCount > 0 && (
+                  <Link
+                    href={`/menu#${category.id}`}
+                    className="group mt-6 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-white/40 transition-colors hover:text-white md:mt-8"
+                  >
+                    View all {categories[catIdx]?.items.length} in {category.title}
+                    <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
+                  </Link>
+                )}
               </div>
             );
           })}

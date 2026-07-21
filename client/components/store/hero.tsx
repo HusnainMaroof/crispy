@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLenis } from "@/components/providers/smooth-scroll";
 import { api } from "@/lib/api";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 import OptimizedImage from "@/components/ui/optimized-image";
 
 const DEFAULT_HERO_IMG =
@@ -67,13 +68,10 @@ export default function Hero({ started }: HeroProps) {
       if (e.key === "Escape") setVideoOpen(false);
     };
     window.addEventListener("keydown", onKey);
-    stop();
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll({ onStop: stop, onStart: start });
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-      start();
+      unlockBodyScroll();
     };
   }, [videoOpen, stop, start]);
 
@@ -81,7 +79,7 @@ export default function Hero({ started }: HeroProps) {
     <section
       ref={rootRef}
       aria-busy={!started}
-      className={`relative flex h-dvh flex-col justify-between overflow-hidden bg-black text-white selection:bg-white selection:text-brand-red ${
+      className={`relative flex min-h-dvh flex-col justify-between overflow-hidden bg-black text-white selection:bg-white selection:text-brand-red ${
         started ? "" : "hero-paused"
       }`}
     >
@@ -112,7 +110,7 @@ export default function Hero({ started }: HeroProps) {
         }}
       />
 
-      <main className="relative z-20 mx-auto flex h-dvh w-full max-w-[1400px] flex-grow flex-col justify-between px-6 pb-8 pt-24 md:px-12 lg:px-16 xl:px-24">
+      <main className="relative z-20 mx-auto flex w-full max-w-[1400px] flex-grow flex-col justify-between px-6 pb-8 pt-24 md:px-12 lg:px-16 xl:px-24">
         {/* Top tagline */}
         <div className="overflow-hidden">
           <p className="slide-in-right flex items-center gap-4 text-[9px] font-bold uppercase tracking-[0.3em] text-white/40 md:text-[10px]" style={{ animationDelay: "0.1s" }}>

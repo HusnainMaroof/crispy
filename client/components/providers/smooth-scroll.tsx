@@ -58,21 +58,41 @@ export default function SmoothScroll({ children }: { children: ReactNode }) {
       ScrollTrigger.refresh();
     });
 
-    const onScroll = (e: LenisScrollEvent) => {
+const onScroll = (e: LenisScrollEvent) => {
       ScrollTrigger.update();
       listenersRef.current.forEach((cb) => cb(e));
     };
     instance.on("scroll", onScroll);
 
     const raf = (time: number) => {
-     instance.raf(time * 1000);
+      instance.raf(time * 1000);
     };
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
 
+    // Hash-anchor handler: when arriving with a #fragment (cross-page or
+    // in-page), call lenis.scrollTo instead of letting the browser's native
+    // jump fight Lenis' internal scroll target.
+    const scrollToHash = (hash: string) => {
+      const id = hash.replace(/^#/, "");
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      // 128px ~ matches scroll-mt-32 used across the site, clears fixed navbar.
+      instance.scrollTo(el, { offset: -128, immediate: false });
+    };
+
+    const onHashChange = () => {
+      if (window.location.hash) scrollToHash(window.location.hash);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    // Defer to next tick so route-rendered target elements exist.
+    queueMicrotask(onHashChange);
+
     return () => {
       gsap.ticker.remove(raf);
       instance.off("scroll", onScroll);
+      window.removeEventListener("hashchange", onHashChange);
       instance.destroy();
       lenisRef.current = null;
     };

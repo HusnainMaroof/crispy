@@ -5,7 +5,7 @@ import { useRef } from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const DEFAULT_START = "top 88%";
+const DEFAULT_START = "top 100%";
 
 /**
  * Animates all `.fade-up` children inside `scopeRef`.

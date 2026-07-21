@@ -29,6 +29,7 @@ const statusOptions = [
   { value: "pending", label: "Pending" },
   { value: "preparing", label: "Preparing" },
   { value: "ready", label: "Ready" },
+  { value: "out-for-delivery", label: "Out for Delivery" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
 ];
@@ -38,6 +39,7 @@ const filterOptions = [
   { value: "pending", label: "Pending" },
   { value: "preparing", label: "Preparing" },
   { value: "ready", label: "Ready" },
+  { value: "out-for-delivery", label: "Out for Delivery" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
 ];
@@ -106,7 +108,9 @@ export default function OrdersPage() {
                   {order.customer}
                 </td>
                 <td className="max-w-xs truncate px-6 py-4 text-sm text-white/70">
-                  {order.items.map((item) => `${item.quantity}x ${item.name}`).join(", ")}
+                  {order.items.length > 0
+                    ? order.items.map((item) => `${item.quantity}x ${item.name}`).join(", ")
+                    : "—"}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
                   £{order.total.toFixed(2)}

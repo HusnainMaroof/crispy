@@ -265,6 +265,38 @@ Business settings (delivery fee, free delivery threshold).
 
 ---
 
+### `GET /api/store/homepage`
+
+Returns homepage content as a key→content map (rows from the `homepage_content` table).
+
+**Response** `200`
+```json
+{
+  "hero_title": { ... },
+  "stats": [ ... ],
+  "deals_cta": { ... }
+}
+```
+
+---
+
+### `GET /api/store/jobs`
+
+Lists active job posts (public careers listing). Only posts with `status: "active"` are returned.
+
+**Response** `200` — `JobPost[]` (see Admin — Jobs for the shape)
+
+---
+
+### `GET /api/store/jobs/:id`
+
+Single active job post by ID.
+
+**Response** `200` — `JobPost`
+**Error** `404` — Not found
+
+---
+
 ## Public — Actions
 
 ### `POST /api/orders`
@@ -400,7 +432,6 @@ Submit a job application for the given job post.
 **Request body**
 ```json
 {
-  "job_post_id": "kitchen-staff-brixton",
   "applicant_name": "Jane Doe",
   "email": "jane@example.com",
   "phone": "+44 7123 456789",
@@ -408,6 +439,8 @@ Submit a job application for the given job post.
   "cover_letter": "I am very interested..."
 }
 ```
+
+`job_post_id` is NOT sent in the body — it is taken from the URL `:id` param. (`phone`, `cv_url`, and `cover_letter` are optional.)
 
 **Response** `201` — Created application
 **Error** `400` — Validation failed
@@ -438,12 +471,41 @@ Login with email and password via Supabase Auth, then checks admin profile.
 
 ---
 
+### `POST /api/admin/auth/refresh`
+
+Issues a fresh JWT from a still-valid token. Requires `Authorization: Bearer <token>`.
+
+**Response** `200`
+```json
+{ "token": "eyJhbGciOiJI..." }
+```
+
+**Error** `401` — Missing or invalid token
+
+---
+
 ### `GET /api/admin/auth/me`
 
 Returns the authenticated admin's profile. Requires `Authorization: Bearer <token>`.
 
 **Response** `200` — `AdminProfile`
 **Error** `401` — Missing or invalid token
+
+---
+
+## Admin — Upload
+
+### `POST /api/admin/upload`
+
+Uploads a single image (`multipart/form-data`, field name `image`, max 5 MB). Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`, `image/avif`. Used by the categories, menu items, and deals admin forms. Requires `Authorization: Bearer <token>`.
+
+**Response** `201`
+```json
+{ "url": "https://res.cloudinary.com/.../crispies/xxxx.jpg" }
+```
+
+**Error** `400` — No file provided / invalid MIME type
+**Error** `500` — Upload failed (Cloudinary credentials or permissions)
 
 ---
 
@@ -570,7 +632,35 @@ Flips the `active` boolean.
 
 ### `GET /api/admin/orders`
 
-List orders. `?status=pending` or `?location_id=brixton` to filter.
+List orders. `?status=pending` or `?location_id=brixton` to filter. Each order includes its line items nested under `items` (a single DB join, no extra round-trip).
+
+**Response** `200`
+```json
+[
+  {
+    "id": 1,
+    "customer_name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+44 7123 456789",
+    "address": "123 High Street",
+    "postcode": "SW1A 1AA",
+    "city": "London",
+    "notes": null,
+    "fulfilment": "delivery",
+    "payment_method": "card",
+    "subtotal": 15.97,
+    "delivery_fee": 2.99,
+    "total": 18.96,
+    "status": "pending",
+    "location_id": "brixton",
+    "created_at": "...",
+    "updated_at": "...",
+    "items": [
+      { "id": 1, "order_id": 1, "menu_item_id": "wings-5", "name": "5 Wings", "price": 5.99, "quantity": 2, "created_at": "..." }
+    ]
+  }
+]
+```
 
 ### `GET /api/admin/orders/:id`
 

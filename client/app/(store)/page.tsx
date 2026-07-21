@@ -77,6 +77,11 @@ export default function StoreHomePage() {
     dispatch(fetchDeals());
     dispatch(fetchLocations());
     dispatch(fetchSettings());
+    // Watchdog: if Preloader GSAP timeline doesn't hit onComplete
+    // (route change, error mid-tween, strict-mode double-invoke), force
+    // un-pause the hero after 4s so it isn't permanently invisible.
+    const watchdog = window.setTimeout(() => setPreloaderDone(true), 4000);
+    return () => window.clearTimeout(watchdog);
   }, [dispatch]);
 
   return (

@@ -31,6 +31,7 @@ export default function CreateJobPostPage() {
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState<string[]>([""]);
   const [status, setStatus] = useState<string>("draft");
+  const [requirementsError, setRequirementsError] = useState<string>("");
 
   useEffect(() => {
     getLocationOptions().then(setLocationOpts);
@@ -44,6 +45,7 @@ export default function CreateJobPostPage() {
     const updated = [...requirements];
     updated[index] = value;
     setRequirements(updated);
+    if (updated.some((r) => r.trim() !== "")) setRequirementsError("");
   };
 
   const removeRequirement = (index: number) => {
@@ -55,6 +57,11 @@ export default function CreateJobPostPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const filteredRequirements = requirements.filter((r) => r.trim() !== "");
+    if (filteredRequirements.length === 0) {
+      setRequirementsError("Add at least one requirement.");
+      return;
+    }
+    setRequirementsError("");
     addJobPost({
       title,
       location,
@@ -172,6 +179,9 @@ export default function CreateJobPostPage() {
               <label className="mb-2 block text-sm font-medium text-white">
                 Requirements
               </label>
+              {requirementsError && (
+                <p className="mb-2 text-xs text-brand-red">{requirementsError}</p>
+              )}
               <div className="space-y-3">
                 {requirements.map((req, index) => (
                   <div key={index} className="flex gap-2">

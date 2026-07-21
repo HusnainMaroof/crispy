@@ -1,34 +1,29 @@
-import { v2 as cloudinary } from "cloudinary";
-import { envConfig } from "../config/env.js";
+import cloudinary from "../config/cloudinary.js";
+import type { UploadApiOptions } from "cloudinary";
 
-cloudinary.config({
-  cloud_name: envConfig.CLOUDINARY.CLOUD_NAME,
-  api_key: envConfig.CLOUDINARY.API_KEY,
-  api_secret: envConfig.CLOUDINARY.API_SECRET,
-});
-
-interface UploadOptions {
-  folder?: string;
-  public_id?: string;
+export interface UploadResult {
+  url: string;
+  publicId: string;
 }
 
-export async function uploadImage(
-  buffer: Buffer,
-  options: UploadOptions = {},
-): Promise<string> {
-  const b64 = buffer.toString("base64");
-  const result = await cloudinary.uploader.upload(
-    `data:image/png;base64,${b64}`,
-    { folder: options.folder ?? "crispies", public_id: options.public_id },
-  );
-  return result.secure_url;
+export function uploadImage(buffer: Buffer, folder = "uploads"): Promise<UploadResult> {
+  const options: UploadApiOptions = {
+    resource_type: "image",
+    folder,
+    overwrite: false,
+    unique_filename: true,
+  };
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) return reject(error);
+      if (!result) return reject(new Error("Cloudinary returned no result"));
+      resolve({ url: result.secure_url, publicId: result.public_id });
+    });
+    stream.end(buffer);
+  });
 }
 
 export async function deleteImage(publicId: string): Promise<void> {
   await cloudinary.uploader.destroy(publicId);
-}
-
-export function getPublicIdFromUrl(url: string): string | null {
-  const match = url.match(/\/v\d+\/(.+)\.\w+$/);
-  return match ? match[1] : null;
 }

@@ -14,10 +14,11 @@ export type AdminOrder = {
 };
 
 function mapOrder(raw: Record<string, unknown>): AdminOrder {
+  const rawItems = (raw.items as Record<string, unknown>[]) ?? [];
   return {
     id: raw.id as string,
     customer: raw.customer_name as string,
-    items: [],
+    items: mapOrderItems(rawItems),
     total: raw.total as number,
     status: raw.status as AdminOrder["status"],
     createdAt: raw.created_at as string,
@@ -63,8 +64,13 @@ export function useOrders() {
       const data = await api.patch<Record<string, unknown>>(`/admin/orders/${id}/status`, {
         status,
       });
-      const updated = mapOrder(data);
-      setOrders((prev) => prev.map((order) => (order.id === id ? updated : order)));
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (order.id !== id) return order;
+          const updated = mapOrder(data);
+          return { ...updated, items: updated.items.length > 0 ? updated.items : order.items };
+        })
+      );
     },
     []
   );

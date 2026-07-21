@@ -33,6 +33,7 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
     post.requirements.length > 0 ? post.requirements : [""]
   );
   const [status, setStatus] = useState<string>(post.status);
+  const [requirementsError, setRequirementsError] = useState<string>("");
 
   useEffect(() => {
     getLocationOptions().then(setLocationOpts);
@@ -46,6 +47,7 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
     const updated = [...requirements];
     updated[index] = value;
     setRequirements(updated);
+    if (updated.some((r) => r.trim() !== "")) setRequirementsError("");
   };
 
   const removeRequirement = (index: number) => {
@@ -57,6 +59,11 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const filteredRequirements = requirements.filter((r) => r.trim() !== "");
+    if (filteredRequirements.length === 0) {
+      setRequirementsError("Add at least one requirement.");
+      return;
+    }
+    setRequirementsError("");
     updateJobPost(post.id, {
       title,
       location,
@@ -181,6 +188,9 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
               <label className="mb-2 block text-sm font-medium text-white">
                 Requirements
               </label>
+              {requirementsError && (
+                <p className="mb-2 text-xs text-brand-red">{requirementsError}</p>
+              )}
               <div className="space-y-3">
                 {requirements.map((req, index) => (
                   <div key={index} className="flex gap-2">

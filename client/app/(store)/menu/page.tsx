@@ -13,6 +13,7 @@ import { fetchFullMenu, fetchDeals } from "@/lib/redux/slices/menuSlice";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
 import type { MenuItem, MenuCategory } from "@/lib/redux/types";
 import MenuItemModal from "@/components/store/menu-item-modal";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -177,8 +178,10 @@ export default function FullMenuPage() {
           },
         });
       }
+
+      ScrollTrigger.refresh();
     },
-    { scope: menuListRef, dependencies: [activeTab, isSearching] },
+    { scope: menuListRef, dependencies: [activeTab, isSearching, categories.length, dealItems.length] },
   );
 
   useEffect(() => {
@@ -210,13 +213,8 @@ export default function FullMenuPage() {
 
   useEffect(() => {
     if (!selectedItem) return;
-    stop();
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-      start();
-    };
+    lockBodyScroll({ onStop: stop, onStart: start });
+    return () => unlockBodyScroll();
   }, [selectedItem, stop, start]);
 
   const handleAddToCart = (quantity: number) => {
@@ -304,7 +302,7 @@ export default function FullMenuPage() {
       </section>
 
       {/* Sticky tab pills + scroll progress */}
-      <div className="sticky top-16 z-30 border-y border-white/10 bg-black/95 backdrop-blur-lg">
+      <div className="sticky top-16 z-30 border-y border-white/10 bg-black/95">
         <div className="flex gap-2 px-6 py-3 md:gap-3 md:px-16 lg:px-24">
           {TABS.map((tab) => {
             const active = activeTab === tab.id && !isSearching;

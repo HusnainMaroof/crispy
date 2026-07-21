@@ -1,9 +1,7 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
 import Link from "next/link";
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { clearCart } from "@/lib/redux/slices/cartSlice";
 import { fetchSettings } from "@/lib/redux/slices/settingsSlice";
@@ -52,15 +50,13 @@ export default function CheckoutPage() {
   }, [dispatch, settings, locations.length]);
 
   useEffect(() => {
-    api.get<{ id: string }>("/store/location").then((loc) => {
+    api.get<{ id: string } | null>("/store/location").then((loc) => {
       if (loc?.id) setSelectedLocationId(loc.id);
     }).catch(() => {});
   }, []);
 
   const DELIVERY_FEE = settings?.delivery_fee ?? 2.99;
   const FREE_DELIVERY_THRESHOLD = settings?.free_delivery_threshold ?? 20;
-
-  const rootRef = useRef<HTMLDivElement>(null);
 
   const [fulfilment, setFulfilment] = useState<Fulfilment>("delivery");
   const [payment, setPayment] = useState<PaymentMethod>("card");
@@ -80,25 +76,6 @@ export default function CheckoutPage() {
       : DELIVERY_FEE;
   const total = subtotal + deliveryFee;
   const itemCount = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
-
-  useGSAP(
-    () => {
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduce) return;
-
-      gsap.from(".checkout-title", { y: 24, opacity: 0, duration: 0.7, ease: "power3.out" });
-      gsap.from(".form-section", {
-        y: 18,
-        opacity: 0,
-        duration: 0.5,
-        stagger: 0.08,
-        ease: "power2.out",
-        delay: 0.1,
-      });
-      gsap.from(".summary-card", { x: 24, opacity: 0, duration: 0.6, ease: "power3.out", delay: 0.2 });
-    },
-    { scope: rootRef },
-  );
 
   const updateField = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -164,7 +141,7 @@ export default function CheckoutPage() {
   // Order complete view
   if (orderComplete) {
     return (
-      <div ref={rootRef} className="min-h-screen bg-black text-white">
+      <div className="min-h-screen bg-black text-white">
         <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 py-24 text-center md:px-16 lg:px-24">
           <div className="grid h-20 w-20 place-items-center rounded-full border border-brand-red/40 bg-brand-red/10 text-brand-red">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -232,19 +209,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-black text-white">
-      <section className="px-6 pb-8 pt-28 md:px-16 md:pb-10 md:pt-32 lg:px-24">
-        <p className="checkout-title mb-3 text-[11px] font-bold uppercase tracking-[0.25em] text-white/40">
+    <div className="min-h-screen bg-black text-white">
+      <section className="mx-auto max-w-5xl px-6 pb-8 pt-28 md:px-16 md:pb-10 md:pt-32 lg:px-24">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.25em] text-white/40">
           Almost there
         </p>
-        <h1 className="checkout-title font-[family-name:var(--font-bebas)] text-6xl uppercase leading-[0.85] text-white md:text-8xl lg:text-9xl">
+        <h1 className="font-[family-name:var(--font-bebas)] text-6xl uppercase leading-[0.85] text-white md:text-8xl lg:text-9xl">
           Checkout.
         </h1>
       </section>
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-10 px-6 pb-16 md:px-16 lg:grid-cols-[1fr_380px] lg:gap-16 lg:px-24"
+        className="mx-auto grid max-w-5xl grid-cols-1 gap-10 px-6 pb-16 md:px-16 lg:grid-cols-[1fr_380px] lg:gap-16 lg:px-24"
         noValidate
       >
         {/* Left — form sections */}

@@ -1,7 +1,5 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -112,7 +110,6 @@ export default function CartPage() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") === "orders" ? "orders" : "cart"));
   const [confirmingClear, setConfirmingClear] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
   // Orders state
@@ -172,24 +169,6 @@ export default function CartPage() {
   const remainingForFree = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotal);
   const pctToFreeDelivery = Math.min(100, (subtotal / FREE_DELIVERY_THRESHOLD) * 100);
 
-  useGSAP(
-    () => {
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduce) return;
-
-      gsap.from(".cart-title", { y: 24, opacity: 0, duration: 0.7, ease: "power3.out" });
-      gsap.from(".cart-item-row", {
-        y: 18,
-        opacity: 0,
-        duration: 0.4,
-        stagger: 0.05,
-        ease: "power2.out",
-      });
-      gsap.from(".summary-card", { x: 24, opacity: 0, duration: 0.6, ease: "power3.out", delay: 0.15 });
-    },
-    { scope: rootRef, dependencies: [items.length, tab] },
-  );
-
   useEffect(() => {
     if (items.length === 0 && tab === "cart") scrollTo(0);
   }, [items.length, tab, scrollTo]);
@@ -200,8 +179,8 @@ export default function CartPage() {
   };
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-black text-white">
-      <section ref={topRef} className="px-6 pb-8 pt-28 md:px-16 md:pb-10 md:pt-32 lg:px-24">
+    <div className="min-h-screen bg-black text-white">
+      <section ref={topRef} className="mx-auto max-w-5xl px-6 pb-8 pt-28 md:px-16 md:pb-10 md:pt-32 lg:px-24">
         <h1 className="cart-title font-[family-name:var(--font-bebas)] text-6xl uppercase leading-[0.85] text-white md:text-8xl lg:text-9xl">
           {tab === "cart" ? "Cart." : "Your Orders."}
         </h1>
@@ -233,7 +212,7 @@ export default function CartPage() {
         </div>
       </section>
 
-      <div className="px-6 md:px-16 lg:px-24 pb-16">
+      <div className="mx-auto max-w-5xl px-6 md:px-16 lg:px-24 pb-16">
         {/* ── Cart Tab ── */}
         {tab === "cart" && (
           items.length === 0 ? (

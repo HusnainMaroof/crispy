@@ -120,7 +120,7 @@ export default function MenuItemModal({ item, onClose, onAdd }: MenuItemModalPro
         </div>
 
         {/* Body — scrolls independently, footer stays pinned */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8" data-lenis-prevent>
           <div className="flex items-start justify-between gap-4">
             <h3 className="text-2xl font-bold leading-tight text-white md:text-3xl">{item.name}</h3>
             <span className="shrink-0 text-2xl font-bold text-brand-red">{item.price}</span>

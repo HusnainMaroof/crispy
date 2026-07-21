@@ -27,3 +27,11 @@ export async function sendEmail({ to, subject, htmlContent }: SendEmailProps) {
     throw error;
   }
 }
+
+export async function sendAdminEmail(subject: string, htmlContent: string) {
+  return sendEmail({
+    to: envConfig.EMAIL.ADMIN_EMAIL,
+    subject,
+    htmlContent,
+  });
+}

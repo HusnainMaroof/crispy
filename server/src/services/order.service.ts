@@ -1,11 +1,18 @@
 import { getAdminClient } from "../config/supabase.js";
-import { sendEmail } from "./email.service.js";
+import { sendEmail, sendAdminEmail } from "./email.service.js";
 import {
   BadRequestException,
   NotFoundException,
   InternalServerException,
 } from "../utils/app-error.js";
 import type { Order, OrderItem } from "../types/models.js";
+import {
+  orderConfirmationEmail,
+  newOrderAdminEmail,
+  orderStatusUpdateEmail,
+  orderDeliveredEmail,
+  orderCancelledEmail,
+} from "./email-templates.js";
 
 interface CreateOrderInput {
   customer_name: string;
@@ -57,37 +64,31 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 
   const o = order as Order;
 
-  sendEmail({
-    to: o.email,
-    subject: `Order #${o.id} confirmed — Crispies`,
-    htmlContent: `
-      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-        <h1 style="color:#DC2626;font-size:28px;margin:0 0 8px">Crispies</h1>
-        <p style="color:#333;font-size:16px;margin:0 0 24px">Thanks, ${o.customer_name}! Your order is being prepared.</p>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-          <tr><td style="color:#666;padding:4px 0">Order</td><td style="text-align:right;font-weight:600">#${o.id}</td></tr>
-          <tr><td style="color:#666;padding:4px 0">Total</td><td style="text-align:right;font-weight:600">£${o.total.toFixed(2)}</td></tr>
-          <tr><td style="color:#666;padding:4px 0">Fulfilment</td><td style="text-align:right;text-transform:capitalize">${o.fulfilment}</td></tr>
-          <tr><td style="color:#666;padding:4px 0">Status</td><td style="text-align:right;text-transform:capitalize">${o.status.replace(/-/g, " ")}</td></tr>
-        </table>
-        <a href="https://crispies.co.uk/track" style="display:inline-block;background:#DC2626;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Track your order</a>
-        <p style="color:#999;font-size:12px;margin-top:32px">Crispies — Good Mood Food</p>
-      </div>
-    `,
-  }).catch(() => {});
+  const { subject: confirmSubject, html: confirmHtml } = orderConfirmationEmail(o, items as OrderItem[]);
+  sendEmail({ to: o.email, subject: confirmSubject, htmlContent: confirmHtml }).catch(() => {});
+
+  const { subject: adminSubject, html: adminHtml } = newOrderAdminEmail(o, items as OrderItem[]);
+  sendAdminEmail(adminSubject, adminHtml).catch(() => {});
 
   return o;
 }
 
-export async function getOrders(filter?: { status?: string; location_id?: string }): Promise<Order[]> {
-  let query = getAdminClient().from("orders").select("*").order("created_at", { ascending: false });
+export async function getOrders(filter?: { status?: string; location_id?: string }): Promise<(Order & { items: OrderItem[] })[]> {
+  let query = getAdminClient()
+    .from("orders")
+    .select("*, order_items(*)")
+    .order("created_at", { ascending: false })
+    .order("id", { foreignTable: "order_items" });
 
   if (filter?.status) query = query.eq("status", filter.status);
   if (filter?.location_id) query = query.eq("location_id", filter.location_id);
 
   const { data, error } = await query;
   if (error) throw new InternalServerException("Failed to fetch orders");
-  return (data ?? []) as Order[];
+  return ((data ?? []) as (Order & { order_items: OrderItem[] })[]).map((order) => ({
+    ...order,
+    items: order.order_items ?? [],
+  }));
 }
 
 export async function getOrderById(id: string | number): Promise<{ order: Order; items: OrderItem[] }> {
@@ -132,6 +133,14 @@ export async function getOrdersByEmail(email: string): Promise<Order[]> {
 }
 
 export async function updateOrderStatus(id: string | number, status: Order["status"]): Promise<Order> {
+  const { data: existing } = await getAdminClient()
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!existing) throw new NotFoundException("Order not found");
+
   const { data, error } = await getAdminClient()
     .from("orders")
     .update({ status } as Record<string, unknown>)
@@ -141,7 +150,21 @@ export async function updateOrderStatus(id: string | number, status: Order["stat
 
   if (error) throw new BadRequestException(error.message);
   if (!data) throw new NotFoundException("Order not found");
-  return data as Order;
+
+  const order = data as Order;
+
+  if (status === "cancelled") {
+    const { subject, html } = orderCancelledEmail(order);
+    sendEmail({ to: order.email, subject, htmlContent: html }).catch(() => {});
+  } else if (status === "delivered") {
+    const { subject, html } = orderDeliveredEmail(order);
+    sendEmail({ to: order.email, subject, htmlContent: html }).catch(() => {});
+  } else {
+    const { subject, html } = orderStatusUpdateEmail(order);
+    sendEmail({ to: order.email, subject, htmlContent: html }).catch(() => {});
+  }
+
+  return order;
 }
 
 export async function getDashboardStats() {
