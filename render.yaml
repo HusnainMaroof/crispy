@@ -2,9 +2,8 @@ services:
   - type: web
     name: crispy-server
     runtime: node
-    rootDirectory: server
     buildCommand: pnpm install && pnpm build
-    startCommand: node dist/index.js
+    startCommand: pnpm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -19,4 +18,4 @@ services:
       - key: CORS_ORIGIN
         sync: false
       - key: PORT
-        value: "4000"
+        value: "8081"
