@@ -13,9 +13,6 @@
     "seed": "tsx scripts/seed.ts",
     "lint": "eslint src/"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
-  },
   "dependencies": {
     "@getbrevo/brevo": "^6.0.2",
     "@supabase/server": "^1.4.0",
