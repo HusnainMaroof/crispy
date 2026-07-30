@@ -191,6 +191,9 @@ html::-webkit-scrollbar {
     -webkit-text-stroke: 0 !important;
     border: 0 !important;
   }
+  [class*="transition-all"] {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* --- Admin micro-animations --- */

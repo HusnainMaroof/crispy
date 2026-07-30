@@ -17,7 +17,7 @@ insert into homepage_content (key, content) values
   ('hero', '{
     "heroImage": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop",
     "pillImage": "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop",
-    "heroVideo": "/sizzle-reel.mp4"
+    "heroVideo": "https://vid.cdn-website.com/f3edc476/videos/e5aKaMQaSjiMEWYLJMZN_Comp+1-v.mp4"
   }'::jsonb),
   ('franchise', '{
     "steps": [

@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' https://images.unsplash.com https://res.cloudinary.com https://*.cloudinary.com https://www.zycocudi.us data:",
-      "media-src 'self'",
+      "media-src 'self' https://vid.cdn-website.com",
       "font-src 'self'",
       `connect-src ${connectSrc}`,
       "frame-src 'none'",

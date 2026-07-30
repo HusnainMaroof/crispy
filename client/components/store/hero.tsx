@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useLenis } from "@/components/providers/smooth-scroll";
-import { api } from "@/lib/api";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
-import OptimizedImage from "@/components/ui/optimized-image";
+import Image from "next/image";
 
+const VIDEO_URL = "https://vid.cdn-website.com/f3edc476/videos/e5aKaMQaSjiMEWYLJMZN_Comp+1-v.mp4";
+const PILL_IMG =
+  "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop";
 const DEFAULT_HERO_IMG =
   "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=2000&auto=format&fit=crop";
-const DEFAULT_PILL_IMG =
-  "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop";
-const DEFAULT_HERO_VIDEO = "/sizzle-reel.mp4";
 
 const SLICE_LINES: { text: string; cls: string; reveal: string; delay: string }[] = [
   { text: "GOOD", cls: "white-slice", reveal: "reveal-left", delay: "0.05s" },
@@ -21,33 +20,13 @@ const SLICE_LINES: { text: string; cls: string; reveal: string; delay: string }[
 
 type HeroProps = { started: boolean };
 
-type HeroData = {
-  heroImage?: string;
-  pillImage?: string;
-  heroVideo?: string;
-};
-
 export default function Hero({ started }: HeroProps) {
   const rootRef = useRef<HTMLElement>(null);
+  const modalVideoRef = useRef<HTMLVideoElement>(null);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [videoOpen, setVideoOpen] = useState(false);
-  const [heroData, setHeroData] = useState<HeroData>({});
+  const [videoMuted, setVideoMuted] = useState(true);
   const { stop, start } = useLenis();
-
-  const HERO_IMG = heroData.heroImage ?? DEFAULT_HERO_IMG;
-  const PILL_IMG = heroData.pillImage ?? DEFAULT_PILL_IMG;
-  const HERO_VIDEO = heroData.heroVideo ?? DEFAULT_HERO_VIDEO;
-
-  useEffect(() => {
-    api
-      .get<Record<string, unknown>>("/store/homepage")
-      .then((data) => {
-        if (data && data.hero && typeof data.hero === "object") {
-          setHeroData(data.hero as HeroData);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -64,6 +43,18 @@ export default function Hero({ started }: HeroProps) {
 
   useEffect(() => {
     if (!videoOpen) return;
+
+    const attemptPlay = async () => {
+      if (modalVideoRef.current) {
+        try {
+          await modalVideoRef.current.play();
+        } catch {
+          /* autoplay blocked */
+        }
+      }
+    };
+    attemptPlay();
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setVideoOpen(false);
     };
@@ -83,24 +74,19 @@ export default function Hero({ started }: HeroProps) {
         started ? "" : "hero-paused"
       }`}
     >
-      {/* Ambient background image */}
       <div className="absolute inset-0 z-0">
-        <OptimizedImage
-          src={HERO_IMG}
+        <Image
+          src={DEFAULT_HERO_IMG}
           alt="Crispies signature halal smash burger served in London"
           fill
           priority
-          fetchPriority="high"
           sizes="100vw"
           className="object-cover object-center"
         />
-        {/* Horizontal gradient - lighter for clearer image */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" aria-hidden />
-        {/* Vertical gradient - subtle bottom fade */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" aria-hidden />
       </div>
 
-      {/* Film grain */}
       <div
         className="pointer-events-none absolute inset-0 z-40 opacity-[0.05] mix-blend-overlay animate-grain"
         aria-hidden
@@ -111,7 +97,6 @@ export default function Hero({ started }: HeroProps) {
       />
 
       <main className="relative z-20 mx-auto flex w-full max-w-[1400px] flex-grow flex-col justify-between px-6 pb-8 pt-24 md:px-12 lg:px-16 xl:px-24">
-        {/* Top tagline */}
         <div className="overflow-hidden">
           <p className="slide-in-right flex items-center gap-4 text-[9px] font-bold uppercase tracking-[0.3em] text-white/40 md:text-[10px]" style={{ animationDelay: "0.1s" }}>
             <span className="h-[3px] w-8 bg-brand-red" />
@@ -119,13 +104,11 @@ export default function Hero({ started }: HeroProps) {
           </p>
         </div>
 
-        {/* Headline + embedded pill */}
         <div
           className="z-30 flex flex-1 flex-col justify-center transition-transform duration-200 ease-out"
           style={{ transform: `translate(${parallax.x}px, ${parallax.y}px)` }}
         >
           <h1 className="font-teko flex w-fit flex-col text-6xl md:text-9xl lg:text-[180px] font-semibold leading-[0.8] uppercase tracking-normal">
-            {/* Row 1: GOOD + pill */}
             <div
               className="reveal-left flex flex-wrap items-center gap-4 md:gap-8"
               style={{ animationDelay: "0.05s" }}
@@ -137,25 +120,25 @@ export default function Hero({ started }: HeroProps) {
                 type="button"
                 onClick={() => setVideoOpen(true)}
                 className="group relative flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 shadow-2xl transition-transform duration-300 hover:scale-[1.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red sm:h-28 sm:w-48 md:h-32 md:w-60 lg:h-36 lg:w-72 xl:h-40 xl:w-80"
-                aria-label="Watch the sizzle reel"
+                aria-label="Play video"
               >
-                <OptimizedImage
+                <Image
                   src={PILL_IMG}
-                  alt="Burger on the grill"
+                  alt=""
                   fill
-                  sizes="(max-width: 640px) 128px, (max-width: 768px) 176px, 288px"
-                  className="object-cover opacity-80 transition-all duration-700 group-hover:scale-110 group-hover:opacity-100"
+                  sizes="(max-width: 640px) 96px, (max-width: 768px) 128px, 256px"
+                  className="object-cover transition-all duration-700 group-hover:scale-110"
+                  priority
                 />
                 <div className="absolute inset-0 bg-brand-red/10 mix-blend-color-burn transition-opacity duration-300 group-hover:opacity-0" aria-hidden />
-                <span className="absolute flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-white/10 pl-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:bg-white/20 md:h-16 md:w-16">
-                  <svg className="h-5 w-5 text-white drop-shadow-md md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <span className="absolute flex h-14 w-14 items-center justify-center rounded-full bg-black/40 pl-1 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-red/80">
+                  <svg className="h-6 w-6 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </span>
               </button>
             </div>
 
-            {/* Row 2 + 3 */}
             {SLICE_LINES.slice(1).map((line) => (
               <span
                 key={line.text}
@@ -169,7 +152,6 @@ export default function Hero({ started }: HeroProps) {
           </h1>
         </div>
 
-        {/* Bottom: description + CTAs */}
         <div
           className="hero-fade-up grid w-full grid-cols-1 items-end gap-10 pb-8 lg:grid-cols-2"
           style={{ animationDelay: "0.55s" }}
@@ -207,12 +189,11 @@ export default function Hero({ started }: HeroProps) {
         </div>
       </main>
 
-      {/* Sizzle reel modal */}
       {videoOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Sizzle reel video"
+          aria-label="Video"
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
         >
           <div
@@ -233,13 +214,35 @@ export default function Hero({ started }: HeroProps) {
               </svg>
             </button>
             <video
+              ref={modalVideoRef}
               className="aspect-video w-full bg-black"
-              src={HERO_VIDEO}
+              src={VIDEO_URL}
               controls
+              muted={videoMuted}
               autoPlay
               playsInline
-              aria-label="Crispies sizzle reel"
+              preload="auto"
+              aria-label="Video"
             />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setVideoMuted((m) => !m); }}
+              className="absolute bottom-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white/70 backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-red"
+              aria-label={videoMuted ? "Unmute video" : "Mute video"}
+            >
+              {videoMuted ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <line x1="23" y1="9" x2="17" y2="15" />
+                  <line x1="17" y1="9" x2="23" y2="15" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       )}
