@@ -1,18 +1,89 @@
 // stats.tsx
+"use client";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRef } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
+
+const stats = [
+  { value: 10, suffix: "+", label: "London Locations" },
+  { value: 100, suffix: "%", label: "Halal Certified" },
+  { value: 12, suffix: "K+", label: "Five-Star Reviews" },
+];
+
+const koulen = {
+  fontFamily: "var(--font-koulen), Koulen, sans-serif",
+  fontWeight: 400,
+  lineHeight: "100%",
+} as const;
+
+const headlineSize = "clamp(36px, 7vw, 80px)";
 
 export default function Stats() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+
+    const root = sectionRef.current;
+    if (!root) return;
+
+    gsap.from(".stat-col", {
+      y: 30,
+      opacity: 0,
+      duration: 0.6,
+      stagger: 0.12,
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: root,
+        start: "top 85%",
+        once: true,
+      },
+    });
+
+    const counterEls = gsap.utils.toArray<HTMLElement>(
+      ".stat-number",
+      root
+    );
+    counterEls.forEach((el) => {
+      const target = Number(el.dataset.value ?? 0);
+      const suffix = el.dataset.suffix ?? "";
+      const counter = { val: 0 };
+      gsap.to(counter, {
+        val: target,
+        duration: 1.8,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: el,
+          start: "top 90%",
+          once: true,
+        },
+        onUpdate: () => {
+          el.textContent = `${Math.round(counter.val)}${suffix}`;
+        },
+      });
+    });
+  });
+
   return (
     <section className="relative w-full bg-white">
-      <div className="relative  bg-[#FF0931] rounded-b-[40px] sm:rounded-b-[50px] md:rounded-b-[60px] pt-[90px] sm:pt-[100px] md:pt-[110px] pb-[56px] sm:pb-[64px] md:pb-[72px] px-6">
+      <div className="relative bg-[#FF0931] rounded-b-[40px] sm:rounded-b-[50px] md:rounded-b-[60px] pt-[90px] sm:pt-[100px] md:pt-[110px] pb-[56px] sm:pb-[64px] md:pb-[72px] px-6">
         {/* Icon — sits on the white/red seam */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-[50px] sm:-top-[52px] md:-top-[55px] z-10 ">
+        <div className="absolute left-1/2 -translate-x-1/2 -top-[50px] sm:-top-[52px] md:-top-[55px] z-10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="100"
             height="100"
             viewBox="0 0 255 255"
             fill="none"
-            className="w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] md:w-[110px] md:h-[110px] "
+            className="w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] md:w-[110px] md:h-[110px]"
             aria-hidden="true"
           >
             <rect width="255" height="255" rx="30" fill="#1E1E1E" />
@@ -41,79 +112,39 @@ export default function Stats() {
 
         {/* Headline */}
         <h2
-          className="m-0 text-center text-white uppercase font-normal leading-[100%] tracking-[0.02em]"
-          style={{
-            fontFamily: "var(--font-bebas), 'Bebas Neue', sans-serif",
-            fontSize: "clamp(32px, 6.5vw, 72px)",
-          }}
+          className="m-0 text-center text-white capitalize font-normal leading-[100%] tracking-[0.02em]"
+          style={{ ...koulen, fontSize: headlineSize }}
         >
           Good Food, No Compromise
         </h2>
 
         {/* Stats */}
         <div className="mt-10 sm:mt-12 md:mt-14 flex flex-row items-start justify-center gap-6 sm:gap-12 md:gap-20 lg:gap-28">
-          <div className="flex flex-col items-center text-center min-w-0">
-            <span
-              className="text-white font-normal leading-[100%] tracking-[0.02em]"
-              style={{
-                fontFamily: "var(--font-bebas), 'Bebas Neue', sans-serif",
-                fontSize: "clamp(36px, 7vw, 72px)",
-              }}
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="stat-col flex flex-col items-center text-center min-w-0"
             >
-              10+
-            </span>
-            <span
-              className="mt-2 sm:mt-3 text-white uppercase font-normal leading-[120%] tracking-[0.12em]"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "clamp(10px, 1.4vw, 14px)",
-              }}
-            >
-              London Locations
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center text-center min-w-0">
-            <span
-              className="text-white font-normal leading-[100%] tracking-[0.02em]"
-              style={{
-                fontFamily: "var(--font-bebas), 'Bebas Neue', sans-serif",
-                fontSize: "clamp(36px, 7vw, 72px)",
-              }}
-            >
-              100%
-            </span>
-            <span
-              className="mt-2 sm:mt-3 text-white uppercase font-normal leading-[120%] tracking-[0.12em]"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "clamp(10px, 1.4vw, 14px)",
-              }}
-            >
-              Halal Certified
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center text-center min-w-0">
-            <span
-              className="text-white font-normal leading-[100%] tracking-[0.02em]"
-              style={{
-                fontFamily: "var(--font-bebas), 'Bebas Neue', sans-serif",
-                fontSize: "clamp(36px, 7vw, 72px)",
-              }}
-            >
-              12K+
-            </span>
-            <span
-              className="mt-2 sm:mt-3 text-white uppercase font-normal leading-[120%] tracking-[0.12em]"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "clamp(10px, 1.4vw, 14px)",
-              }}
-            >
-              Five-Star Reviews
-            </span>
-          </div>
+              <span
+                className="stat-number text-white capitalize leading-[100%] tracking-[0.02em] whitespace-nowrap"
+                style={{ ...koulen, fontSize: headlineSize }}
+                data-value={stat.value}
+                data-suffix={stat.suffix}
+              >
+                {stat.value}
+                {stat.suffix}
+              </span>
+              <span
+                className="mt-2 sm:mt-3 text-white capitalize leading-[100%] tracking-[0.02em]"
+                style={{
+                  ...koulen,
+                  fontSize: "clamp(14px, 1.6vw, 18px)",
+                }}
+              >
+                {stat.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

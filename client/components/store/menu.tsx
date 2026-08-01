@@ -109,27 +109,60 @@ export default function Menu() {
   const [hoveredCat, setHoveredCat] = useState<Category | null>(null);
   const [hoveredEl, setHoveredEl] = useState<HTMLElement | null>(null);
   const [hoveredText, setHoveredText] = useState<HTMLSpanElement | null>(null);
+  // Keeps the <img> element mounted permanently so src just swaps —
+  // never unmount/remount on hover changes, which was the flash/glitch source.
+  const [lastCat, setLastCat] = useState<Category | null>(null);
 
   const handleEnter = (cat: Category, el: HTMLElement) => {
     setHoveredCat(cat);
+    setLastCat(cat);
     setHoveredEl(el);
     setHoveredText(textRefs.current.get(cat.name) ?? null);
   };
 
-  const handleLeave = () => {
+  const handleLeave = (e: React.MouseEvent<HTMLLIElement>) => {
+    // If the pointer is moving straight into another menu item (or the
+    // floating image itself), that element's onMouseEnter will replace
+    // state on its own — skip clearing here so hoveredCat never passes
+    // through null between items and the <img> never unmounts.
+    const related = e.relatedTarget as Node | null;
+    if (
+      related &&
+      containerRef.current?.contains(related) &&
+      (related as HTMLElement).closest?.("li")
+    ) {
+      return;
+    }
     setHoveredCat(null);
     setHoveredEl(null);
     setHoveredText(null);
   };
 
+  // Persistent bob loop — runs once, independent of hover state, so
+  // switching categories never snaps the image back to y:0 mid-bob.
+  useIsoLayoutEffect(() => {
+    const imgInner = floatImgInnerRef.current;
+    if (!imgInner) return;
+
+    const tween = gsap.to(imgInner, {
+      y: -7,
+      duration: 1.1,
+      yoyo: true,
+      repeat: -1,
+      ease: "sine.inOut",
+    });
+
+    return () => {
+      tween.kill();
+    };
+  }, []);
+
   useIsoLayoutEffect(() => {
     const items = itemRefs.current.filter(Boolean) as HTMLLIElement[];
     const image = floatImageRef.current;
-    const imgInner = floatImgInnerRef.current;
 
     gsap.killTweensOf(items);
     if (image) gsap.killTweensOf(image);
-    if (imgInner) gsap.killTweensOf(imgInner);
 
     if (!hoveredEl || !hoveredText || !containerRef.current || !image) {
       gsap.to(items, {
@@ -180,15 +213,11 @@ export default function Menu() {
     let x = isLeft
       ? textRect.right - containerRect.left + gap + imgW / 2
       : textRect.left - containerRect.left - gap - imgW / 2;
-    x = gsap.utils.clamp(
-      imgW / 2 + 12,
-      containerRect.width - imgW / 2 - 12,
-      x
-    );
+    x = gsap.utils.clamp(imgW / 2 + 12, containerRect.width - imgW / 2 - 12, x);
     const y = gsap.utils.clamp(
       imgH / 2 + 12,
       containerRect.height - imgH / 2 - 12,
-      textRect.top + textRect.height / 2 - containerRect.top
+      textRect.top + textRect.height / 2 - containerRect.top,
     );
 
     gsap.to(image, {
@@ -200,21 +229,6 @@ export default function Menu() {
       ease: "power3.out",
       overwrite: "auto",
     });
-
-    if (imgInner) {
-      gsap.fromTo(
-        imgInner,
-        { y: 0 },
-        {
-          y: -7,
-          duration: 1.1,
-          yoyo: true,
-          repeat: -1,
-          ease: "sine.inOut",
-          overwrite: "auto",
-        }
-      );
-    }
   }, [hoveredEl]);
 
   const itemClass =
@@ -290,17 +304,19 @@ export default function Menu() {
             ))}
           </ul>
 
-          {/* Floating image — follows the hovered menu item (desktop only) */}
+          {/* Floating image — follows the hovered menu item (desktop only).
+              Always mounted once lastCat is set; only src swaps on hover
+              change, so there's no unmount/remount flash between items. */}
           <div
             ref={floatImageRef}
             className="hidden lg:block absolute top-0 left-0 w-[300px] xl:w-[340px] pointer-events-none will-change-transform transform-gpu"
             style={{ opacity: 0, scale: 0.85 }}
           >
-            {hoveredCat && (
+            {lastCat && (
               <img
                 ref={floatImgInnerRef}
-                src={hoveredCat.image}
-                alt={hoveredCat.name}
+                src={lastCat.image}
+                alt={lastCat.name}
                 className="w-full h-[220px] xl:h-[250px] object-cover rounded-2xl shadow-xl"
                 draggable={false}
                 loading="eager"

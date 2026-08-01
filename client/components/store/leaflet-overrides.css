@@ -1,0 +1,18 @@
+/* leaflet-overrides.css
+   Tailwind's Preflight sets `img { max-width: 100%; height: auto }`
+   globally, which breaks Leaflet's tile images — they need fixed,
+   unconstrained width/height to tile seamlessly into a map. Without
+   this override, tiles render squashed/misaligned or blank. */
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+}
+
+.leaflet-container img,
+.leaflet-tile-pane img,
+.leaflet-container svg {
+  max-width: none !important;
+  max-height: none !important;
+}

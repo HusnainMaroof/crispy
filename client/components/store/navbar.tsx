@@ -34,14 +34,14 @@ export default function Navbar() {
   return (
     <header className="relative z-50 w-full bg-black">
       {/* Desktop navbar */}
-      <nav className="nav-enter mx-auto hidden py-10 w-full max-w-[1422px] items-center justify-between px-6 lg:flex xl:px-10">
+      <nav className="nav-enter mx-auto hidden py-5 w-full max-w-[1422px] items-center justify-between px-6 lg:flex xl:px-10">
         <Link
           href="/"
           className="h-[124px] w-[124px] shrink-0"
           aria-label="Crispies home"
         >
           <Image
-            src="/images/cripieslogoblack.png"
+            src="/images/WhiteLogo.svg"
             alt="Crispies"
             width={124}
             height={124}
@@ -74,7 +74,7 @@ export default function Navbar() {
       <nav className="flex h-16 items-center justify-between px-5 lg:hidden">
         <Link href="/" aria-label="Crispies home">
           <Image
-            src="/images/cripieslogoblack.png"
+            src="/images/WhiteLogo.svg"
             alt="Crispies"
             width={56}
             height={56}

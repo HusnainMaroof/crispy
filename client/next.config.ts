@@ -22,7 +22,9 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' https://images.unsplash.com https://res.cloudinary.com https://*.cloudinary.com https://www.zycocudi.us data:",
+      // basemaps.cartocdn.com = Leaflet/CARTO raster tiles (Locations map).
+      // Without this, Chrome blocks tile <img>s → blank map, markers still work.
+      "img-src 'self' https://images.unsplash.com https://res.cloudinary.com https://*.cloudinary.com https://www.zycocudi.us https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com data:",
       "media-src 'self' https://vid.cdn-website.com",
       "font-src 'self'",
       `connect-src ${connectSrc}`,

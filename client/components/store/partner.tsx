@@ -28,7 +28,7 @@ export default function Partner() {
           <div className="flex-1 min-w-0 w-full text-left">
             {/* Headline — Koulen */}
             <h2
-              className="m-0 text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.54px]"
+              className="m-0 text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.02em]"
               style={{
                 fontFamily:
                   "var(--font-koulen), Koulen, sans-serif",
@@ -40,12 +40,12 @@ export default function Partner() {
               to your city.
             </h2>
 
-            {/* Subcopy — Poppins */}
+            {/* Subcopy — Inter */}
             <p
-              className="m-0 mt-4 sm:mt-5 md:mt-6 text-[#FFF] capitalize font-normal leading-[140%] tracking-[0.54px] max-w-[1100px]"
+              className="m-0 mt-4 sm:mt-5 md:mt-6 text-[#FFF] font-normal leading-[140%] tracking-[0.02em] max-w-[1100px]"
               style={{
-                fontFamily: "var(--font-poppins), Poppins, sans-serif",
-                fontSize: "clamp(14px, 1.7vw, 20px)",
+                fontFamily: "var(--font-inter), Inter, sans-serif",
+                fontSize: "clamp(14px, 1.4vw, 16px)",
               }}
             >
               Join London&apos;s fastest-growing halal restaurant brand.
@@ -57,11 +57,11 @@ export default function Partner() {
               className="mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] transition-colors duration-200 pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
             >
               <span
-                className="text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.54px] whitespace-nowrap overflow-hidden"
+                className="text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.04em] whitespace-nowrap overflow-hidden"
                 style={{
                   fontFamily:
                     "var(--font-koulen), Koulen, sans-serif",
-                  fontSize: "clamp(20px, 2.5vw, 28px)",
+                  fontSize: "clamp(22px, 2.8vw, 32px)",
                 }}
               >
                 Become A Partner

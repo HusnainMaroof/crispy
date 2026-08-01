@@ -32,6 +32,23 @@ is migrated, admin still renders with `bg-red-700` hover and its existing
 | `bg-red-700` | `#b91c1c` | Admin-only button hover (to be migrated last) |
 | `green-400/500` | success toasts | Icon theme for success |
 
+**Storefront-only colors** (used in the homepage sections — see Storefront Sections):
+
+| Color | Hex | Usage |
+|---|---|---|
+| Dark red panel | `#C1001F` | Order card inner panels (Download App / Get It Delivered) |
+| Navbar vertical divider | `#434343` | Desktop navbar divider (literal, navbar only) |
+| Dark map surface | `#1A1A1A` | Locations map card bg with radial gradients (`#2a2a2a`/`#252525`/`#1f1f1f` → `#141414`) |
+| Dark icon tile | `#1E1E1E` | Stats seam icon tile |
+| Status pill (open, active) | `#1F5C2E` bg / `#7CFF8A` dot | Locations "Open Now" pill |
+| Status pill (open, muted) | `#6FA06A` bg / `#C8F0C0` dot | Locations muted-open pill |
+| Status pill (closed) | `#8B6F5E` bg / `#C9A892` dot | Locations "Close Now" pill (brown) |
+| Location row grays | `#9A9A9A`/`#B0B0B0`/`#BDBDBD`/`#C4C4C4`/`#D0D0D0` | Locations list number/name/address/hours tints |
+| White-section borders | `#EAEAEA` | Locations row dividers |
+| Row borders (bg-white sections) | `border-black/5`-ish `#EDEDED` | Use `border-[#EAEAEA]` for white-bg rows |
+
+> Note: the "no green" rule has **exceptions** on the Locations section — the status pills are intentionally green/brown for at-a-glance open/closed semantics. The rest of the storefront stays strictly black/white/red.
+
 **Rules:**
 - The `<body>` is backed by **solid black** `#000000` so `bg-brand-black`
   (`#000000cc`) reads true-black over it while still allowing subtle
@@ -58,49 +75,52 @@ fills, `shadow-[...]` arg, toast icon themes, JSON-LD, etc.):
 | Accent | `#ff0931` |
 | Accent shadow glow (for `shadow-[...]`) | `rgba(255,9,49,0.4)` / `rgba(255,9,49,0.7)` |
 | Accent focus ring | `rgba(255,9,49,0.15)` |
-| Navbar vertical divider | `#1D1D1D` (literal, navbar only) |
+| Navbar vertical divider | `#434343` (literal, navbar only) |
 
 ---
 
 ## Typography
 
-| Role | Font | CSS Variable | Tailwind Class |
+| Role | Font | CSS Variable | Where Used |
 |---|---|---|---|
-| Display headings (hero, large titles) | **Bebas Neue** | `--font-bebas` | `font-display` |
-| Body text, UI labels | **Plus Jakarta Sans** | `--font-jakarta` | `font-sans` |
-| Hero mega-headlines | **Teko** | `--font-teko` | `font-teko` |
-| Preloader wordmark | **Oswald** | `--font-oswald` | `[family-name:var(--font-oswald)]` |
-| Navbar nav links | **Koulen** | `--font-koulen` | `[font-family:var(--font-koulen),Koulen,sans-serif]` |
-| Navbar buttons / mobile UI | **Inter** | `--font-inter` | `[font-family:var(--font-inter),Inter,sans-serif]` |
+| Section / display headings | **Bebas Neue** | `--font-bebas` | Menu items, Stats numbers, Locations list, Footer headings (`font-display`) |
+| Hero-ribbon + big headlines | **Koulen** | `--font-koulen` | Hero ribbon, About ("Welcome To Crispies"), Order section, Partner, Navbar links |
+| Body text, UI labels | **Plus Jakarta Sans** | `--font-jakarta` | `font-sans` — default body font |
+| Navbar buttons / small UI | **Inter** | `--font-inter` | Navbar buttons, stat labels, locations meta (address/hours/status), footer links, mobile menu toggle |
+| Partner subcopy | **Poppins** | `--font-poppins` | Partner section intro copy |
+| Preloader wordmark | **Oswald** | `--font-oswald` | `[family-name:var(--font-oswald)]` — preloader only |
+| Legacy hero mega-headline | **Teko** | `--font-teko` | `font-teko` — defined but **not used** by the current homepage (old "GOOD MOOD FOOD" headline) |
 
-All six fonts are loaded in `client/app/layout.tsx` via `next/font/google` and their CSS variables are wired onto `<html>`.
+All **seven** fonts are loaded in `client/app/layout.tsx` via `next/font/google` (Bebas, Oswald, Jakarta, Teko, Koulen, Inter, Poppins) and their CSS variables are wired onto `<html>`.
 
-**Sizing patterns:**
-- Hero headings: `text-6xl` → `md:text-9xl` → `lg:text-[180px]` with `leading-[0.8]`
-- Section titles: `text-lg` → `md:text-3xl`, uppercase, `tracking-wide` or `tracking-normal`
-- Nav links: **`text-[15px]`**, `font-normal`, `capitalize`, `tracking-[0.54px]`, Koulen — hover turns `#ff0931`
-- Nav buttons: `text-[15px]`, `font-semibold`, `capitalize`, `tracking-[0.54px]`, Inter
-- Body copy: `text-[13px]`, `text-white/50`
+**Sizing patterns (all fluid via `clamp()`):**
+- Hero ribbon: `clamp(22px, 7vw, 130px)`, Koulen, `leading-[100%]`, `tracking-[0.54px]`
+- Section headlines: `clamp(36px, 7vw, 80px)` → `clamp(48px, 10vw, 150px)`, `leading-[100%]`, `tracking-[0.54px]`
+- Menu category items: `clamp(22px, 6vw, 140px)`, Bebas, `leading-[110%]`
+- Stats numbers: `clamp(36px, 7vw, 72px)`, Bebas; stat labels `clamp(10px, 1.4vw, 14px)`, Inter, uppercase, `tracking-[0.12em]`
+- Nav links/buttons: **`text-[15px]`**, `capitalize`, `tracking-[0.54px]` (Koulen links, Inter buttons)
+- Body copy: `text-[13px]` → `text-white/50`
 - Labels/kickers: `text-[9px]` → `text-[11px]`, uppercase, `tracking-[0.3em]`, `text-white/40`
 - Admin headings: `font-display text-xl tracking-wide`
 - Admin body: `text-sm`
 
 **Rules:**
 - All headings are uppercase unless specified.
-- Use `tracking-[0.2em]` to `tracking-[0.35em]` for uppercase labels.
-- Font display (`font-display`) is the default for all large headings.
-- Teko is reserved for the hero "GOOD MOOD FOOD" mega-headline only.
-- Koulen + Inter are reserved for the navbar (links and buttons/labels respectively). Keep them out of body copy and section titles.
+- `tracking-[0.54px]` on all Koulen/Bebas display copy, `tracking-[0.02em]` on Bebas headlines, `tracking-[0.04em]`–`[0.12em]` on labels.
+- Bebas = section display; Koulen = mega-display + navbar links; Inter = buttons/labels/meta; Poppins = partner subcopy only.
+- Teko is legacy — do not add new usage.
+- Fonts are applied via `fontFamily: "var(--font-x), X, sans-serif"` inline style, not Tailwind utility classes (except `font-display`/`font-sans`).
 
 ---
 
 ## Layout
 
 ### Storefront
-- **Canvas:** `min-h-screen bg-black`
-- **Max width:** `max-w-[1400px]` with symmetric padding (`px-6 md:px-12 lg:px-16 xl:px-24`) *(page sections — the navbar uses its own wider rail, see below)*
-- **Footer:** Full-width sections with `border-t border-white/10` dividers
-- **No scrollbar** — replaced by custom right-side progress indicator
+- **Canvas:** `min-h-screen bg-brand-black text-white` (wraps whole storefront), `<body>` solid black `#000000`
+- **Section rhythm:** alternates **black (navbar/hero/footer)** → **white (About/Menu/Locations)** → **red (`#FF0931`) (Order/Stats/Partner)** with negative-margin overlaps (`-mt-[90px] md:-mt-[140px]`) and large bottom radii (`rounded-b-[40px…60px]`) creating interlocking blocks
+- **Max width:** `max-w-[1280px]` / `max-w-[1400px]` with responsive padding (`px-5 sm:px-6 xl:px-10`, navbar `px-6 xl:px-10`)
+- **Footer:** Full-width `bg-black` with `h-[3px] bg-[#FF0931]` top line and `border-t border-white/10` bottom bar
+- **No scrollbar** — `scrollbar-width: none` in `globals.css` (custom progress indicator)
 
 ### Navbar (`client/components/store/navbar.tsx`)
 The navbar is **not** fixed — it renders as a `relative z-50` `<header>` in normal flow with a solid `bg-black` background, so it never needs the old transparent→backdrop-blur scroll transition. It has two distinct rows plus a dropdown panel.
@@ -110,7 +130,7 @@ The navbar is **not** fixed — it renders as a `relative z-50` `<header>` in no
 - Logo: left, `h-[124px] w-[124px] shrink-0` (`object-contain`), links to `/`.
 - Right cluster: `flex items-center gap-6 xl:gap-8`, containing:
   - Nav links (`menu`, `locations`) — `link-underline` + `navItemClass`: `text-white text-[15px] font-normal capitalize tracking-[0.54px] [font-family:var(--font-koulen)]`, `transition-colors duration-200 hover:text-[#FF0931]`.
-  - Divider: `h-14 w-px shrink-0 bg-[#1D1D1D]` (note `#1D1D1D`, not a token — keep it literal).
+  - Divider: `h-14 w-px shrink-0 bg-[#434343]` (literal `#434343`, not a token — keep it literal).
   - **Order In The App** button (primary): `btn-press px-7 py-3 rounded-[4px] bg-[#FF0931] text-white text-[15px] font-semibold capitalize tracking-[0.54px] [font-family:var(--font-inter)]`.
   - **Delivery** button (outline): `btn-press px-7 py-3 rounded-[4px] border border-[#FF0931] text-[#FF0931] text-[15px] font-semibold capitalize tracking-[0.54px] [font-family:var(--font-inter)]`.
 
@@ -123,6 +143,79 @@ The navbar is **not** fixed — it renders as a `relative z-50` `<header>` in no
 - Body scroll lock: when the menu is open, `document.body.style.overflow = "hidden"` is set (cleared on close / unmount).
 
 **Animations (defined in `globals.css`):** `.nav-enter` (desktop drop-in, 0.55s `cubic-bezier(0.16,1,0.3,1)`), `.menu-drop` (panel, 0.3s), `.menu-item` (link/button float-up, 0.45s), `.backdrop-in` (0.3s) — all disabled under `prefers-reduced-motion: reduce`.
+
+---
+
+## Storefront Main Page — Section Specs
+
+Composition of `client/app/page.tsx` (all 9 components). Every section is full-bleed width.
+
+### 1. Hero (`components/store/hero.tsx` + `hero.module.css`)
+- **Theme:** black page, full-bleed image (`/images/heroimage.png`), `aspect-video` → `md:h-[80vh]`, `rounded-[20px]`
+- **Signature element:** red notch ribbon — `clip-path` polygon (8 points) via CSS custom props (`--notch` `clamp(32px,5vw,65.88px)`, `--tip` `clamp(54px,8vw,109px)`), `bg-[#FF0931]`, `absolute inset-x-0 bottom-5`
+- **Copy:** Koulen, white, `clamp(22px, 7vw, 130px)`, "Always Good Mood Food"
+- **Micro-animation:** none on section itself; ribbon is static (entrance handled by page-level scroll)
+
+### 2. About (`components/store/about.tsx` + `about.module.css`)
+- **Theme:** **white** section pulled up over the hero via `-mt-[90px] md:-mt-[140px]`, `rounded` overlap effect
+- **Copy:** Koulen black "Welcome To **Crispies**" (`#FF0931` span), `clamp(48px,10vw,150px)`; subcopy Koulen black `clamp(24px,4vw,60px)`
+- **Image carousel:** center sharp image (`rounded-[32px]` → `lg:rounded-[66px]`, `sm:h-[360px]` → `lg:h-[520px]`) flanked by absolute blurred mirrors (`opacity-60 blur-[4px]`, `rounded-[28px]` → `lg:rounded-[40px]`), positioned via `right/left: calc(50% + 20px/40px)` — side images sit half-off-screen on desktop, hidden behind the center on mobile
+- **Responsive:** center image scales `200px` → `520px` across `sm/md/lg`; side images `h-[160px]` mobile → `lg:h-[360px]`
+
+### 3. Order (`components/store/order.tsx`)
+- **Theme:** full-width `bg-[#FF0931]`, inner overlap (`-mt-[90px] md:-mt-[140px]`, `pt-[140px] md:pt-[180px]`)
+- **Copy:** Koulen white "Order Crispies" + Koulen black "Choose Your Way" (both `clamp(36px,10vw,150px)`); subcopy Koulen white `clamp(18px,4vw,60px)`
+- **3 cards** (staggered bottom edges, `rounded-b-[50px]` on outer, `lg:flex-row lg:items-end`):
+  1. **Download Our App** — white frame + red panel + **`#C1001F` inner card**, white Koulen title `text-5xl lg:text-7xl`, Inter white subcopy, red icon square (rounded, arrow SVG) pinned bottom-left, app image absolute bottom-right (`h-[220px]` → `lg:h-[350px]`)
+  2. **Order On The Website** — white card, red Koulen title + black Koulen title, Inter black subcopy, red icon square top-right, phone image centered-bottom
+  3. **Get It Delivered** — same recipe as #1 mirrored (title white, red icon bottom-left, delivery image bottom-right)
+- **Sizing:** cards `h-[380px] w-full sm:w-[420px]` → `lg:w-[480px] lg:h-[480px]` → `2xl:w-[530px] 2xl:h-[530px]`; stacked `flex-col` with `gap-10` on mobile, row on `lg`
+- **Micro-animation:** card images `object-bottom` crop so they "sit" on the panel; no JS animation
+
+### 4. Menu (`components/store/menu.tsx`)
+- **Theme:** **white**, `py-16 md:py-24 lg:py-28`, max `1280px`
+- **Copy:** 16 hardcoded categories split into two Bebas columns (`clamp(22px, 6vw, 140px)`, `#000000`, `leading-[110%]`, `capitalize`), `text-center md:text-left`
+- **Hover micro-animation (GSAP, `useLayoutEffect`):**
+  - Non-hovered items: `opacity 0.12`, `blur(2.5px)`, black (0.35s `power2.out`, stagger 0.02)
+  - Hovered item: full opacity, `blur(0)`, turns **`#FF0931`**, shifts toward center column (`x: ±12`)
+  - Floating image (`hidden lg:block`, `300px`/`340px`): GSAP-animated to the hovered item's x/y (clamped inside container), `power3.out`, plus infinite bobbing `y: -7` loop (`sine.inOut`, 1.1s yoyo)
+  - Images preloaded in a hidden `<div>` so hover swaps are instant
+- **Responsive:** two columns always; floating image desktop-only (`lg+`)
+
+### 5. Stats (`components/store/stats.tsx`)
+- **Theme:** white bg + red block (`rounded-b-[40px] sm:[50px] md:[60px]`, `pt-[90px]…110px pb-[56px]…72px`)
+- **Seam icon:** absolute SVG (dark `#1E1E1E` tile, white + `#E21E2F` chicken illustration) straddling the white/red seam at `-top-[50px]…55px`
+- **Copy:** Bebas white "Good Food, No Compromise" `clamp(32px,6.5vw,72px)`; three stats (10+ / 100% / 12K+) — Bebas numbers `clamp(36px,7vw,72px)` + Inter white uppercase labels `clamp(10px,1.4vw,14px)` `tracking-[0.12em]`
+- **Responsive:** stats row `gap-6 sm:gap-12 md:gap-20 lg:gap-28`, always `flex-row`, `flex-wrap`-free (numbers shrink via clamp)
+
+### 6. Locations (`components/store/locations.tsx`)
+- **Theme:** **white**, `py-16 sm:py-20 md:py-24 lg:py-28`, max `1280px`
+- **Copy:** Bebas "Find Your **Nearest Crispies**" — black + `#FF0931` spans, `clamp(36px,7vw,80px)`
+- **List rows** (`loc-row`): `border-b border-[#EAEAEA]`, columns = Bebas number + Bebas name + Inter address + status pill + Inter hours + red arrow button; grays tint per tone (`active` vs `muted`)
+- **List micro-animation (CSS in `globals.css`):** `.loc-list:hover .loc-row:not(:hover)` → `opacity 0.15` + `blur(2.5px)` (0.35s); hovered row → number/name/address/hours turn `#FF0931` (`.loc-hover-red`) and whole row slides `translateX(6px)` (`.loc-slide`)
+- **Status pill:** rounded-full, colored bg + colored dot (green open / brown closed — see Colors); red arrow button `hover:bg-[#FF0931] hover:text-white`
+- **"View All 10+ Location" CTA:** full-width `bg-[#FF0931] hover:bg-[#E0082C]` bar with Bebas white label + white icon square (`rounded-[10px…12px]`) with red arrow
+- **Map card (right, `lg:w-[340px] xl:w-[380px]`):** `bg-[#1A1A1A]` + radial-gradient texture, SVG road strokes (`#2e2e2e`–`#3a3a3a`), area labels (`#5A5A5A`, Inter, uppercase `tracking-[0.18em]`), red pins (white-bordered circles + triangle tail), red bottom banner "More Location Coming Soon"
+- **Responsive:** rows stack (`flex-wrap`, reordered via `order-2/3/4/5`) on mobile; map card goes full-width below `lg`, `min-h-[420px]` → `min-h-full`
+
+### 7. Partner (`components/store/partner.tsx`)
+- **Theme:** full-width **`bg-[#FF0931]`**, max `1400px`, `py-14 sm:py-16 md:py-20 lg:py-24`
+- **Copy:** Koulen white "Bring Crispies to your city." `clamp(36px,7vw,80px)`; Poppins white subcopy `clamp(14px,1.7vw,20px)`
+- **CTA:** full-width `max-w-[992px]` **black** bar (`hover:bg-[#111]`) with Koulen white label + white icon square + red arrow glyph (ArrowIcon SVG `#FF0000`)
+- **Image:** right column (`lg:w-[46%]`), `aspect-[4/3] sm:aspect-[5/4] lg:aspect-[4/3.4]`, `rounded-[20px…28px]`
+- **Responsive:** `flex-col` → `lg:flex-row`, copy stacks above image on mobile
+
+### 8. Footer (`components/store/footer.tsx`)
+- **Theme:** `bg-black`, red top hairline `h-[3px] bg-[#FF0931]`, max `1280px`
+- **4-column grid** (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`, column dividers `lg:border-r lg:border-white/10`):
+  - Logo: white rounded tile (`bg-white rounded-[4px]`, `w-[120px]…140px`) with `hover:scale-[1.04]`
+  - **Quick Links** / **Get In Touch** / **Follow Us On Socials**: Bebas red headings `clamp(18px,2vw,22px)` + Inter `text-white/80` links `clamp(14px,1.4vw,16px)`
+- **Micro-animations:** links `hover:text-white` + `hover:translate-x-1` (quick links) or color-only; social circles (`w-8 h-8 rounded-full border-white/40`) `hover:border-[#FF0931] hover:bg-[#FF0931] hover:scale-110`
+- **Bottom bar:** `border-t border-white/10 py-5`, Inter `text-white/50` copyright
+
+### 9. Storefront layout wrapper (`app/(store)/layout.tsx`)
+- `SmoothScroll` (Lenis) wraps everything; `Toaster` themed `#000000cc` bg / white text / `border-white/10` / `rounded-full` / success+error icons `#FF0931`
+- Selection color: `selection:bg-brand-red selection:text-white`
 
 ### Admin
 - **Shell:** Sidebar (`w-64` expanded, `w-20` collapsed) + sticky topbar + main content area
@@ -156,6 +249,26 @@ className="rounded-full border border-white/30 bg-transparent px-8 py-4 text-[11
            transition-all duration-300 hover:-translate-y-1 hover:border-white hover:bg-white/5 hover:text-white
            active:translate-y-0"
 ```
+
+**Storefront CTA bar (red, full-width):**
+```tsx
+className="w-full flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-[#FF0931]
+           hover:bg-[#E0082C] transition-colors duration-200 pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-3.5 text-white"
+```
+Left label: Bebas uppercase `clamp(22px, 2.8vw, 32px)`; right: white icon square `w-10 h-10 rounded-[10px] sm:rounded-[12px]` with red arrow.
+
+**Storefront CTA bar (black, on red section — Partner):**
+```tsx
+className="w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px]
+           bg-black hover:bg-[#111] transition-colors duration-200 pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
+```
+
+**Storefront square CTAs (navbar):**
+```tsx
+className="rounded-[4px] px-7 py-3 text-[15px] font-semibold capitalize tracking-[0.54px]
+           [font-family:var(--font-inter),Inter,sans-serif]" + btn-press
+```
+Primary: `bg-[#FF0931] text-white`; Outline: `border border-[#FF0931] text-[#FF0931]`.
 
 **Admin primary:**
 ```tsx
@@ -200,17 +313,13 @@ These apply to **every action button and interactive element**:
 - **Icon within a group:** `group-hover:scale-110 transition-transform duration-200`
 
 ### 3. Entrance Animations (Storefront)
-Use GSAP `useGSAP` hook with `ScrollTrigger` for scroll-triggered reveals:
-```tsx
-gsap.from(".element", { y: 30, autoAlpha: 0, duration: 0.6, stagger: 0.1, ease: "power2.out", scrollTrigger: { trigger, start: "top 85%" } })
-```
+CSS animation classes available in `globals.css`:
+- `.nav-enter` — desktop navbar drop-in (0.55s `cubic-bezier(0.16,1,0.3,1)`)
+- `.menu-drop` — mobile menu panel (0.3s)
+- `.menu-item` — mobile menu links/buttons staggered float-up (0.45s, delay via inline `animationDelay`)
+- `.backdrop-in` — mobile menu backdrop fade (0.3s)
 
-CSS animation classes available:
-- `.reveal-left` / `.reveal-right` / `.reveal-center` — clip-path reveals (hero, 0.8s)
-- `.slide-in-right` — slide + fade (hero tagline, 1s)
-- `.hero-fade-up` — fade + translateY (hero bottom, 1s)
-- `.video-modal-enter` — scale + fade (video modal, 0.45s)
-- `.video-modal-backdrop-enter` — backdrop fade (0.4s)
+GSAP (`gsap.to` / `fromTo` in `useLayoutEffect`) is used for the Menu section hover choreography (blur/dim siblings, highlight hovered item, floating image follow + bob) — see Section Specs #4.
 
 ### 4. Entrance Animations (Admin)
 - `.admin-fade-in` — opacity 0→1 (0.3s)
@@ -261,9 +370,9 @@ className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-
 
 ---
 
-## Slicer Text Effect (Hero Signature)
+## Slicer Text Effect (Legacy)
 
-Used on the homepage hero ("GOOD MOOD FOOD") and footer franchise CTA.
+**No longer used on the current homepage.** The hero was rebuilt as the red notch-ribbon ("Always Good Mood Food", Koulen). The effect still exists for reference / future use (e.g. footers or CTA blocks):
 
 ```html
 <span className="slice-text white-slice" data-text="GOOD">GOOD</span>
@@ -287,17 +396,43 @@ Used on the homepage hero ("GOOD MOOD FOOD") and footer franchise CTA.
 
 ---
 
+## Responsiveness
+
+The storefront is fully responsive with Tailwind breakpoints (`sm 640 / md 768 / lg 1024 / xl 1280 / 2xl 1536`) + fluid typography.
+
+**Fluid type (`clamp()` everywhere):** every headline/number uses `clamp(min, vw-based, max)` (e.g. `clamp(22px, 7vw, 130px)`) so text scales continuously — no discrete font-size jumps.
+
+**Per-section behavior:**
+| Section | Mobile | lg+ |
+|---|---|---|
+| Hero | `aspect-video`, `rounded-[20px]` | `md:h-[80vh]` |
+| About | side images hidden (pushed off), center 220px | 520px center, blurred mirrors half-off-screen (`right/left: calc(50% + 40px)`) |
+| Order | cards stacked `flex-col gap-10`, `w-full` | `lg:flex-row lg:items-end`, fixed card widths (`lg:w-[480px]`, `2xl:w-[530px]`) |
+| Menu | two columns always; no floating image | floating hover image appears (`lg:block`) |
+| Stats | numbers shrink via clamp, `gap-6` | `lg:gap-28` spread |
+| Locations | rows wrap + reorder (`order-2/3/4/5`), map card full-width below list | `lg:flex-row`, map `w-[340px] xl:w-[380px]` |
+| Partner | copy stacks above image | `lg:flex-row`, image `lg:w-[46%]` |
+| Footer | `grid-cols-1` → `sm:grid-cols-2` | `lg:grid-cols-4` with `lg:border-r` dividers |
+| Navbar | text Menu/Close toggle + compact Delivery btn, slide-down panel | full link row `lg:flex` |
+
+**Containers:** `max-w-[1280px]` (Menu/Locations/Footer), `max-w-[1400px]` (Partner), navbar `max-w-[1422px]`; padding scale `px-5 sm:px-6 xl:px-10` (sections) / `px-6 xl:px-10` (hero/navbar).
+
+**Reduced motion:** `prefers-reduced-motion: reduce` kills nav/menu/toast/loc-row/burger transitions in `globals.css`.
+
+---
+
 ## Guidelines Summary
 
 - **Everything is clickable** — every interactive element must have `cursor-pointer`
 - **Every interaction has feedback** — hover, active, and focus states are mandatory
 - **No hardcoded colors outside the palette** — use brand tokens and opacity variants
-- **No blue, no green** — only black (`#000000` / `#000000cc`), white (`#ffffff`), and `#ff0931` (plus green for success toast icons only)
-- **No CSS modules, no styled-components** — Tailwind only
-- **Uppercase for headings** — `font-display` or `font-teko`, never sentence case for headers
-- **GSAP for complex animations** — ScrollTrigger for reveals, timelines for sequenced entrances
+- **No blue** — black (`#000000` / `#000000cc`), white (`#ffffff`), `#ff0931` (+ `#C1001F` order panels). Green is **only** allowed in Locations status pills and success toast icons
+- **No CSS modules, no styled-components** — Tailwind only. *(Exceptions: `hero.module.css` ribbon clip-path and `about.module.css` side-image positioning — kept local because they are section-specific geometry)*
+- **Uppercase for headings** — Bebas or Koulen, never sentence case for headers
+- **GSAP for complex animations** — Menu hover choreography, timelines for sequenced entrances
 - **Lenis for smooth scrolling** — storefront only, wraps entire route group
 - **Micro-animations on every button** — hover lift + active scale press
+- **Fluid typography** — all display sizes via `clamp()`
 
 ---
 

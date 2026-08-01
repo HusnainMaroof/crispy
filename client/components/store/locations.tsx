@@ -1,54 +1,79 @@
 // locations.tsx
+"use client";
 
+import dynamic from "next/dynamic";
+import { useState } from "react";
+import type { MapLocation } from "./locations-map";
+
+const LocationsMap = dynamic(() => import("./locations-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
+      Loading map…
+    </div>
+  ),
+});
+
+// PLACEHOLDER DATA — real London coordinates as stand-ins so the map/fly-to
+// animation is demoable now. Swap in real branch addresses + lat/lng before
+// shipping. Each location now has a genuinely unique id (was "01" duplicated
+// across all 5 rows before) — the displayed 01/02/03 number is derived from
+// array position instead, since a display index and a stable id are not the
+// same thing and shouldn't share a field.
 const locations = [
   {
-    id: "01",
+    id: "tower-hill",
     name: "Tower Hill",
-    address: "2 Tower Hi Ter, London EC3N\n4EE, United Kingdom",
+    address: "2 Tower Hill Ter, London EC3N\n4EE, United Kingdom",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    tone: "active" as const,
+    lat: 51.5098,
+    lng: -0.0759,
   },
   {
-    id: "01",
-    name: "Tower Hill",
-    address: "2 Tower Hi Ter, London EC3N\n4EE, United Kingdom",
+    id: "camden-town",
+    name: "Camden Town",
+    address: "45 Camden High St, London NW1\n7JH, United Kingdom",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    tone: "muted" as const,
+    lat: 51.539,
+    lng: -0.1426,
   },
   {
-    id: "01",
-    name: "Tower Hill",
-    address: "2 Tower Hi Ter, London EC3N\n4EE, United Kingdom",
+    id: "shoreditch",
+    name: "Shoreditch",
+    address: "112 Shoreditch High St, London E1\n6JN, United Kingdom",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    tone: "muted" as const,
+    lat: 51.5229,
+    lng: -0.0777,
   },
   {
-    id: "01",
-    name: "Tower Hill",
-    address: "2 Tower Hi Ter, London EC3N\n4EE, United Kingdom",
+    id: "westminster",
+    name: "Westminster",
+    address: "9 Victoria St, London SW1H\n0EX, United Kingdom",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    tone: "muted" as const,
+    lat: 51.4994,
+    lng: -0.1248,
   },
   {
-    id: "01",
-    name: "Tower Hill",
-    address: "2 Tower Hi Ter, London EC3N\n4EE, United Kingdom",
+    id: "canary-wharf",
+    name: "Canary Wharf",
+    address: "1 Canada Sq, London E14\n5AB, United Kingdom",
     status: "closed" as const,
     hours: "11AM – 11 PM",
-    tone: "muted" as const,
+    lat: 51.5054,
+    lng: -0.0235,
   },
 ];
 
-const mapPins = [
-  { n: 1, label: "City of London", top: "18%", left: "38%" },
-  { n: 2, label: null, top: "28%", left: "72%" },
-  { n: 3, label: "Westminster", top: "52%", left: "32%" },
-  { n: 4, label: null, top: "68%", left: "78%" },
-];
+const mapLocations: MapLocation[] = locations.map((l) => ({
+  id: l.id,
+  name: l.name,
+  lat: l.lat,
+  lng: l.lng,
+}));
 
 function PinIcon({ className = "" }: { className?: string }) {
   return (
@@ -110,6 +135,8 @@ function BuildingIcon({ className = "" }: { className?: string }) {
 }
 
 export default function Locations() {
+  const [selectedId, setSelectedId] = useState<string>(locations[0].id);
+
   return (
     <section className="relative w-full bg-white py-16 sm:py-20 md:py-24 lg:py-28">
       <div className="mx-auto max-w-[1280px] px-5 sm:px-6 xl:px-10">
@@ -131,7 +158,7 @@ export default function Locations() {
           <div className="flex-1 min-w-0 flex flex-col">
             <ul className="m-0 p-0 list-none loc-list">
               {locations.map((loc, i) => {
-                const isActive = loc.tone === "active";
+                const isActive = loc.id === selectedId;
                 const numColor = isActive ? "text-[#BDBDBD]" : "text-[#D0D0D0]";
                 const nameColor = isActive ? "text-black" : "text-[#B0B0B0]";
                 const addrColor = isActive ? "text-[#9A9A9A]" : "text-[#C4C4C4]";
@@ -148,10 +175,21 @@ export default function Locations() {
                     : isActive
                       ? "bg-[#7CFF8A]"
                       : "bg-[#C8F0C0]";
+                const displayNum = String(i + 1).padStart(2, "0");
 
                 return (
                   <li
-                    key={i}
+                    key={loc.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isActive}
+                    onClick={() => setSelectedId(loc.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedId(loc.id);
+                      }
+                    }}
                     className="loc-row cursor-pointer border-b border-[#EAEAEA] py-4 sm:py-5 md:py-[22px]"
                   >
                     <div className="loc-slide flex flex-wrap lg:flex-nowrap items-center gap-x-3 sm:gap-x-4 md:gap-x-5 gap-y-2.5">
@@ -164,10 +202,10 @@ export default function Locations() {
                           fontSize: "clamp(16px, 1.8vw, 20px)",
                         }}
                       >
-                        {loc.id}
+                        {displayNum}
                       </span>
 
-                      {/* TOWER HILL */}
+                      {/* NAME */}
                       <span
                         className={`loc-hover-red ${nameColor} uppercase font-normal leading-none shrink-0 whitespace-nowrap`}
                         style={{
@@ -210,7 +248,7 @@ export default function Locations() {
                         <span
                           className={`w-[6px] h-[6px] rounded-full ${statusDot} shrink-0`}
                         />
-                        {loc.status === "open" ? "Open Now" : "Close Now"}
+                        {loc.status === "open" ? "Open Now" : "Closed Now"}
                       </span>
 
                       {/* Hours */}
@@ -228,7 +266,11 @@ export default function Locations() {
                       {/* Arrow */}
                       <button
                         type="button"
-                        aria-label={`Open ${loc.name}`}
+                        aria-label={`Show ${loc.name} on map`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedId(loc.id);
+                        }}
                         className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[#FF0931] flex items-center justify-center text-[#FF0931] hover:bg-[#FF0931] hover:text-white transition-colors duration-200 ml-auto lg:ml-0 order-2 lg:order-none"
                       >
                         <ArrowIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -259,108 +301,13 @@ export default function Locations() {
             </button>
           </div>
 
-          {/* Right — map card */}
+          {/* Right — real map card */}
           <div className="w-full lg:w-[340px] xl:w-[380px] shrink-0">
             <div className="relative h-full min-h-[420px] sm:min-h-[480px] lg:min-h-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
-              {/* Map texture */}
-              <div
-                className="absolute inset-0 opacity-40"
-                style={{
-                  backgroundImage: `
-                    radial-gradient(circle at 30% 25%, #2a2a2a 0%, transparent 40%),
-                    radial-gradient(circle at 70% 60%, #252525 0%, transparent 35%),
-                    linear-gradient(180deg, #1f1f1f 0%, #141414 100%)
-                  `,
-                }}
-              />
-              {/* Subtle grid roads */}
-              <svg
-                className="absolute inset-0 w-full h-full opacity-30"
-                xmlns="http://www.w3.org/2000/svg"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M0 80 Q80 60 160 90 T320 70 T400 100"
-                  stroke="#3a3a3a"
-                  strokeWidth="8"
-                  fill="none"
-                />
-                <path
-                  d="M0 180 Q100 200 200 160 T400 190"
-                  stroke="#333"
-                  strokeWidth="6"
-                  fill="none"
-                />
-                <path
-                  d="M40 0 Q60 120 50 240 T80 480"
-                  stroke="#353535"
-                  strokeWidth="10"
-                  fill="none"
-                />
-                <path
-                  d="M200 0 Q180 150 220 300 T180 500"
-                  stroke="#2e2e2e"
-                  strokeWidth="7"
-                  fill="none"
-                />
-                <path
-                  d="M300 40 Q280 160 320 280 T300 480"
-                  stroke="#333"
-                  strokeWidth="5"
-                  fill="none"
-                />
-                <circle cx="140" cy="120" r="40" fill="#222" opacity="0.6" />
-                <circle cx="260" cy="280" r="50" fill="#1e1e1e" opacity="0.5" />
-              </svg>
+              <LocationsMap locations={mapLocations} selectedId={selectedId} />
 
-              {/* Area labels */}
-              <span
-                className="absolute top-[14%] left-1/2 -translate-x-1/2 text-[#5A5A5A] uppercase tracking-[0.18em] font-medium z-[1]"
-                style={{
-                  fontFamily: "var(--font-inter), Inter, sans-serif",
-                  fontSize: "clamp(10px, 1.1vw, 12px)",
-                }}
-              >
-                City of London
-              </span>
-              <span
-                className="absolute top-[46%] left-[18%] text-[#5A5A5A] uppercase tracking-[0.18em] font-medium z-[1]"
-                style={{
-                  fontFamily: "var(--font-inter), Inter, sans-serif",
-                  fontSize: "clamp(10px, 1.1vw, 12px)",
-                }}
-              >
-                Westminster
-              </span>
-
-              {/* Pins */}
-              {mapPins.map((pin) => (
-                <div
-                  key={pin.n}
-                  className="absolute z-[2] -translate-x-1/2 -translate-y-full"
-                  style={{ top: pin.top, left: pin.left }}
-                >
-                  <div className="relative flex flex-col items-center">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#FF0931] border-[3px] border-white shadow-lg flex items-center justify-center">
-                      <span
-                        className="text-white font-normal leading-none"
-                        style={{
-                          fontFamily:
-                            "var(--font-bebas), 'Bebas Neue', sans-serif",
-                          fontSize: "16px",
-                        }}
-                      >
-                        {pin.n}
-                      </span>
-                    </div>
-                    <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-[#FF0931] -mt-[1px]" />
-                  </div>
-                </div>
-              ))}
-
-              {/* Bottom banner */}
-              <div className="absolute bottom-0 left-0 right-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3">
+              {/* Bottom banner — sits above the map tiles */}
+              <div className="absolute bottom-0 left-0 right-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3 pointer-events-none">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <PinIcon className="w-5 h-5 text-white shrink-0" />
                   <span

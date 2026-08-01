@@ -1,18 +1,30 @@
 /* about.module.css */
+.sideImg {
+  position: absolute;
+  top: 50%;
+  overflow: hidden;
+
+  width: 45vw;
+  aspect-ratio: 3 / 2;
+  border-radius: 3vw;
+  opacity: 0.3;
+  filter: blur(0.4vw);
+}
+
 .sideLeft {
-  right: calc(50% + 20px);
+  left: 0;
+  /* anchored flush to container's left edge, then pushed further left
+     by 60% of its OWN width — self-relative %, so it's exact at any vw */
+  transform: translate(-70%, -50%);
 }
 
 .sideRight {
-  left: calc(50% + 20px);
+  right: 0;
+  transform: translate(70%, -50%);
 }
 
 @media (min-width: 1024px) {
-  .sideLeft {
-    right: calc(50% + 40px);
-  }
-
-  .sideRight {
-    left: calc(50% + 40px);
+  .sideImg {
+    width: 32vw; /* narrower ratio at desktop so it doesn't dominate the row */
   }
 }

@@ -55,6 +55,10 @@ html::-webkit-scrollbar {
   .burger-line {
     transition-duration: 0.01ms !important;
   }
+  .crispy-marker-dot {
+    transition-duration: 0.01ms !important;
+    transform: none !important;
+  }
   [class*="transition-all"] {
     transition-duration: 0.01ms !important;
   }
@@ -84,8 +88,9 @@ html::-webkit-scrollbar {
   width: 24px;
   border-radius: 2px;
   background-color: #ffffff;
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.2s ease;
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease;
 }
 .burger-open .burger-line-1 {
   transform: translateY(7px) rotate(45deg);
@@ -134,8 +139,12 @@ html::-webkit-scrollbar {
   animation: backdrop-in 0.3s ease both;
 }
 @keyframes backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* --- Admin micro-animations --- */
@@ -201,21 +210,44 @@ html::-webkit-scrollbar {
 }
 
 @keyframes toast-shake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(3px); }
-  30%, 50%, 70% { transform: translateX(-4px); }
-  40%, 60% { transform: translateX(4px); }
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  80% {
+    transform: translateX(3px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
 }
 
 /* Principle 5: Follow Through — icon animates after container settles */
 .toast-icon {
-  animation: toast-icon-pop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.25s both;
+  animation: toast-icon-pop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) 0.25s
+    both;
 }
 
 @keyframes toast-icon-pop {
-  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-  60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 /* Principle 5: Follow Through — progress bar starts after entrance */
@@ -225,8 +257,12 @@ html::-webkit-scrollbar {
 }
 
 @keyframes toast-progress {
-  from { transform: scaleX(1); }
-  to { transform: scaleX(0); }
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 /* Principle 2: Anticipation — slight shrink before auto-dismiss */
@@ -235,31 +271,53 @@ html::-webkit-scrollbar {
 }
 
 @keyframes toast-anticipate {
-  0% { transform: scale(1); }
-  100% { transform: scale(0.96); opacity: 0.7; }
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.96);
+    opacity: 0.7;
+  }
 }
 
 @keyframes admin-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes admin-slide-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes admin-scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Button press feedback */
 .btn-press {
   cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.15s ease,
-              border-color 0.15s ease,
-              color 0.15s ease;
+  transition:
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   will-change: transform;
 }
 .btn-press:hover {
@@ -276,9 +334,10 @@ html::-webkit-scrollbar {
 /* Card hover effect */
 .card-hover {
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
@@ -287,7 +346,9 @@ html::-webkit-scrollbar {
 
 /* Input focus effect */
 .input-focus {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .input-focus:focus {
   border-color: var(--color-brand-red);
@@ -304,14 +365,23 @@ html::-webkit-scrollbar {
 
 /* Skeleton loading shimmer */
 .skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
 @keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Ripple effect */
@@ -320,18 +390,26 @@ html::-webkit-scrollbar {
   overflow: hidden;
 }
 .ripple::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255,255,255,0.3) 0%, transparent 60%);
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 60%
+  );
   opacity: 0;
   transform: scale(0);
-  transition: transform 0.4s ease, opacity 0.4s ease;
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease;
 }
 .ripple:active::after {
   opacity: 1;
   transform: scale(2.5);
-  transition: transform 0s, opacity 0s;
+  transition:
+    transform 0s,
+    opacity 0s;
 }
 
 /* Link underline animation */
@@ -340,7 +418,7 @@ html::-webkit-scrollbar {
   cursor: pointer;
 }
 .link-underline::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -2px;
   left: 0;
@@ -355,7 +433,9 @@ html::-webkit-scrollbar {
 
 /* --- Location list hover (menu-style blur) --- */
 .loc-row {
-  transition: opacity 0.35s ease, filter 0.35s ease;
+  transition:
+    opacity 0.35s ease,
+    filter 0.35s ease;
   will-change: opacity, filter;
 }
 .loc-list:hover .loc-row:not(:hover) {
@@ -373,4 +453,84 @@ html::-webkit-scrollbar {
 }
 .loc-row:hover .loc-slide {
   transform: translateX(6px);
+}
+
+/* --- Leaflet map theme (Locations section) --- */
+/* Tailwind Preflight: img { max-width:100%; height:auto } breaks tile
+   images — they need fixed pixel sizes. Force unconstrained tiles. */
+.leaflet-container img,
+.leaflet-tile-pane img,
+.leaflet-container svg {
+  max-width: none !important;
+  max-height: none !important;
+}
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+.leaflet-container.crispy-map {
+  background: #1a1a1a;
+  font-family: var(--font-inter), Inter, sans-serif;
+}
+.crispy-map .leaflet-control-zoom a {
+  background: rgba(26, 26, 26, 0.92);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.crispy-map .leaflet-control-zoom a:hover {
+  background: #ff0931;
+  color: #fff;
+}
+
+.leaflet-div-icon.crispy-marker-wrap {
+  background: transparent;
+  border: none;
+}
+.crispy-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.crispy-marker-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background-color: #ff0931;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: var(--font-bebas), "Bebas Neue", sans-serif;
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.3s ease;
+}
+.crispy-marker-wrap:hover .crispy-marker-dot,
+.crispy-marker-dot.is-selected {
+  transform: scale(1.22);
+}
+.crispy-marker-tail {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #ff0931;
+}
+
+.crispy-tooltip.leaflet-tooltip {
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 6px 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.crispy-tooltip.leaflet-tooltip-top::before {
+  border-top-color: #1a1a1a;
 }

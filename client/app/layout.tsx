@@ -101,7 +101,7 @@ export const metadata: Metadata = {
       "100% halal smash burgers and crispy chicken, delivered across London.",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.svg",
   },
 };
 
