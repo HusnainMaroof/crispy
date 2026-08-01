@@ -1,0 +1,18 @@
+/* hero.module.css */
+.ribbon {
+  --notch: clamp(32px, 5vw, 65.88px);
+  --notch-sm: clamp(6px, 1vw, 10.95px);
+  --tip: clamp(54px, 8vw, 109px);
+
+  background-color: #ff0931;
+  clip-path: polygon(
+    0px 0%,
+    100% 0%,
+    calc(100% - var(--notch)) 43.76%,
+    calc(100% - var(--notch-sm)) 62.5%,
+    calc(100% - var(--tip)) 100%,
+    var(--tip) 100%,
+    var(--notch-sm) 62.5%,
+    var(--notch) 43.76%
+  );
+}

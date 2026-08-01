@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-brand-black: #000000;
+  --color-brand-black: #000000cc;
   --color-brand-white: #ffffff;
-  --color-brand-red: #dc2626;
+  --color-brand-red: #ff0931;
   --font-display: var(--font-bebas);
   --font-sans: var(--font-jakarta);
   --font-teko: var(--font-teko-raw);
@@ -13,6 +13,8 @@ body {
   font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
   margin: 0;
   overflow-x: hidden;
+  background-color: #000000;
+  color: #ffffff;
 }
 
 /* Hide default scrollbar — replaced by custom right-side progress indicator */
@@ -26,147 +28,8 @@ html::-webkit-scrollbar {
   display: none;
 }
 
-/* --- Slicer text effect (hero signature) --- */
-.slice-text {
-  color: transparent;
-  position: relative;
-  display: inline-block;
-  cursor: crosshair;
-}
-.slice-text::before,
-.slice-text::after {
-  content: attr(data-text);
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), color 0.3s ease, -webkit-text-stroke 0.3s ease, border 0.3s ease;
-}
-.slice-text::before { clip-path: polygon(0 0, 100% 0, 100% 49%, 0 49%); }
-.slice-text::after { clip-path: polygon(0 51%, 100% 51%, 100% 100%, 0 100%); }
-
-.white-slice::before, .white-slice::after { color: var(--brand-white, #fff); }
-.white-slice:hover::before {
-  transform: translate(-10px, -6px) skewX(-8deg);
-  color: var(--brand-red, #dc2626);
-  border-bottom: 2px solid #fff;
-}
-.white-slice:hover::after {
-  transform: translate(10px, 6px) skewX(-8deg);
-  color: transparent;
-  -webkit-text-stroke: 2px #fff;
-  border-top: 2px solid #fff;
-}
-
-.red-slice::before, .red-slice::after { color: var(--brand-red, #dc2626); }
-.red-slice:hover::before {
-  transform: translate(12px, -8px) skewX(8deg);
-  color: transparent;
-  -webkit-text-stroke: 2px var(--brand-red, #dc2626);
-}
-.red-slice:hover::after {
-  transform: translate(-12px, 8px) skewX(8deg);
-  color: #fff;
-}
-
-/* --- Scroll reveal base state (hidden until GSAP animates in) --- */
-.fade-up {
-  opacity: 0;
-  will-change: transform, opacity;
-}
-
-/* --- Reveal animations --- */
-.reveal-left {
-  opacity: 0;
-  animation: hero-reveal-left 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.reveal-right {
-  opacity: 0;
-  animation: hero-reveal-right 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.reveal-center {
-  opacity: 0;
-  animation: hero-reveal-center 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.slide-in-right {
-  opacity: 0;
-  animation: hero-slide-in-right 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.hero-fade-up {
-  opacity: 0;
-  animation: hero-fade-up 1s ease-out forwards;
-}
-
-@keyframes hero-reveal-left {
-  0% { opacity: 0; transform: translateX(-40px); clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
-  100% { opacity: 1; transform: translateX(0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-}
-@keyframes hero-reveal-right {
-  0% { opacity: 0; transform: translateX(40px); clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); }
-  100% { opacity: 1; transform: translateX(0); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-}
-@keyframes hero-reveal-center {
-  0% { opacity: 0; transform: scale(0.9); clip-path: polygon(0 50%, 100% 50%, 100% 50%, 0 50%); }
-  100% { opacity: 1; transform: scale(1); clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
-}
-@keyframes hero-slide-in-right {
-  0% { opacity: 0; transform: translateX(30px); }
-  100% { opacity: 1; transform: translateX(0); }
-}
-@keyframes hero-fade-up {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-@keyframes pan {
-  0% { transform: scale(1.05) translate(0, 0); }
-  100% { transform: scale(1.1) translate(-2%, 2%); }
-}
-.animate-pan { animation: pan 20s ease-in-out infinite alternate; }
-
-/* --- Video modal entrance (triggered from the sizzle-reel pill) --- */
-.video-modal-enter { animation: video-modal-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.video-modal-backdrop-enter { animation: video-modal-backdrop 0.4s ease-out both; }
-@keyframes video-modal-enter {
-  0%   { opacity: 0; transform: scale(0.92) translateY(12px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-@keyframes video-modal-backdrop {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
-@keyframes grain {
-  0%, 100% { transform: translate(0, 0); }
-  10% { transform: translate(-5%, -10%); }
-  20% { transform: translate(-15%, 5%); }
-  30% { transform: translate(7%, -25%); }
-  40% { transform: translate(-5%, 25%); }
-  50% { transform: translate(-15%, 10%); }
-  60% { transform: translate(15%, 0%); }
-  70% { transform: translate(0%, 15%); }
-  80% { transform: translate(3%, 35%); }
-  90% { transform: translate(-10%, 10%); }
-}
-.animate-grain { animation: grain 0.2s steps(2) infinite; }
-
-/* --- Hero entrance paused until preloader completes --- */
-.hero-paused .reveal-left,
-.hero-paused .reveal-right,
-.hero-paused .reveal-center,
-.hero-paused .slide-in-right,
-.hero-paused .hero-fade-up {
-  animation: none !important;
-  opacity: 0 !important;
-  transform: none !important;
-  clip-path: none !important;
-}
-
-/* --- Reduced motion: disable decorative animation + slicer + parallax --- */
+/* --- Reduced motion: disable decorative animation --- */
 @media (prefers-reduced-motion: reduce) {
-  .reveal-left,
-  .reveal-right,
-  .reveal-center,
-  .slide-in-right,
-  .hero-fade-up,
-  .video-modal-enter,
   .admin-fade-in,
   .admin-slide-up,
   .toast-enter,
@@ -174,26 +37,105 @@ html::-webkit-scrollbar {
   .toast-shake,
   .toast-icon,
   .toast-progress,
-  .toast-pending-exit {
+  .toast-pending-exit,
+  .nav-enter,
+  .menu-drop,
+  .menu-item,
+  .backdrop-in {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
     clip-path: none !important;
   }
-  .animate-pan,
-  .animate-grain {
-    animation: none !important;
+  .loc-row,
+  .loc-hover-red,
+  .loc-slide {
+    transition-duration: 0.01ms !important;
   }
-  .slice-text:hover::before,
-  .slice-text:hover::after {
-    transform: none !important;
-    color: revert !important;
-    -webkit-text-stroke: 0 !important;
-    border: 0 !important;
+  .burger-line {
+    transition-duration: 0.01ms !important;
   }
   [class*="transition-all"] {
     transition-duration: 0.01ms !important;
   }
+}
+
+/* --- Navbar micro-animations --- */
+
+/* Entrance: items drop in from above with stagger (set delay via inline style) */
+.nav-enter {
+  animation: nav-drop 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes nav-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hamburger morph → X */
+.burger-line {
+  display: block;
+  height: 2px;
+  width: 24px;
+  border-radius: 2px;
+  background-color: #ffffff;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease;
+}
+.burger-open .burger-line-1 {
+  transform: translateY(7px) rotate(45deg);
+}
+.burger-open .burger-line-2 {
+  opacity: 0;
+  transform: scaleX(0.3);
+}
+.burger-open .burger-line-3 {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile menu panel drop */
+.menu-drop {
+  transform-origin: top;
+  animation: menu-drop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes menu-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* Menu items staggered float-up */
+.menu-item {
+  animation: menu-item-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes menu-item-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Backdrop fade */
+.backdrop-in {
+  animation: backdrop-in 0.3s ease both;
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* --- Admin micro-animations --- */
@@ -349,7 +291,7 @@ html::-webkit-scrollbar {
 }
 .input-focus:focus {
   border-color: var(--color-brand-red);
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 9, 49, 0.15);
 }
 
 /* Icon spin on hover */
@@ -409,4 +351,26 @@ html::-webkit-scrollbar {
 }
 .link-underline:hover::after {
   width: 100%;
+}
+
+/* --- Location list hover (menu-style blur) --- */
+.loc-row {
+  transition: opacity 0.35s ease, filter 0.35s ease;
+  will-change: opacity, filter;
+}
+.loc-list:hover .loc-row:not(:hover) {
+  opacity: 0.15;
+  filter: blur(2.5px);
+}
+.loc-row .loc-hover-red {
+  transition: color 0.35s ease;
+}
+.loc-row:hover .loc-hover-red {
+  color: #ff0931;
+}
+.loc-row .loc-slide {
+  transition: transform 0.35s ease;
+}
+.loc-row:hover .loc-slide {
+  transform: translateX(6px);
 }

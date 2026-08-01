@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Oswald, Plus_Jakarta_Sans, Teko } from "next/font/google";
+import { Bebas_Neue, Oswald, Plus_Jakarta_Sans, Teko, Koulen, Inter, Poppins } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -27,6 +27,27 @@ const jakarta = Plus_Jakarta_Sans({
 const teko = Teko({
   weight: ["400", "500", "600", "700"],
   variable: "--font-teko-raw",
+  display: "swap",
+  subsets: ["latin"],
+});
+
+const koulen = Koulen({
+  weight: "400",
+  variable: "--font-koulen",
+  display: "swap",
+  subsets: ["latin"],
+});
+
+const inter = Inter({
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+  subsets: ["latin"],
+});
+
+const poppins = Poppins({
+  weight: "400",
+  variable: "--font-poppins",
   display: "swap",
   subsets: ["latin"],
 });
@@ -90,7 +111,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${bebas.variable} ${oswald.variable} ${jakarta.variable} ${teko.variable}`}>
+    <html lang="en" className={`${bebas.variable} ${oswald.variable} ${jakarta.variable} ${teko.variable} ${koulen.variable} ${inter.variable} ${poppins.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

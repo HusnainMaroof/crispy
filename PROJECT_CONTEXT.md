@@ -166,11 +166,16 @@ All under `/api` — proxied by Next.js rewrites from `:3000` to Express at `:30
 
 ## Brand System
 
-- Background: `#000000` (black)
-- Text: `#FFFFFF` (white) and `#DC2626` (brand-red)
+Active tokens (see `client/DESIGN_GUIDE.md` for full tables):
+
+- Background: `#000000` (solid, on `<body>`)
+- Primary surface: `#000000cc` (80% black, used for headers/overlays/sections)
+- Text: `#FFFFFF` (white) and `#FF0931` (brand-red)
 - Secondary text: opacity-based (`text-white/70`)
 - SVG wordmark in `components/ui/wordmark.tsx`
 - No CSS modules or styled-components — Tailwind only
+- Admin + server email templates still use `#DC2626` / `bg-red-700` until the
+  deferred "rest" migration. Storefront is on the new `#FF0931` palette.
 
 ---
 

@@ -1,0 +1,18 @@
+/* about.module.css */
+.sideLeft {
+  right: calc(50% + 20px);
+}
+
+.sideRight {
+  left: calc(50% + 20px);
+}
+
+@media (min-width: 1024px) {
+  .sideLeft {
+    right: calc(50% + 40px);
+  }
+
+  .sideRight {
+    left: calc(50% + 40px);
+  }
+}

@@ -11,11 +11,16 @@ Crispies is a London-based halal fast-food brand (burgers + chicken). The visual
 
 ## Color System
 
-| Token | Hex | Usage |
+The storefront and admin share the brand tokens defined in `client/app/globals.css`.
+The tokens were updated to the new Crispies palette. Until "the rest" (admin)
+is migrated, admin still renders with `bg-red-700` hover and its existing
+`#dc2626`-era button recipes — see the Admin section below.
+
+| Token | Value | Usage |
 |---|---|---|
-| `--color-brand-black` / `bg-brand-black` | `#000000` | Primary background (every page) |
+| `--color-brand-black` / `bg-brand-black` | `#000000cc` (80% black) | Primary surface — used for page wrappers, header/footer, overlays |
 | `--color-brand-white` / `text-white` | `#ffffff` | Primary text color |
-| `--color-brand-red` / `bg-brand-red` / `text-brand-red` | `#dc2626` | Accent — CTAs, highlights, active states, borders on focus |
+| `--color-brand-red` / `bg-brand-red` / `text-brand-red` | `#ff0931` | Accent — CTAs, highlights, active states, focus outlines |
 | `white/5` | `rgba(255,255,255,0.05)` | Subtle card/button backgrounds |
 | `white/10` | `rgba(255,255,255,0.10)` | Borders, dividers, muted surfaces |
 | `white/20` | `rgba(255,255,255,0.20)` | Secondary borders, ghost button borders |
@@ -24,14 +29,36 @@ Crispies is a London-based halal fast-food brand (burgers + chicken). The visual
 | `white/50` | `rgba(255,255,255,0.50)` | Muted labels, non-active nav items |
 | `white/60` | `rgba(255,255,255,0.60)` | Default nav link color |
 | `white/70` | `rgba(255,255,255,0.70)` | Secondary subdued text |
-| `bg-red-700` | `#b91c1c` | Button hover state (admin) |
+| `bg-red-700` | `#b91c1c` | Admin-only button hover (to be migrated last) |
 | `green-400/500` | success toasts | Icon theme for success |
 
 **Rules:**
-- Background is **always black** (`#000000`) — no gradients, no colored backgrounds.
-- Text is **white** or **brand-red**. Never use gray text — use opacity (`text-white/XX`) for hierarchy.
-- Red is the **only accent color**. No blue, no green (except toast icons), no yellow.
-- Borders use `border-white/10` by default, `border-brand-red` for active/focused states.
+- The `<body>` is backed by **solid black** `#000000` so `bg-brand-black`
+  (`#000000cc`) reads true-black over it while still allowing subtle
+  image/content show-through for overlays, headers, and video scrims.
+- Page-level sections that need true black use `bg-black`; ambient/overlay
+  surfaces use `bg-brand-black`.
+- Text is **white** or **brand-red**. Never use gray text — use opacity
+  (`text-white/XX`) for hierarchy.
+- Red is the **only accent color**. No blue, no green (except toast icons),
+  no yellow.
+- Borders use `border-white/10` by default, `border-brand-red` for
+  active/focused states.
+
+### Hex reference
+
+Use these exact hex values when a raw color is needed (inline styles, SVG
+fills, `shadow-[...]` arg, toast icon themes, JSON-LD, etc.):
+
+| Role | Hex |
+|---|---|
+| Primary background (solid) | `#000000` |
+| Primary surface / overlay (80%) | `#000000cc` |
+| Text | `#ffffff` |
+| Accent | `#ff0931` |
+| Accent shadow glow (for `shadow-[...]`) | `rgba(255,9,49,0.4)` / `rgba(255,9,49,0.7)` |
+| Accent focus ring | `rgba(255,9,49,0.15)` |
+| Navbar vertical divider | `#1D1D1D` (literal, navbar only) |
 
 ---
 
@@ -43,11 +70,16 @@ Crispies is a London-based halal fast-food brand (burgers + chicken). The visual
 | Body text, UI labels | **Plus Jakarta Sans** | `--font-jakarta` | `font-sans` |
 | Hero mega-headlines | **Teko** | `--font-teko` | `font-teko` |
 | Preloader wordmark | **Oswald** | `--font-oswald` | `[family-name:var(--font-oswald)]` |
+| Navbar nav links | **Koulen** | `--font-koulen` | `[font-family:var(--font-koulen),Koulen,sans-serif]` |
+| Navbar buttons / mobile UI | **Inter** | `--font-inter` | `[font-family:var(--font-inter),Inter,sans-serif]` |
+
+All six fonts are loaded in `client/app/layout.tsx` via `next/font/google` and their CSS variables are wired onto `<html>`.
 
 **Sizing patterns:**
 - Hero headings: `text-6xl` → `md:text-9xl` → `lg:text-[180px]` with `leading-[0.8]`
 - Section titles: `text-lg` → `md:text-3xl`, uppercase, `tracking-wide` or `tracking-normal`
-- Nav links: `text-[11px]`, uppercase, `tracking-[0.2em]`
+- Nav links: **`text-[15px]`**, `font-normal`, `capitalize`, `tracking-[0.54px]`, Koulen — hover turns `#ff0931`
+- Nav buttons: `text-[15px]`, `font-semibold`, `capitalize`, `tracking-[0.54px]`, Inter
 - Body copy: `text-[13px]`, `text-white/50`
 - Labels/kickers: `text-[9px]` → `text-[11px]`, uppercase, `tracking-[0.3em]`, `text-white/40`
 - Admin headings: `font-display text-xl tracking-wide`
@@ -58,6 +90,7 @@ Crispies is a London-based halal fast-food brand (burgers + chicken). The visual
 - Use `tracking-[0.2em]` to `tracking-[0.35em]` for uppercase labels.
 - Font display (`font-display`) is the default for all large headings.
 - Teko is reserved for the hero "GOOD MOOD FOOD" mega-headline only.
+- Koulen + Inter are reserved for the navbar (links and buttons/labels respectively). Keep them out of body copy and section titles.
 
 ---
 
@@ -65,10 +98,31 @@ Crispies is a London-based halal fast-food brand (burgers + chicken). The visual
 
 ### Storefront
 - **Canvas:** `min-h-screen bg-black`
-- **Max width:** `max-w-[1400px]` with symmetric padding (`px-6 md:px-12 lg:px-16 xl:px-24`)
-- **Navbar:** Fixed top, `h-16`, transitions from transparent to `bg-black/90 backdrop-blur-md` on scroll
+- **Max width:** `max-w-[1400px]` with symmetric padding (`px-6 md:px-12 lg:px-16 xl:px-24`) *(page sections — the navbar uses its own wider rail, see below)*
 - **Footer:** Full-width sections with `border-t border-white/10` dividers
 - **No scrollbar** — replaced by custom right-side progress indicator
+
+### Navbar (`client/components/store/navbar.tsx`)
+The navbar is **not** fixed — it renders as a `relative z-50` `<header>` in normal flow with a solid `bg-black` background, so it never needs the old transparent→backdrop-blur scroll transition. It has two distinct rows plus a dropdown panel.
+
+**Desktop (`lg:flex` and up):**
+- Wrapper: `mx-auto w-full max-w-[1422px] py-10 px-6 xl:px-10` — items vertically centered (`items-center`), space-between.
+- Logo: left, `h-[124px] w-[124px] shrink-0` (`object-contain`), links to `/`.
+- Right cluster: `flex items-center gap-6 xl:gap-8`, containing:
+  - Nav links (`menu`, `locations`) — `link-underline` + `navItemClass`: `text-white text-[15px] font-normal capitalize tracking-[0.54px] [font-family:var(--font-koulen)]`, `transition-colors duration-200 hover:text-[#FF0931]`.
+  - Divider: `h-14 w-px shrink-0 bg-[#1D1D1D]` (note `#1D1D1D`, not a token — keep it literal).
+  - **Order In The App** button (primary): `btn-press px-7 py-3 rounded-[4px] bg-[#FF0931] text-white text-[15px] font-semibold capitalize tracking-[0.54px] [font-family:var(--font-inter)]`.
+  - **Delivery** button (outline): `btn-press px-7 py-3 rounded-[4px] border border-[#FF0931] text-[#FF0931] text-[15px] font-semibold capitalize tracking-[0.54px] [font-family:var(--font-inter)]`.
+
+**Mobile (`lg:hidden`):**
+- Top bar: `flex h-16 items-center justify-between px-5`.
+- Logo: `56×56`, links to `/`.
+- Right cluster: `flex items-center gap-2` — a compact Delivery button (`px-3 py-2 text-[12px]`, same outline recipe) and a text **Menu/Close** toggle (`px-3 py-2 text-[13px] font-semibold capitalize tracking-[0.54px] text-white`, Inter).
+- Menu open: `fixed inset-0 top-16 bg-black/60` backdrop (`backdrop-in`) + absolute dropdown `absolute inset-x-0 top-full border-b border-white/10 bg-black` (`menu-drop`).
+  - Inner list: `flex flex-col gap-1 px-5 py-6`. Links get an extra `rounded-md px-4 py-4 hover:bg-white/5` and staggered `animationDelay` via inline style (`0.05 + i*0.08`s). The two CTA buttons repeat the desktop recipe with `px-7 py-4`, also staggered.
+- Body scroll lock: when the menu is open, `document.body.style.overflow = "hidden"` is set (cleared on close / unmount).
+
+**Animations (defined in `globals.css`):** `.nav-enter` (desktop drop-in, 0.55s `cubic-bezier(0.16,1,0.3,1)`), `.menu-drop` (panel, 0.3s), `.menu-item` (link/button float-up, 0.45s), `.backdrop-in` (0.3s) — all disabled under `prefers-reduced-motion: reduce`.
 
 ### Admin
 - **Shell:** Sidebar (`w-64` expanded, `w-20` collapsed) + sticky topbar + main content area
@@ -238,7 +292,7 @@ Used on the homepage hero ("GOOD MOOD FOOD") and footer franchise CTA.
 - **Everything is clickable** — every interactive element must have `cursor-pointer`
 - **Every interaction has feedback** — hover, active, and focus states are mandatory
 - **No hardcoded colors outside the palette** — use brand tokens and opacity variants
-- **No blue, no green** — only black, white, and `#dc2626` (plus green for success toast icons only)
+- **No blue, no green** — only black (`#000000` / `#000000cc`), white (`#ffffff`), and `#ff0931` (plus green for success toast icons only)
 - **No CSS modules, no styled-components** — Tailwind only
 - **Uppercase for headings** — `font-display` or `font-teko`, never sentence case for headers
 - **GSAP for complex animations** — ScrollTrigger for reveals, timelines for sequenced entrances
