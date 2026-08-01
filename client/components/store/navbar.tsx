@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 const NAV_LINKS = [
@@ -23,6 +23,26 @@ const deliveryBtnClass =
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Measure the real header height and publish it as --navbar-h so the hero
+  // can size itself (hero height = 100dvh - navbar-h). ResizeObserver keeps
+  // it in sync if the header ever changes height — no duplicated magic
+  // numbers anywhere.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const sync = () => {
+      document.documentElement.style.setProperty(
+        "--navbar-h",
+        `${el.offsetHeight}px`
+      );
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -32,7 +52,7 @@ export default function Navbar() {
   }, [open]);
 
   return (
-    <header className="relative z-50 w-full bg-black">
+    <header ref={headerRef} className="relative z-50 w-full bg-black">
       {/* Desktop navbar */}
       <nav className="nav-enter mx-auto hidden py-5 w-full max-w-[1422px] items-center justify-between px-6 lg:flex xl:px-10">
         <Link
@@ -41,7 +61,7 @@ export default function Navbar() {
           aria-label="Crispies home"
         >
           <Image
-            src="/images/WhiteLogo.svg"
+            src="/images/cripieslogoblack.png"
             alt="Crispies"
             width={124}
             height={124}
@@ -74,7 +94,7 @@ export default function Navbar() {
       <nav className="flex h-16 items-center justify-between px-5 lg:hidden">
         <Link href="/" aria-label="Crispies home">
           <Image
-            src="/images/WhiteLogo.svg"
+            src="/images/cripieslogoblack.png"
             alt="Crispies"
             width={56}
             height={56}

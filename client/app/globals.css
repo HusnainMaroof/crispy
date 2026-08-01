@@ -9,6 +9,13 @@
   --font-teko: var(--font-teko-raw);
 }
 
+/* Fallback for first paint — Navbar.tsx overwrites --navbar-h at runtime
+   with the real measured header height (ResizeObserver), so the value here
+   is never a duplicated magic number that can go stale. */
+:root {
+  --navbar-h: 64px;
+}
+
 body {
   font-family: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
   margin: 0;

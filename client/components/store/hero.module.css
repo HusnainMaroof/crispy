@@ -22,10 +22,28 @@
 
 .ribbonText {
   font-size: var(--ribbon-font);
+  font-family: var(--font-koulen), Koulen, sans-serif;
 }
 
 .heroFrame {
-  height: calc(100vh - var(--navbar-h) - (var(--ribbon-h) / 2));
-  height: calc(100dvh - var(--navbar-h) - (var(--ribbon-h) / 2));
-  min-height: 420px;
+  /* Smaller hero: 50% of viewport on mobile so the ribbon + white About
+     section share the screen and About shows through the ribbon's middle. */
+  height: calc(96vh - var(--navbar-h));
+  height: calc(96dvh - var(--navbar-h));
+  /* Tall enough that the ribbon (--ribbon-h) plus breathing room always
+     fits, even on short screens. */
+  min-height: max(320px, calc(var(--ribbon-h) + 96px));
+}
+
+@media (min-width: 1024px) {
+.heroFrame {
+  /* Smaller hero: 65% of viewport instead of the full viewport, so the
+     ribbon + white About section share the screen and About shows through
+     the ribbon's middle. */
+  height: calc(90vh - var(--navbar-h));
+  height: calc(90dvh - var(--navbar-h));
+  /* Tall enough that the ribbon (--ribbon-h) plus breathing room always
+     fits, even on short screens. */
+  min-height: max(420px, calc(var(--ribbon-h) + 96px));
+}
 }
