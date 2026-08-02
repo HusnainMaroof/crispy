@@ -54,7 +54,7 @@ export default function Navbar() {
   return (
     <header ref={headerRef} className="relative z-50 w-full bg-black">
       {/* Desktop navbar */}
-      <nav className="nav-enter mx-auto hidden py-5 w-full max-w-[1422px] items-center justify-between px-6 lg:flex xl:px-10">
+      <nav className="nav-enter mx-auto hidden py-10 w-full max-w-[1422px] items-center justify-between px-6 lg:flex xl:px-10">
         <Link
           href="/"
           className="h-[124px] w-[124px] shrink-0"
