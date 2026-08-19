@@ -13,7 +13,7 @@ function ArrowIcon({ className = "" }: { className?: string }) {
     >
       <path
         d="M3.36031 33L0 29.6441L24.9869 4.64668H5.68668L5.72977 0H33V27.2777H28.3042L28.3473 8.00261L3.36031 33Z"
-        fill="#FF0000"
+        fill="#FF0931"
       />
     </svg>
   );
@@ -21,8 +21,8 @@ function ArrowIcon({ className = "" }: { className?: string }) {
 
 export default function Partner() {
   return (
-    <section className="relative w-full bg-[#FF0931]">
-      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 md:px-10 lg:px-14 xl:px-16 py-14 sm:py-16 md:py-20 lg:py-24">
+    <section className="relative w-full bg-[#FF0931] px-6 py-14 sm:px-10 sm:py-16 md:px-14 md:py-20 lg:px-20 lg:py-24">
+      <div className="mx-auto max-w-[1280px]">
         <div className="flex flex-col lg:flex-row items-center lg:items-center gap-10 sm:gap-12 lg:gap-14 xl:gap-20">
           {/* Left — copy + CTA */}
           <div className="flex-1 min-w-0 w-full text-left">

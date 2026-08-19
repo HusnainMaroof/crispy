@@ -61,43 +61,7 @@ export default function Order() {
               </div>
 
               {/* Card 2 — Order on the Website */}
-              <div className="bg-white rounded-2xl lg:rounded-b-[0px] lg:rounded-t-2xl relative p-6 sm:p-8 lg:p-10 pb-0 text-left overflow-visible flex flex-col w-full h-[380px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px] 2xl:w-[530px] 2xl:h-[530px]">
-                <div className="w-[56px] h-[56px] sm:w-[68px] sm:h-[68px] lg:w-[81px] lg:h-[81px] bg-[#FF0931] flex items-center justify-center absolute rounded-[12px] sm:rounded-[15px] top-6 right-6 sm:top-8 sm:right-8 lg:top-10 lg:right-10 z-[110]">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="28"
-                    height="28"
-                    className="sm:w-[34px] sm:h-[34px] lg:w-10 lg:h-10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M7 7h10v10" />
-                    <path d="M7 17 17 7" />
-                  </svg>
-                </div>
-                <div className="max-w-[210px] sm:max-w-[240px] lg:max-w-[268px]">
-                  <h3 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-[#FF0931] m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
-                    Order On
-                  </h3>
-                  <h3 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-nowrap text-black m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
-                    The Website
-                  </h3>
-                  <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-black m-0 mt-[clamp(8px,1.2vw,14px)] text-left capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)] text-nowrap">
-                    Takeaway Only Pick{" "} <br />
-                    <span className="text-nowrap">Up From 10+  <br />Locations</span>
-                  </p>
-                </div>
-                <img
-                  src="/images/orderOnimage.png"
-                  alt="Order on website"
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[190px] sm:h-[230px] md:h-[260px] lg:h-[300px] 2xl:h-[320px] w-auto object-contain object-bottom"
-                />
-              </div>
-
+           
               {/* Card 3 — Get It Delivered */}
               <div className="bg-white rounded-b-[50px] lg:rounded-br-[50px] lg:rounded-b-[0px] w-full sm:w-auto">
                 <div className="bg-[#FF0931]  rounded-b-2xl lg:rounded-b-[50px] pb-6  lg:p-10 lg:pt-0 pt-0 w-full h-[380px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px] 2xl:w-[530px] 2xl:h-[530px]">

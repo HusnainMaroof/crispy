@@ -3,35 +3,31 @@ import styles from "./hero.module.css";
 export default function Hero() {
   return (
     <section
-      className={`${styles.heroFrame} relative w-full px-6 xl:px-10`}
+      className={`${styles.heroFrame} relative w-full overflow-hidden px-2`}
     >
-      {/* Hero image — clipped here (not on the section) so the ribbon is
-          free to overhang the bottom edge and straddle the seam with the
-          white About section. */}
-      <div className="absolute inset-0 overflow-hidden rounded-t-[20px] w-[96%] mx-auto ">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "url('/images/heroimage.png') lightgray 50% / cover no-repeat",
-          }}
-        />
-      </div>
+      {/* Background image — inset-y-0 (not inset-0) so w-[95%]/mx-auto centering
+          actually takes effect; inset-0 was pinning left/right to 0 and silently
+          overriding both */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 right-0 z-0 mx-auto w-[95%] rounded-t-3xl bg-cover bg-center bg-no-repeat opacity-75 xl:rounded-t-[50px]"
+        style={{ backgroundImage: "url('/images/heroimage.png')" }}
+      />
 
-      {/* Ribbon — hangs 20px (bottom-5) above the hero's bottom edge and
-          straddles the seam with the white About section: its lower half
-          overlaps About (which is z-below it), so the white shows through
-          behind the ribbon's middle center. Ribbon is the top-most element. */}
-      <div className="absolute inset-x-0 bottom-5 z-[60] translate-y-1/2">
-        <div
-          className={`${styles.ribbon} mx-auto flex w-[95%] md:w-[90%] items-center justify-center`}
-        >
-          <p
-            className={`${styles.ribbonText} select-none whitespace-nowrap text-center capitalize text-white`}
-          >
-            Always Good Mood Food
-          </p>
-        </div>
+      {/* Bottom-left scrim — radial gradient anchored to the corner the
+          headline sits in, so legibility comes from targeted darkening,
+          not from further dimming the whole image */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 right-0 z-[5] mx-auto w-[95%] rounded-t-3xl bg-[radial-gradient(120%_120%_at_0%_100%,rgba(0,0,0,0.85)_0%,rgba(0,0,0,0.45)_35%,rgba(0,0,0,0)_70%)] xl:rounded-t-[50px]"
+      />
+
+      {/* Bottom-left headline */}
+      <div className="absolute bottom-0  z-10 p-6 sm:p-10 md:p-14 lg:p-16">
+        <h1 className="m-0 text-[clamp(48px,11vw,100px)] font-bold uppercase leading-[100%] tracking-[0.54px] text-white font-[family-name:var(--font-koulen),Koulen,sans-serif]">
+          <span className="block">Always Good</span>
+          <span className="block">Mood Food</span>
+        </h1>
       </div>
     </section>
   );

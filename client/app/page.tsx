@@ -1,28 +1,25 @@
 import Navbar from "@/components/store/navbar";
 import Hero from "@/components/store/hero";
-import React from "react";
-import { About } from "@/components/store/about";
-import Order from "@/components/store/order";
-import Menu from "@/components/store/menu";
-import Stats from "@/components/store/stats";
+import Welcome from "@/components/store/welcome";
+import Flavours from "@/components/store/flavours";
 import Locations from "@/components/store/locations";
+import Instagram from "@/components/store/instagram";
 import Partner from "@/components/store/partner";
 import Footer from "@/components/store/footer";
 
-const page = () => {
+const Page = () => {
   return (
-    <div className="">
+    <div>
       <Navbar />
       <Hero />
-      <About />
-      <Order/>
-      <Menu/>
-      <Stats />
+      <Welcome />
+      <Flavours />
       <Locations />
       <Partner />
+      <Instagram />
       <Footer />
     </div>
   );
 };
 
-export default page;
+export default Page;

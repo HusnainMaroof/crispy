@@ -77,7 +77,6 @@ export default function Footer() {
   return (
     <footer className="relative w-full bg-black">
       {/* Top red line */}
-      <div className="h-[3px] w-full bg-[#FF0931]" />
 
       <div className="mx-auto max-w-[1280px] px-5 sm:px-6 xl:px-10 pt-12 sm:pt-14 md:pt-16 pb-0">
         {/* Main grid */}

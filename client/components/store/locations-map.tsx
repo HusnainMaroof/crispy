@@ -4,7 +4,7 @@
 // server-rendered.
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import L from "leaflet";
 import {
   MapContainer,
@@ -143,52 +143,67 @@ export default function LocationsMap({
   const selected =
     locations.find((l) => l.id === selectedId) ?? locations[0] ?? null;
 
+  const mapKey = useId();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          setReady(true);
+          obs.disconnect();
+          break;
+        }
+      }
+    });
+    obs.observe(wrapperRef.current);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <div className="absolute inset-0 z-0">
-      <MapContainer
-        center={initialCenter}
-        zoom={13}
-        scrollWheelZoom={false}
-        attributionControl={false}
-        className="crispy-map h-full w-full"
-      >
-        <TileLayer
-          url={DARK_TILE_URL}
-          subdomains="abcd"
-          maxZoom={20}
-          eventHandlers={{
-            tileerror: (e) => {
-              console.error("Map tile failed to load:", e);
-            },
-          }}
-        />
+    <div ref={wrapperRef} className="absolute inset-0 z-0">
+      {ready && (
+        <MapContainer
+          key={mapKey}
+          center={initialCenter}
+          zoom={13}
+          scrollWheelZoom={false}
+          attributionControl={false}
+          className="crispy-map h-full w-full"
+        >
+          <TileLayer
+            url={DARK_TILE_URL}
+            subdomains="abcd"
+            maxZoom={20}
+          />
 
-        {locations.map((loc, i) => {
-          const isSelected = loc.id === selectedId;
-          return (
-            <Marker
-              key={loc.id}
-              position={[loc.lat, loc.lng]}
-              icon={markerIcon(i + 1, isSelected)}
-              zIndexOffset={isSelected ? 1000 : 0}
-            >
-              <Tooltip
-                direction="top"
-                offset={[0, -14]}
-                className="crispy-tooltip"
+          {locations.map((loc, i) => {
+            const isSelected = loc.id === selectedId;
+            return (
+              <Marker
+                key={loc.id}
+                position={[loc.lat, loc.lng]}
+                icon={markerIcon(i + 1, isSelected)}
+                zIndexOffset={isSelected ? 1000 : 0}
               >
-                {loc.name}
-              </Tooltip>
-            </Marker>
-          );
-        })}
+                <Tooltip
+                  direction="top"
+                  offset={[0, -14]}
+                  className="crispy-tooltip"
+                >
+                  {loc.name}
+                </Tooltip>
+              </Marker>
+            );
+          })}
 
-        {selected && <FlyTo lat={selected.lat} lng={selected.lng} />}
-        <InvalidateSizeOnMount />
-      </MapContainer>
+          {selected && <FlyTo lat={selected.lat} lng={selected.lng} />}
+          <InvalidateSizeOnMount />
+        </MapContainer>
+      )}
 
-      {/* Outside MapContainer — Leaflet owns that DOM tree; raw React
-          children inside it can fight pane creation (appendChild crashes). */}
       <div className="pointer-events-none absolute top-2 right-2 z-[1000] text-[9px] leading-none text-white/45">
         <a
           href="https://www.openstreetmap.org/copyright"
