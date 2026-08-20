@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import PageHeader from "@/components/admin/ui/page-header";
-import Dropdown from "@/components/admin/ui/dropdown";
+import PageHeader from "@/app/components/admin/ui/page-header";
+import Dropdown from "@/app/components/admin/ui/dropdown";
 import { useJobPosts } from "@/lib/admin/use-job-posts";
 import { getLocationOptions } from "@/lib/admin/location-options";
 

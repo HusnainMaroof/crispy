@@ -138,8 +138,18 @@ function ArrowIcon({ className = "" }: { className?: string }) {
       className={className}
       aria-hidden="true"
     >
-      <rect x="0.5" y="0.5" width="36.8693" height="36.8693" rx="14.5" stroke="#FF0931" />
-      <path d="M13.4312 26.4355L11.959 24.9633L22.906 13.9974H14.4504L14.4693 11.959H26.4167V23.9253H24.3594L24.3782 15.4696L13.4312 26.4355Z" fill="#FF0931" />
+      <rect
+        x="0.5"
+        y="0.5"
+        width="36.8693"
+        height="36.8693"
+        rx="14.5"
+        stroke="#FF0931"
+      />
+      <path
+        d="M13.4312 26.4355L11.959 24.9633L22.906 13.9974H14.4504L14.4693 11.959H26.4167V23.9253H24.3594L24.3782 15.4696L13.4312 26.4355Z"
+        fill="#FF0931"
+      />
     </svg>
   );
 }
@@ -169,17 +179,16 @@ export default function Locations() {
   const [selectedId, setSelectedId] = useState<string>(locations[0].id);
 
   return (
-    <section className="relative w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 lg:px-20 lg:py-28">
-
+    <section className="relative w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 2xl:px-40 lg:py-28">
       <div className="absolute translate-x-[-50%] left-[50%] translate-y-[-50%] top-0 ">
-        <LocationPinIcon/>
+        <LocationPinIcon />
       </div>
-      <div className="mx-auto max-w-[1280px]">
+      <div className="mx-auto ">
         {/* Headline */}
         <h2
-          className="m-0 text-center uppercase font-normal leading-[100%] tracking-[0.54px]"
+          className="m-0 text-center uppercase font-semibold leading-[100%] tracking-[0.54px]"
           style={{
-            fontFamily: "var(--font-koulen), Koulen, sans-serif",
+            fontFamily: "var(--font-korolev), Korolev, sans-serif",
             fontSize: "clamp(36px, 7vw, 80px)",
           }}
         >
@@ -196,8 +205,12 @@ export default function Locations() {
                 const isActive = loc.id === selectedId;
                 const numColor = isActive ? "text-[#BDBDBD]" : "text-[#D0D0D0]";
                 const nameColor = isActive ? "text-black" : "text-[#B0B0B0]";
-                const addrColor = isActive ? "text-[#9A9A9A]" : "text-[#C4C4C4]";
-                const hoursColor = isActive ? "text-[#6B6B6B]" : "text-[#B0B0B0]";
+                const addrColor = isActive
+                  ? "text-[#9A9A9A]"
+                  : "text-[#C4C4C4]";
+                const hoursColor = isActive
+                  ? "text-[#6B6B6B]"
+                  : "text-[#B0B0B0]";
                 const statusBg =
                   loc.status === "closed"
                     ? "bg-[#8B6F5E]"
@@ -227,12 +240,18 @@ export default function Locations() {
                     }}
                     className="loc-row cursor-pointer border-b border-[#EAEAEA] py-4 sm:py-5 md:py-[22px] hover:bg-gray-50 transition-colors duration-200"
                   >
-                    <div className="loc-slide flex flex-wrap lg:flex-nowrap items-center gap-x-3 sm:gap-x-4 md:gap-x-5 gap-y-2.5">
+                    <div
+                      className="loc-slide grid items-center gap-x-2 sm:gap-x-3 md:gap-x-5"
+                      style={{
+                        gridTemplateColumns:
+                          "clamp(28px,3vw,40px) clamp(140px,16vw,220px) 1fr clamp(100px,11vw,140px) clamp(70px,8vw,90px) auto",
+                      }}
+                    >
                       {/* 01 */}
                       <span
-                        className={`loc-hover-red ${numColor} font-normal leading-none shrink-0 w-6 sm:w-7`}
+                        className={`loc-hover-red ${numColor} font-normal leading-none`}
                         style={{
-                          fontFamily: "var(--font-koulen), Koulen, sans-serif",
+                          fontFamily: "var(--font-korolev), Korolev, sans-serif",
                           fontSize: "clamp(16px, 1.8vw, 20px)",
                         }}
                       >
@@ -241,9 +260,9 @@ export default function Locations() {
 
                       {/* NAME */}
                       <span
-                        className={`loc-hover-red ${nameColor} uppercase font-normal leading-none shrink-0 whitespace-nowrap`}
+                        className={`loc-hover-red ${nameColor} uppercase font-normal leading-none whitespace-nowrap truncate`}
                         style={{
-                          fontFamily: "var(--font-koulen), Koulen, sans-serif",
+                          fontFamily: "var(--font-korolev), Korolev, sans-serif",
                           fontSize: "clamp(20px, 2.4vw, 28px)",
                           letterSpacing: "0.54px",
                         }}
@@ -251,18 +270,17 @@ export default function Locations() {
                         {loc.name}
                       </span>
 
-                      {/* Address */}
-                      <div className="flex items-start gap-1.5 min-w-0 flex-1 basis-[calc(100%-4rem)] sm:basis-auto order-3 lg:order-none w-full lg:w-auto">
+                      {/* Address — stays 2-line clamp */}
+                      <div className="flex items-start gap-1.5 min-w-0">
                         <PinIcon
                           className={`w-3.5 h-3.5 shrink-0 mt-[2px] ${
                             isActive ? "text-[#B0B0B0]" : "text-[#D0D0D0]"
                           }`}
                         />
                         <span
-                          className={`loc-hover-red ${addrColor} font-normal leading-[140%] whitespace-pre-line`}
+                          className={`loc-hover-red ${addrColor} font-normal leading-[140%] whitespace-pre-line line-clamp-2`}
                           style={{
-                            fontFamily:
-                              "var(--font-inter), Inter, sans-serif",
+                            fontFamily: "var(--font-inter), Inter, sans-serif",
                             fontSize: "clamp(11px, 1.15vw, 13px)",
                           }}
                         >
@@ -272,10 +290,9 @@ export default function Locations() {
 
                       {/* Status */}
                       <span
-                        className={`${statusBg} inline-flex items-center gap-1.5 shrink-0 rounded-full px-3 py-[5px] text-white font-medium leading-none whitespace-nowrap order-4 lg:order-none transition-transform duration-200 hover:scale-105`}
+                        className={`${statusBg} inline-flex items-center justify-center gap-1.5 w-fit rounded-full px-3 py-[5px] text-white font-medium leading-none whitespace-nowrap transition-transform duration-200 hover:scale-105`}
                         style={{
-                          fontFamily:
-                            "var(--font-inter), Inter, sans-serif",
+                          fontFamily: "var(--font-inter), Inter, sans-serif",
                           fontSize: "clamp(11px, 1.15vw, 13px)",
                         }}
                       >
@@ -287,10 +304,9 @@ export default function Locations() {
 
                       {/* Hours */}
                       <span
-                        className={`loc-hover-red ${hoursColor} font-normal leading-none shrink-0 whitespace-nowrap order-5 lg:order-none ml-auto lg:ml-0`}
+                        className={`loc-hover-red ${hoursColor} font-normal leading-none whitespace-nowrap`}
                         style={{
-                          fontFamily:
-                            "var(--font-inter), Inter, sans-serif",
+                          fontFamily: "var(--font-inter), Inter, sans-serif",
                           fontSize: "clamp(12px, 1.2vw, 14px)",
                         }}
                       >
@@ -305,9 +321,28 @@ export default function Locations() {
                           e.stopPropagation();
                           setSelectedId(loc.id);
                         }}
-                        className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-[#FF0931] flex items-center justify-center text-[#FF0931] hover:bg-[#FF0931] hover:text-white transition-all duration-200 ml-auto lg:ml-0 order-2 lg:order-none hover:scale-110"
+                        className="shrink-0 flex items-center justify-center text-[#FF0931]  hover:text-white transition-all duration-200 hover:scale-110"
                       >
-                        <ArrowIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="38"
+                          height="38"
+                          viewBox="0 0 38 38"
+                          fill="none"
+                        >
+                          <rect
+                            x="0.5"
+                            y="0.5"
+                            width="36.8693"
+                            height="36.8693"
+                            rx="14.5"
+                            stroke="#FF0931"
+                          />
+                          <path
+                            d="M13.4312 26.4355L11.959 24.9633L22.906 13.9974H14.4504L14.4693 11.959H26.4167V23.9253H24.3594L24.3782 15.4696L13.4312 26.4355Z"
+                            fill="#FF0931"
+                          />
+                        </svg>
                       </button>
                     </div>
                   </li>
@@ -318,12 +353,12 @@ export default function Locations() {
             {/* View all CTA */}
             <button
               type="button"
-              className="mt-6 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-[#FF0931] hover:bg-[#E0082C] transition-colors duration-200 pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-3.5 text-white"
+              className="mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] transition-colors duration-200 pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
             >
               <span
                 className="uppercase font-normal leading-none tracking-[0.54px]"
                 style={{
-                  fontFamily: "var(--font-koulen), Koulen, sans-serif",
+                  fontFamily: "var(--font-korolev), Korolev, sans-serif",
                   fontSize: "clamp(22px, 2.8vw, 32px)",
                 }}
               >
@@ -332,31 +367,46 @@ export default function Locations() {
               <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 38 38"
+                  width="84"
+                  height="84"
+                  viewBox="0 0 84 84"
                   fill="none"
                 >
-                  <path d="M13.4312 26.4355L11.959 24.9633L22.906 13.9974H14.4504L14.4693 11.959H26.4167V23.9253H24.3594L24.3782 15.4696L13.4312 26.4355Z" fill="#FF0931" />
+                  <rect width="84" height="84" rx="15" fill="white" />
+                  <path
+                    d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z"
+                    fill="#FF0000"
+                  />
                 </svg>
               </span>
             </button>
           </div>
 
           {/* Right — real map card */}
-          <div className="w-full lg:w-[340px] xl:w-[380px] shrink-0">
-            <div className="relative min-h-[420px] sm:min-h-[480px] lg:min-h-[500px] rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
+          <div className="w-full lg:w-[420px] xl:w-[40%] shrink-0">
+            <div className="relative h-full w-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
               <LocationsMap locations={mapLocations} selectedId={selectedId} />
 
               {/* Bottom banner — sits above the map tiles */}
-              <div className="absolute bottom-0 left-0 right-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3 pointer-events-none">
+              <div className="absolute mx-5 bottom-5 rounded-xl  left-0 right-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3 pointer-events-none">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <PinIcon className="w-5 h-5 text-white shrink-0" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="39"
+                    height="51"
+                    viewBox="0 0 39 51"
+                    fill="none"
+                  >
+                    <path
+                      d="M36.5863 9.87566C34.5382 6.04706 31.2137 3.12535 27.1605 1.40038C23.0168 -0.357317 18.4206 -0.432113 14.1292 1.01705C10.6618 2.19041 7.52781 4.15379 5.05586 6.80904C2.12668 9.95513 0.507295 13.9053 0.107212 18.1266C-0.645326 26.1344 2.64107 33.9318 7.53733 40.2474C10.7856 44.4359 14.7769 47.9046 19.2636 50.7515C19.8828 51.1442 20.4353 51.0366 21.0068 50.672C22.6214 49.6295 24.136 48.6105 25.6125 47.3483C30.866 42.8465 34.8764 37.148 37.153 30.6501C39.4726 24.0167 39.9489 16.1585 36.5815 9.87566H36.5863ZM21.3116 34.2123C12.9861 35.1987 5.40355 29.3365 4.40335 21.1605C3.41266 13.0685 9.2996 5.54219 17.7299 4.57452C26.1888 3.60218 33.6999 9.61388 34.6144 17.7526C35.5289 25.8866 29.5896 33.2306 21.3069 34.2123H21.3116Z"
+                      fill="white"
+                    />
+                  </svg>
                   <span
                     className="text-white uppercase font-normal leading-[110%] tracking-[0.04em]"
                     style={{
-                      fontFamily: "var(--font-bebas), 'Bebas Neue', sans-serif",
-                      fontSize: "clamp(14px, 1.6vw, 18px)",
+                      fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
+                      fontSize: "clamp(14px, 1.6vw, 25px)",
                     }}
                   >
                     More Location
@@ -364,7 +414,7 @@ export default function Locations() {
                     Coming Soon
                   </span>
                 </div>
-                <BuildingIcon className="w-8 h-8 sm:w-9 sm:h-9 text-white shrink-0 opacity-90" />
+                <img src="/images/frienchies.png" alt="" className="w-20" />
               </div>
             </div>
           </div>

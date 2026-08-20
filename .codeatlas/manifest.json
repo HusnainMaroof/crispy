@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "name": "crispy",
+  "languages": [
+    "typescript",
+    "sql",
+    "markdown",
+    "json",
+    "yaml",
+    "css",
+    "javascript"
+  ],
+  "framework": null,
+  "packageManager": null,
+  "git": {
+    "isRepository": true,
+    "branch": "main",
+    "commit": "43debbce00b786ad3e5872678dd979523ace577a",
+    "remoteUrl": "https://github.com/HusnainMaroof/crispy.git"
+  },
+  "createdAt": "2026-08-20T13:23:44.184Z",
+  "updatedAt": "2026-08-20T13:29:09.157Z",
+  "scannerVersion": "0.0.0",
+  "totalFiles": 188,
+  "totalFolders": 48
+}

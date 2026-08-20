@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Toaster } from "react-hot-toast";
-import AdminShell from "@/components/admin/layout/admin-shell";
+import AdminShell from "@/app/components/admin/layout/admin-shell";
 import { getAuthToken } from "@/lib/api";
 
 function useAuthGate() {

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import PageHeader from "@/components/admin/ui/page-header";
-import Modal from "@/components/admin/ui/modal";
+import PageHeader from "@/app/components/admin/ui/page-header";
+import Modal from "@/app/components/admin/ui/modal";
 import { useLocations } from "@/lib/admin/use-locations";
 
 export default function LocationsPage() {

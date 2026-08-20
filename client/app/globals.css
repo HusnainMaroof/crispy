@@ -4,9 +4,8 @@
   --color-brand-black: #000000cc;
   --color-brand-white: #ffffff;
   --color-brand-red: #ff0931;
-  --font-display: var(--font-bebas);
+  --font-display: var(--font-korolev);
   --font-sans: var(--font-jakarta);
-  --font-teko: var(--font-teko-raw);
 }
 
 /* Fallback for first paint — Navbar.tsx overwrites --navbar-h at runtime
@@ -509,7 +508,7 @@ html::-webkit-scrollbar {
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-family: var(--font-bebas), "Bebas Neue", sans-serif;
+  font-family: var(--font-korolev), "Korolev", sans-serif;
   font-size: 16px;
   line-height: 1;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),

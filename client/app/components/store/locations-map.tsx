@@ -1,22 +1,16 @@
 // locations-map.tsx
 // Client-only — imported via next/dynamic({ ssr: false }) from locations.tsx.
-// Leaflet touches `window` at import time, so this file must never be
-// server-rendered.
 "use client";
 
-import { useEffect, useRef, useState, useId } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import {
   MapContainer,
   Marker,
   TileLayer,
-  Tooltip,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-// Must load AFTER leaflet.css so these overrides win against both it and
-// Tailwind Preflight's `img { max-width: 100%; height: auto }` reset,
-// which otherwise breaks tile rendering (squashed/blank tiles, no roads).
 import "./leaflet-overrides.css";
 
 export type MapLocation = {
@@ -31,25 +25,39 @@ const DARK_TILE_URL =
 
 const LONDON_CENTER: [number, number] = [51.5074, -0.1278];
 
-function markerIcon(number: number, selected: boolean): L.DivIcon {
+const PIN_SVG = (num: number) => `
+<svg xmlns="http://www.w3.org/2000/svg" width="52" height="69" viewBox="0 0 52 69" fill="none">
+  <path
+    d="M48.7817 13.1748C46.0509 8.06718 41.6183 4.16943 36.214 1.8682C30.689 -0.476685 24.5607 -0.576467 18.8389 1.35682C14.2157 2.92215 10.0371 5.54144 6.74115 9.08371C2.83557 13.2808 0.676393 18.5506 0.142949 24.182C-0.860435 34.865 3.52143 45.2673 10.0498 53.6926C14.3808 59.2805 19.7026 63.9079 25.6848 67.7058C26.5104 68.2297 27.247 68.0863 28.0091 67.5998C30.1619 66.2091 32.1814 64.8496 34.15 63.1657C41.1547 57.1601 46.5018 49.5579 49.5374 40.8893C52.6301 32.0399 53.2651 21.5565 48.7753 13.1748H48.7817Z"
+    fill="#E21E2F"
+  />
+  <circle cx="26" cy="27.19" r="19.6822" fill="white" />
+  <text
+    x="26"
+    y="27.19"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="Poppins, sans-serif"
+    font-size="23"
+    font-weight="700"
+    letter-spacing="0.54px"
+    fill="#1E1E1E"
+  >${num}</text>
+</svg>`;
+
+function pinIcon(num: number): L.DivIcon {
   return L.divIcon({
-    className: "crispy-marker-wrap",
-    html: `
-      <div class="crispy-marker">
-        <span class="crispy-marker-dot${selected ? " is-selected" : ""}">${number}</span>
-        <span class="crispy-marker-tail"></span>
-      </div>`,
-    iconSize: [34, 42],
-    iconAnchor: [17, 42],
+    className: "crispy-pin-wrap",
+    html: PIN_SVG(num),
+    iconSize: [52, 69],
+    iconAnchor: [26, 69],
+    popupAnchor: [0, -69],
   });
 }
 
-/** True only while the Leaflet map instance still owns a live DOM pane. */
 function isMapAlive(map: L.Map): boolean {
   try {
     const el = map.getContainer();
-    // _mapPane is created in Map._initPanes; missing ⇒ mid-teardown (Strict Mode)
-    // or not finished init yet — flyTo would throw appendChild on undefined.
     const panes = (map as unknown as { _panes?: { mapPane?: HTMLElement } })
       ._panes;
     return Boolean(el?.isConnected && panes?.mapPane);
@@ -58,9 +66,6 @@ function isMapAlive(map: L.Map): boolean {
   }
 }
 
-// Leaflet measures its container once on mount. With dynamic ssr:false +
-// absolute/flex layout, that size can be wrong until a resize. Recheck after
-// the map reports ready so tiles paint at the real dimensions.
 function InvalidateSizeOnMount() {
   const map = useMap();
   useEffect(() => {
@@ -83,8 +88,6 @@ function InvalidateSizeOnMount() {
 
 function FlyTo({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
-  // MapContainer already opens on the first location — skip the initial
-  // flyTo (it races pane creation and is what throws appendChild).
   const skipFirst = useRef(true);
 
   useEffect(() => {
@@ -143,30 +146,15 @@ export default function LocationsMap({
   const selected =
     locations.find((l) => l.id === selectedId) ?? locations[0] ?? null;
 
-  const mapKey = useId();
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
-
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    if (!wrapperRef.current) return;
-    const obs = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-          setReady(true);
-          obs.disconnect();
-          break;
-        }
-      }
-    });
-    obs.observe(wrapperRef.current);
-    return () => obs.disconnect();
+    setMounted(true);
   }, []);
 
   return (
-    <div ref={wrapperRef} className="absolute inset-0 z-0">
-      {ready && (
+    <div className="absolute inset-0 z-0">
+      {mounted && (
         <MapContainer
-          key={mapKey}
           center={initialCenter}
           zoom={13}
           scrollWheelZoom={false}
@@ -179,27 +167,16 @@ export default function LocationsMap({
             maxZoom={20}
           />
 
-          {locations.map((loc, i) => {
-            const isSelected = loc.id === selectedId;
-            return (
-              <Marker
-                key={loc.id}
-                position={[loc.lat, loc.lng]}
-                icon={markerIcon(i + 1, isSelected)}
-                zIndexOffset={isSelected ? 1000 : 0}
-              >
-                <Tooltip
-                  direction="top"
-                  offset={[0, -14]}
-                  className="crispy-tooltip"
-                >
-                  {loc.name}
-                </Tooltip>
-              </Marker>
-            );
-          })}
+          {selected && (
+            <Marker
+              key={selected.id}
+              position={[selected.lat, selected.lng]}
+              icon={pinIcon(locations.findIndex((l) => l.id === selected.id) + 1)}
+              zIndexOffset={1000}
+            />
+          )}
 
-          {selected && <FlyTo lat={selected.lat} lng={selected.lng} />}
+          <FlyTo lat={selected.lat} lng={selected.lng} />
           <InvalidateSizeOnMount />
         </MapContainer>
       )}

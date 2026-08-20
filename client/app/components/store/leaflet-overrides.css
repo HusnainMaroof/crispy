@@ -16,3 +16,9 @@
   max-width: none !important;
   max-height: none !important;
 }
+
+.crispy-pin-wrap {
+  background: none !important;
+  border: none !important;
+}
+

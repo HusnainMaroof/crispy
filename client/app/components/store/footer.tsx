@@ -78,14 +78,14 @@ export default function Footer() {
     <footer className="relative w-full bg-black">
       {/* Top red line */}
 
-      <div className="mx-auto max-w-[1280px] px-5 sm:px-6 xl:px-10 pt-12 sm:pt-14 md:pt-16 pb-0">
+      <div className="mx-auto  px-5 sm:px-6 xl:px-10 pt-12 sm:pt-14 md:pt-16 pb-0">
         {/* Main grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-8 lg:gap-0">
           {/* Logo */}
           <div className="flex items-start justify-center sm:justify-start lg:justify-center lg:border-r lg:border-white/10 lg:pr-8">
             <a
               href="/"
-              className="block w-[120px] h-[120px] sm:w-[130px] sm:h-[130px] md:w-[140px] md:h-[140px] rounded-[4px] overflow-hidden transition-transform duration-300 hover:scale-[1.04] will-change-transform"
+              className="block w-[120px] h-[120px] sm:w-[130px] sm:h-[130px] md:w-[140px] md:h-[140px]  overflow-hidden transition-transform duration-300 hover:scale-[1.04] will-change-transform"
               aria-label="Crispies home"
             >
               <img
@@ -102,7 +102,7 @@ export default function Footer() {
             <h3
               className="m-0 text-[#FF0931] uppercase font-normal leading-[100%] tracking-[0.04em]"
               style={{
-                fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                 fontSize: "clamp(18px, 2vw, 22px)",
               }}
             >
@@ -115,7 +115,7 @@ export default function Footer() {
                     href={link.href}
                     className="inline-block text-white/80 font-normal leading-none transition-all duration-300 hover:text-white hover:translate-x-1"
                     style={{
-                      fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                      fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                       fontSize: "clamp(14px, 1.4vw, 16px)",
                     }}
                   >
@@ -131,7 +131,7 @@ export default function Footer() {
             <h3
               className="m-0 text-[#FF0931] uppercase font-normal leading-[100%] tracking-[0.04em]"
               style={{
-                fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                 fontSize: "clamp(18px, 2vw, 22px)",
               }}
             >
@@ -143,7 +143,7 @@ export default function Footer() {
                   href="tel:02012345678"
                   className="inline-block text-white/80 font-normal leading-none transition-colors duration-300 hover:text-white"
                   style={{
-                    fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                    fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                     fontSize: "clamp(14px, 1.4vw, 16px)",
                   }}
                 >
@@ -155,7 +155,7 @@ export default function Footer() {
                   href="mailto:Info@Crispiesuk.Co.Uk"
                   className="inline-block text-white/80 font-normal leading-[140%] transition-colors duration-300 hover:text-white break-all"
                   style={{
-                    fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                    fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                     fontSize: "clamp(14px, 1.4vw, 16px)",
                   }}
                 >
@@ -170,7 +170,7 @@ export default function Footer() {
             <h3
               className="m-0 text-[#FF0931] uppercase font-normal leading-[110%] tracking-[0.04em]"
               style={{
-                fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                 fontSize: "clamp(18px, 2vw, 22px)",
               }}
             >
@@ -201,7 +201,7 @@ export default function Footer() {
               rel="noopener noreferrer"
               className="inline-block mt-3.5 text-white/80 font-normal leading-none transition-colors duration-300 hover:text-[#FF0931]"
               style={{
-                fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+                fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                 fontSize: "clamp(13px, 1.3vw, 15px)",
               }}
             >
@@ -215,7 +215,7 @@ export default function Footer() {
           <p
             className="m-0 text-white/50 font-normal leading-none"
             style={{
-              fontFamily: "var(--font-koulen), 'Koulen', sans-serif",
+              fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
               fontSize: "clamp(12px, 1.2vw, 14px)",
             }}
           >

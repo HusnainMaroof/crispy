@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
     <div ref={containerRef} className="flex min-h-screen items-center justify-center bg-black px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="login-title font-[family-name:var(--font-bebas)] text-4xl uppercase text-white">
+          <h1 className="login-title font-[family-name:var(--font-korolev)] text-4xl uppercase text-white">
             Crispies Admin
           </h1>
           <p className="login-subtitle mt-2 text-sm text-white/50">Sign in to manage your restaurant.</p>

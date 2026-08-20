@@ -8,12 +8,12 @@ export const About = () => {
     <div className="relative w-full overflow-hidden rounded-t-3xl bg-white py-6 -mt-5 xl:rounded-t-[50px] xl:py-10">
       <div className="flex flex-col items-center pt-10 text-center md:pt-20">
         <div className="overflow-hidden md:pt-10">
-          <h2 className="m-0 font-[family-name:var(--font-koulen),Koulen,sans-serif] text-[clamp(48px,10vw,150px)] font-normal capitalize leading-[100%] tracking-[0.54px] text-black">
+          <h2 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(48px,10vw,150px)] font-normal capitalize leading-[100%] tracking-[0.54px] text-black">
             Welcome To
             <span className="text-[#FF0931]"> Crispies</span>
           </h2>
         </div>
-        <p className="m-0 mt-4 max-w-[1306px] font-[family-name:var(--font-koulen),Koulen,sans-serif] text-center text-[clamp(24px,4vw,60px)] font-normal capitalize leading-[100%] tracking-[0.54px] text-black">
+        <p className="m-0 mt-4 max-w-[1306px] font-[family-name:var(--font-korolev),Korolev,sans-serif] text-center text-[clamp(24px,4vw,60px)] font-normal capitalize leading-[100%] tracking-[0.54px] text-black">
           Crispies was founded with a mission to serve the best burgers and
           chicken around. Our aim has always been to serve fresh, handmade food,
           bursting with flavours from around the globe.

@@ -235,7 +235,7 @@ export default function Menu() {
     "cursor-pointer select-none leading-[110%] capitalize will-change-[filter,opacity,color,transform]";
 
   const itemStyle = {
-    fontFamily: "var(--font-bebas), 'Bebas Neue', sans-serif",
+    fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
     fontSize: "clamp(22px, 6vw, 140px)",
     color: "#000000",
   };

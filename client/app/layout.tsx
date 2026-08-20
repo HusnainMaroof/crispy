@@ -1,39 +1,24 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Oswald, Plus_Jakarta_Sans, Teko, Koulen, Inter, Poppins } from "next/font/google";
-import { Providers } from "@/components/providers";
+import localFont from "next/font/local";
+import { Plus_Jakarta_Sans, Inter, Poppins } from "next/font/google";
+import { Providers } from "@/app/components/providers";
 import "./globals.css";
 
-const bebas = Bebas_Neue({
-  weight: "400",
-  variable: "--font-bebas",
+const korolev = localFont({
+  src: [
+    { path: "../public/fonts/Korolev Thin Compressed.otf", weight: "100" },
+    { path: "../public/fonts/Korolev Light Compressed.otf", weight: "300" },
+    { path: "../public/fonts/Korolev Medium Compressed.otf", weight: "500" },
+    { path: "../public/fonts/Korolev Bold Compressed.otf", weight: "700" },
+    { path: "../public/fonts/Korolev Heavy Compressed.otf", weight: "900" },
+  ],
+  variable: "--font-korolev",
   display: "swap",
-  subsets: ["latin"],
-});
-
-const oswald = Oswald({
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-oswald",
-  display: "swap",
-  subsets: ["latin"],
 });
 
 const jakarta = Plus_Jakarta_Sans({
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-jakarta",
-  display: "swap",
-  subsets: ["latin"],
-});
-
-const teko = Teko({
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-teko-raw",
-  display: "swap",
-  subsets: ["latin"],
-});
-
-const koulen = Koulen({
-  weight: "400",
-  variable: "--font-koulen",
   display: "swap",
   subsets: ["latin"],
 });
@@ -46,7 +31,7 @@ const inter = Inter({
 });
 
 const poppins = Poppins({
-  weight: "400",
+  weight: ["400", "700"],
   variable: "--font-poppins",
   display: "swap",
   subsets: ["latin"],
@@ -111,7 +96,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${bebas.variable} ${oswald.variable} ${jakarta.variable} ${teko.variable} ${koulen.variable} ${inter.variable} ${poppins.variable}`}>
+    <html lang="en" className={`${korolev.variable} ${jakarta.variable} ${inter.variable} ${poppins.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import StatCard from "@/components/admin/ui/stat-card";
-import PageHeader from "@/components/admin/ui/page-header";
+import StatCard from "@/app/components/admin/ui/stat-card";
+import PageHeader from "@/app/components/admin/ui/page-header";
 import { useOrders } from "@/lib/admin/use-orders";
 import { useMenu } from "@/lib/admin/use-menu";
 import { api } from "@/lib/api";

@@ -1,8 +1,8 @@
 "use client";
 
 import { Toaster } from "react-hot-toast";
-import SmoothScroll from "@/components/providers/smooth-scroll";
-import Navbar from "@/components/store/navbar";
+import SmoothScroll from "@/app/components/providers/smooth-scroll";
+import Navbar from "@/app/components/store/navbar";
 
 export default function StoreLayout({
   children,

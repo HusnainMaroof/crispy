@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/api";
-import PageHeader from "@/components/admin/ui/page-header";
-import Modal from "@/components/admin/ui/modal";
-import { TableSkeleton } from "@/components/admin/ui/skeleton";
+import PageHeader from "@/app/components/admin/ui/page-header";
+import Modal from "@/app/components/admin/ui/modal";
+import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useDeals } from "@/lib/admin/use-deals";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import OptimizedImage from "@/components/ui/optimized-image";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import OptimizedImage from "@/app/components/ui/optimized-image";
 
 export default function DealsPage() {
   const { deals, loading, fetchDeals, addDeal, updateDeal, deleteDeal, toggleDealActive } = useDeals();

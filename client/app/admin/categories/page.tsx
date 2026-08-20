@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/api";
-import PageHeader from "@/components/admin/ui/page-header";
-import Modal from "@/components/admin/ui/modal";
-import { CardGridSkeleton } from "@/components/admin/ui/skeleton";
+import PageHeader from "@/app/components/admin/ui/page-header";
+import Modal from "@/app/components/admin/ui/modal";
+import { CardGridSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useCategories } from "@/lib/admin/use-categories";
 
 export default function CategoriesPage() {

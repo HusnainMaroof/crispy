@@ -1,11 +1,12 @@
-import Navbar from "@/components/store/navbar";
-import Hero from "@/components/store/hero";
-import Welcome from "@/components/store/welcome";
-import Flavours from "@/components/store/flavours";
-import Locations from "@/components/store/locations";
-import Instagram from "@/components/store/instagram";
-import Partner from "@/components/store/partner";
-import Footer from "@/components/store/footer";
+import Navbar from "@/app/components/store/navbar";
+import Hero from "@/app/components/store/hero";
+import Welcome from "@/app/components/store/welcome";
+import Flavours from "@/app/components/store/flavours";
+import Locations from "@/app/components/store/locations";
+import Instagram from "@/app/components/store/instagram";
+import Partner from "@/app/components/store/partner";
+import DownloadApp from "@/app/components/store/download-app";
+import Footer from "@/app/components/store/footer";
 
 const Page = () => {
   return (
@@ -16,6 +17,7 @@ const Page = () => {
       <Flavours />
       <Locations />
       <Partner />
+      <DownloadApp />
       <Instagram />
       <Footer />
     </div>

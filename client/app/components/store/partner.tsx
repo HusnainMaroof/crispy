@@ -22,17 +22,17 @@ function ArrowIcon({ className = "" }: { className?: string }) {
 export default function Partner() {
   return (
     <section className="relative w-full bg-[#FF0931] px-6 py-14 sm:px-10 sm:py-16 md:px-14 md:py-20 lg:px-20 lg:py-24">
-      <div className="mx-auto max-w-[1280px]">
+      <div className="mx-auto ">
         <div className="flex flex-col lg:flex-row items-center lg:items-center gap-10 sm:gap-12 lg:gap-14 xl:gap-20">
           {/* Left — copy + CTA */}
           <div className="flex-1 min-w-0 w-full text-left">
             {/* Headline — Koulen */}
             <h2
-              className="m-0 text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.02em]"
+              className="m-0 text-[#FFF] capitalize font-bold leading-[100%] tracking-[0.02em]"
               style={{
                 fontFamily:
-                  "var(--font-koulen), Koulen, sans-serif",
-                fontSize: "clamp(36px, 7vw, 80px)",
+                  "var(--font-korolev), Korolev, sans-serif",
+                fontSize: "clamp(36px, 7vw, 150px)",
               }}
             >
               Bring Crispies
@@ -45,10 +45,10 @@ export default function Partner() {
               className="m-0 mt-4 sm:mt-5 md:mt-6 text-[#FFF] font-normal leading-[140%] tracking-[0.02em] max-w-[1100px]"
               style={{
                 fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "clamp(14px, 1.4vw, 16px)",
+                fontSize: "clamp(14px, 2.5vw, 30px)",
               }}
             >
-              Join London&apos;s fastest-growing halal restaurant brand.
+              Join London&apos;s fastest-growing halal <br /> restaurant brand.
             </p>
 
             {/* CTA — Koulen */}
@@ -60,15 +60,16 @@ export default function Partner() {
                 className="text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.04em] whitespace-nowrap overflow-hidden"
                 style={{
                   fontFamily:
-                    "var(--font-koulen), Koulen, sans-serif",
-                  fontSize: "clamp(22px, 2.8vw, 32px)",
+                    "var(--font-korolev), Korolev, sans-serif",
+                  fontSize: "clamp(22px, 2.8vw, 50px)",
                 }}
               >
                 Become A Partner
               </span>
-              <span className="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0">
-                <ArrowIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-              </span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="84" height="84" viewBox="0 0 84 84" fill="none">
+  <rect width="84" height="84" rx="15" fill="white"/>
+  <path d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z" fill="#FF0000"/>
+</svg>
             </button>
           </div>
 

@@ -163,7 +163,7 @@ const SOCIAL_LINKS = [
 // Font sizes trimmed down from 18px to a slightly smaller, tighter scale
 const navItemClass =
   "text-white text-[15px] 2xl:text-[16px] font-normal capitalize tracking-[0.4px] " +
-  "[font-family:var(--font-koulen),Koulen,sans-serif] " +
+  "[font-family:var(--font-korolev),Korolev,sans-serif] " +
   "transition-colors duration-200 hover:text-[#FF0931]";
 
 // Single padding scale, shared by every pill button — no per-instance overrides.

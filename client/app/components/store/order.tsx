@@ -6,13 +6,13 @@ export default function Order() {
     <section className="relative z-0 w-full bg-[#FF0931]">
       <div className="relative -mt-[90px] pt-[140px] md:-mt-[140px] md:pt-[180px]">
         <div className="mx-auto text-center">
-          <h2 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-white m-0 text-center capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(36px,10vw,150px)]">
+          <h2 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-center capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(36px,10vw,150px)]">
             Order Crispies
           </h2>
-          <h2 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-black m-0 mt-[clamp(4px,1vw,14px)] text-center capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(36px,10vw,150px)]">
+          <h2 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-black m-0 mt-[clamp(4px,1vw,14px)] text-center capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(36px,10vw,150px)]">
             Choose Your Way
           </h2>
-        <p className="m-0 mt-4 mx-auto max-w-[1306px] font-[family-name:var(--font-koulen),Koulen,sans-serif] text-center text-[clamp(24px,4vw,60px)] font-normal capitalize leading-[100%] tracking-[0.54px] text-white">
+        <p className="m-0 mt-4 mx-auto max-w-[1306px] font-[family-name:var(--font-korolev),Korolev,sans-serif] text-center text-[clamp(24px,4vw,60px)] font-normal capitalize leading-[100%] tracking-[0.54px] text-white">
         Choose how you enjoy Crispies. Download our app, order online for
             takeaway, or get your favourite burgers and crispy chicken delivered
             straight to your door.
@@ -43,7 +43,7 @@ export default function Order() {
                       </svg>
                     </div>
                     <div className="max-w-[210px] sm:max-w-[240px] lg:max-w-[268px]">
-                      <h3 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-white m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
+                      <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
                         Download Our App
                       </h3>
                       <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-white m-0 mt-[clamp(8px,1.2vw,14px)] text-left capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)]">
@@ -84,7 +84,7 @@ export default function Order() {
                       </svg>
                     </div>
                     <div className="max-w-[210px] sm:max-w-[240px] lg:max-w-[268px]">
-                      <h3 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-white m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
+                      <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
                         Get It Delivered
                       </h3>
                       <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-white m-0 mt-[clamp(8px,1.2vw,14px)] text-left capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)]">

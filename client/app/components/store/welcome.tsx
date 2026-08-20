@@ -5,7 +5,7 @@ export default function Welcome() {
         {/* Text Content */}
 
         <div className="flex-1 text-center md:text-left">
-          <h2 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-[clamp(40px,10vw,150px)] font-black capitalize leading-[1] tracking-[0.54px] text-black">
+          <h2 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(40px,10vw,150px)] font-black capitalize leading-[1] tracking-[0.54px] text-black">
             WELCOME{" "}
             <span className="text-nowrap">
               TO <span className="text-[#FF0931]">CRISPIES</span>

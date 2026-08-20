@@ -357,10 +357,10 @@ export default function DiscoverFlavours() {
     <section className="relative w-full overflow-hidden bg-white  ">
       <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
         {/* Heading */}
-        <h2 className="text-center font-[family-name:var(--font-koulen),Koulen,sans-serif] lowercase! text-[clamp(32px,7vw,75px)] font-normal leading-[1] tracking-[0.54px] text-white">
+        <h2 className="text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(32px,7vw,60px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
           discover your{" "}
           <span className="text-[#FF0931]">crispies flavours</span>
-         </h2>
+        </h2>
 
         {/* Divider: Crispies Original Flavours */}
         <div className="flex items-center gap-14">
@@ -396,7 +396,7 @@ export default function DiscoverFlavours() {
         </div>
 
         {/* Heat scale */}
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-5xl">
           <div className="flex items-end justify-between">
             {SCALE_ITEMS.map(({ label, Icon }) => (
               <div
@@ -412,79 +412,89 @@ export default function DiscoverFlavours() {
           </div>
           {/* Static track: red up to the "Mild" marker, thin white/gray after — not an interactive input */}
           <div className="relative mt-10 h-[3px] w-full rounded-full bg-white/25">
-            <div className="absolute inset-y-0 left-0 w-[38%] rounded-full bg-[#FF0931]" />
-            <div className="absolute left-[38%] top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF0931] bg-white" />
+            <div className="absolute inset-y-0 left-0 w-[50%] rounded-full bg-[#FF0931]" />
+            <div className="absolute left-[50%] top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF0931] bg-white" />
           </div>
         </div>
 
         {/* Infinite Slider Gallery */}
-        <div className="w-full max-w-6xl mx-auto">
-        <div
-          className="relative mt-10 w-full"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          {/* Scrolling Track */}
-          <div className="h-[200px] overflow-hidden sm:h-[220px]">
-            <div ref={trackRef} className="flex h-full items-center gap-4 sm:gap-6">
-              {[...SLIDER_IMAGES, ...SLIDER_IMAGES].map((src, i) => (
-                <div
-                  key={i}
-                  className="h-[200px] w-[200px] flex-shrink-0 overflow-hidden rounded-2xl bg-cover bg-center sm:h-[220px] sm:w-[220px]"
-                  style={{ backgroundImage: `url('${src}')` }}
+        <div className="w-full  mx-auto">
+          <div
+            className="relative mt-10 w-full"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Scrolling Track */}
+            <div className="h-[200px] overflow-hidden sm:h-[220px]">
+              <div
+                ref={trackRef}
+                className="flex h-full items-center gap-4 sm:gap-6"
+              >
+                {[
+                  ...SLIDER_IMAGES,
+                  ...SLIDER_IMAGES,
+                  ...SLIDER_IMAGES,
+                  ...SLIDER_IMAGES,
+                ].map((src, i) => (
+                  <div
+                    key={i}
+                    className="h-[200px] w-[200px] flex-shrink-0 overflow-hidden rounded-2xl bg-cover bg-center sm:h-[220px] sm:w-[220px]"
+                    style={{ backgroundImage: `url('${src}')` }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Static Center CTA */}
+            <div className="pointer-events-auto absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 p-5 bg-black  ">
+              <div className="relative flex h-[220px] w-[220px] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:h-[260px] sm:w-[260px] sm:p-5 shadow-2xl">
+                <div className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0931] sm:right-4 sm:top-4 sm:h-10 sm:w-10">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4 sm:h-5 sm:w-5"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M7 7h10v10" />
+                    <path d="M7 17 17 7" />
+                  </svg>
+                </div>
+                <div className="">
+                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
+                    Order On
+                  </h3>
+                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
+                    The Website
+                  </h3>
+                  <p className="mt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[10px] font-normal capitalize leading-snug text-black sm:text-xs">
+                    Takeaway Only Pick Up From 10+ Locations
+                  </p>
+                </div>
+                <img
+                  src="/images/orderOnimage.png"
+                  alt="Order on website"
+                  className="absolute bottom-0 left-1/2 h-[80px] w-auto -translate-x-1/2 object-contain sm:h-fit"
                 />
-              ))}
-            </div>
-          </div>
-
-          {/* Static Center CTA */}
-          <div className="pointer-events-auto absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 p-5 bg-black  " >
-            <div className="relative flex h-[220px] w-[220px] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:h-[260px] sm:w-[260px] sm:p-5 shadow-2xl">
-              <div className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0931] sm:right-4 sm:top-4 sm:h-10 sm:w-10">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4 sm:h-5 sm:w-5"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M7 7h10v10" />
-                  <path d="M7 17 17 7" />
-                </svg>
               </div>
-              <div className="">
-                <h3 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
-                  Order On
-                </h3>
-                <h3 className="font-[family-name:var(--font-koulen),Koulen,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
-                  The Website
-                </h3>
-                <p className="mt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[10px] font-normal capitalize leading-snug text-black sm:text-xs">
-                  Takeaway Only Pick Up From 10+ Locations
-                </p>
-              </div>
-              <img
-                src="/images/orderOnimage.png"
-                alt="Order on website"
-                className="absolute bottom-0 left-1/2 h-[80px] w-auto -translate-x-1/2 object-contain sm:h-fit"
-              />
-            </div>
-          </div>
 
-          {/* Fade edges */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-gradient-to-r from-black to-transparent sm:w-32" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-gradient-to-l from-black to-transparent sm:w-32" />
-        </div>
+              <div className="pointer-events-none absolute inset-y-0 right-0 translate-x-full z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 -translate-x-full bg-linear-to-l from-black to-transparent sm:w-32" />
+            </div>
+
+            {/* Fade edges */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-linear-to-l from-black to-transparent sm:w-32" />
+          </div>
         </div>
       </div>
 
       {/* Floating CTA — half overlaps the section below it, so the parent
           page needs enough negative margin on the next section, or this
           needs to sit in a shared wrapper with it */}
-    
     </section>
   );
 }

@@ -15,7 +15,7 @@ const stats = [
 ];
 
 const koulen = {
-  fontFamily: "var(--font-koulen), Koulen, sans-serif",
+  fontFamily: "var(--font-korolev), Korolev, sans-serif",
   fontWeight: 400,
   lineHeight: "100%",
 } as const;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import PageHeader from "@/components/admin/ui/page-header";
+import PageHeader from "@/app/components/admin/ui/page-header";
 import { useSettings } from "@/lib/admin/use-settings";
 
 export default function SettingsPage() {

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import PageHeader from "@/components/admin/ui/page-header";
-import Dropdown from "@/components/admin/ui/dropdown";
-import { TableSkeleton } from "@/components/admin/ui/skeleton";
+import PageHeader from "@/app/components/admin/ui/page-header";
+import Dropdown from "@/app/components/admin/ui/dropdown";
+import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useOrders } from "@/lib/admin/use-orders";
 import type { AdminOrder } from "@/lib/admin/use-orders";
 
