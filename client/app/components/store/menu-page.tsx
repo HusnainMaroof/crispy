@@ -355,14 +355,14 @@ export default function MenuPage() {
         </div>
 
         {/* Category Tabs */}
-        <div className=" bg-[#FAFAFA]  py-6 px-6  sm:px-10 md:px-12 xl:px-25">
-          <div className="-mb-px flex justify-between overflow-x-auto  w-[100%] sm:w-[85%]  2xl:w-[90%]">
+        <div className="bg-[#FAFAFA] py-4 px-4 sm:py-6 sm:px-6 md:px-12 xl:px-25">
+          <div className="-mb-px flex gap-4 overflow-x-auto w-full justify-between sm:w-[85%] sm:gap-0 2xl:w-[90%]">
             {CATEGORY_NAMES.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap cursor-pointer border-b-[3px] pb-4 pt-5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,2.5vw,30px)] capitalize leading-[1] tracking-[0.54px]  transition-all duration-200 ${
+                className={`whitespace-nowrap cursor-pointer border-b-[3px] pb-3 pt-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm capitalize leading-[1] tracking-[0.54px] transition-all duration-200 sm:pb-4 sm:pt-5 sm:text-[clamp(18px,2.5vw,30px)] ${
                   activeCategory === cat
                     ? "border-[#FF0931] font-extrabold text-[#FF0931]"
                     : "border-transparent font-normal text-black hover:text-[#FF0931]"
@@ -375,17 +375,17 @@ export default function MenuPage() {
         </div>
 
         {/* Filter Bar */}
-        <div className="py-6 px-6  sm:px-10 md:px-12 xl:px-25">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+        <div className="py-4 px-4 sm:py-6 sm:px-6 md:px-12 xl:px-25">
+          <div className="flex flex-col gap-3 md:flex-row sm:items-stretch sm:gap-10">
             {/* Search */}
-            <div className="relative w-full sm:w-[858px]">
+            <div className="relative w-full  md:w-[858px]">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="36"
                 height="35"
                 viewBox="0 0 36 35"
                 fill="none"
-                className="absolute left-5 top-1/2 -translate-y-1/2"
+                className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 md:left-5 md:h-[35px] md:w-[36px]"
               >
                 <path
                   d="M33.5 32L25.5 24M28.5 15.5C28.5 22.6797 22.6797 28.5 15.5 28.5C8.3203 28.5 2.5 22.6797 2.5 15.5C2.5 8.3203 8.3203 2.5 15.5 2.5C22.6797 2.5 28.5 8.3203 28.5 15.5Z"
@@ -399,18 +399,18 @@ export default function MenuPage() {
                 placeholder="Search For Item..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-[6px] border border-black bg-white pl-[70px] pr-5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[23px] font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] placeholder:font-light placeholder:capitalize placeholder:text-black"
-                style={{ height: "85px" }}
+                className="w-full rounded-[6px] border border-black bg-white pl-12 pr-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] placeholder:font-light placeholder:capitalize placeholder:text-black sm:pl-[70px] sm:text-[23px] sm:pr-5"
+                style={{ height: "clamp(48px, 10vw, 85px)" }}
               />
             </div>
 
             {/* Dietary Preference */}
-            <div className="relative w-full sm:w-[419px]">
+            <div className="relative w-full md:w-[419px]">
               <select
                 value={dietary}
                 onChange={(e) => setDietary(e.target.value)}
-                className="w-full appearance-none rounded-[6px] border border-black bg-white pl-5 pr-14 font-[family-name:var(--font-inter),Inter,sans-serif] text-[23px] font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931]"
-                style={{ height: "85px" }}
+                className="w-full appearance-none rounded-[6px] border border-black bg-white pl-4 pr-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] sm:pl-5 sm:pr-14 sm:text-[23px]"
+                style={{ height: "clamp(48px, 10vw, 85px)" }}
               >
                 {DIETARY_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -424,7 +424,7 @@ export default function MenuPage() {
                 height="14"
                 viewBox="0 0 23 14"
                 fill="none"
-                className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2"
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-3 w-4 sm:right-5 sm:h-3.5 sm:w-[23px]"
               >
                 <path
                   d="M2.5 2.5L11.2504 11.3603C11.4363 11.5484 11.7347 11.5456 11.9206 11.3575L20.5 2.67034"
@@ -436,12 +436,12 @@ export default function MenuPage() {
             </div>
 
             {/* Sort By */}
-            <div className="relative w-full sm:w-[419px]">
+            <div className="relative w-full md:w-[419px]">
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="w-full appearance-none rounded-[6px] border border-black bg-white pl-5 pr-14 font-[family-name:var(--font-inter),Inter,sans-serif] text-[23px] font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931]"
-                style={{ height: "85px" }}
+                className="w-full appearance-none rounded-[6px] border border-black bg-white pl-4 pr-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] sm:pl-5 sm:pr-14 sm:text-[23px]"
+                style={{ height: "clamp(48px, 10vw, 85px)" }}
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -455,7 +455,7 @@ export default function MenuPage() {
                 height="14"
                 viewBox="0 0 23 14"
                 fill="none"
-                className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2"
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-3 w-4 sm:right-5 sm:h-3.5 sm:w-[23px]"
               >
                 <path
                   d="M2.5 2.5L11.2504 11.3603C11.4363 11.5484 11.7347 11.5456 11.9206 11.3575L20.5 2.67034"
@@ -513,45 +513,43 @@ export default function MenuPage() {
 
                   {/* Content */}
                   <div className="flex-col   px-3 sm:px-4 py-5">
-                    
-                     <h3 className="m-0 truncate font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-medium leading-[1.2] text-black sm:text-[20px] capitalize">
-                        {item.name}
-                      </h3>
+                    <h3 className="m-0 truncate font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-medium leading-[1.2] text-black sm:text-[20px] capitalize">
+                      {item.name}
+                    </h3>
                     <div className="min-w-0 flex justify-between items-center gap-2 pt-2">
-                     
                       <p className="mt-1 m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-black leading-[1] tracking-[0.54px] text-black sm:text-[25px] capitalize">
                         {item.price}
                       </p>
-                    <button
-                      type="button"
-                      onClick={() => handleAddToCart(item)}
-                      className="flex cursor-pointer h-[59px] w-[59px] shrink-0 items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8] transition-colors hover:bg-[#FF0931] hover:border-[#FF0931] group/btn"
-                      aria-label={`Add ${item.name} to cart`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="59"
-                        height="59"
-                        viewBox="0 0 59 59"
-                        fill="none"
+                      <button
+                        type="button"
+                        onClick={() => handleAddToCart(item)}
+                        className="flex cursor-pointer h-[59px] w-[59px] shrink-0 items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8] transition-colors hover:bg-[#FF0931] hover:border-[#FF0931] group/btn"
+                        aria-label={`Add ${item.name} to cart`}
                       >
-                        <rect
-                          x="0.5"
-                          y="0.5"
-                          width="58"
-                          height="58"
-                          rx="8.5"
-                          fill="#F7F8F8"
-                          stroke="#E2E2E2"
-                        />
-                        <path
-                          d="M17 29H29M29 29H42M29 29V17M29 29L29 42"
-                          stroke="black"
-                          stroke-width="5"
-                          stroke-linecap="round"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="59"
+                          height="59"
+                          viewBox="0 0 59 59"
+                          fill="none"
+                        >
+                          <rect
+                            x="0.5"
+                            y="0.5"
+                            width="58"
+                            height="58"
+                            rx="8.5"
+                            fill="#F7F8F8"
+                            stroke="#E2E2E2"
+                          />
+                          <path
+                            d="M17 29H29M29 29H42M29 29V17M29 29L29 42"
+                            stroke="black"
+                            strokeWidth="5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,3 @@
-"use client";
-
 import { Toaster } from "react-hot-toast";
 import SmoothScroll from "@/app/components/providers/smooth-scroll";
 import Navbar from "@/app/components/store/navbar";

@@ -17,7 +17,6 @@ const Page = () => {
       <Flavours />
       <Locations />
       <Partner />
-      <DownloadApp />
       <Instagram />
       <Footer />
     </div>

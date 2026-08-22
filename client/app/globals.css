@@ -34,6 +34,15 @@ html::-webkit-scrollbar {
   display: none;
 }
 
+/* Utility: hide scrollbar on elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* --- Reduced motion: disable decorative animation --- */
 @media (prefers-reduced-motion: reduce) {
   .admin-fade-in,
