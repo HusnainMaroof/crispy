@@ -80,9 +80,9 @@ export default function Footer() {
 
       <div className="mx-auto  px-5 sm:px-6 xl:px-10 pt-12 sm:pt-14 md:pt-16 pb-0">
         {/* Main grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-8 lg:gap-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-8 lg:gap-0">
           {/* Logo */}
-          <div className="flex items-start justify-center sm:justify-start lg:justify-center lg:border-r lg:border-white/10 lg:pr-8">
+          <div className="flex items-start justify-start lg:justify-center lg:border-r lg:border-white/10 lg:pr-8">
             <a
               href="/"
               className="block w-[120px] h-[120px] sm:w-[130px] sm:h-[130px] md:w-[140px] md:h-[140px]  overflow-hidden transition-transform duration-300 hover:scale-[1.04] will-change-transform"

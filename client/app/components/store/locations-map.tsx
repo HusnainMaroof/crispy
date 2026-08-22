@@ -1,15 +1,13 @@
 // locations-map.tsx
 // Client-only — imported via next/dynamic({ ssr: false }) from locations.tsx.
+// The Leaflet map is created imperatively (not via react-leaflet's MapContainer)
+// so the instance's lifecycle is fully controlled: StrictMode remounts and
+// Turbopack HMR can otherwise leave a stale instance on the DOM node and
+// throw "Map container is being reused by another instance".
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import {
-  MapContainer,
-  Marker,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./leaflet-overrides.css";
 
@@ -55,83 +53,20 @@ function pinIcon(num: number): L.DivIcon {
   });
 }
 
-function isMapAlive(map: L.Map): boolean {
+function isMapAlive(map: L.Map | null): boolean {
   try {
-    const el = map.getContainer();
-    const panes = (map as unknown as { _panes?: { mapPane?: HTMLElement } })
-      ._panes;
-    return Boolean(el?.isConnected && panes?.mapPane);
+    return Boolean(map && map.getContainer()?.isConnected);
   } catch {
     return false;
   }
 }
 
-function InvalidateSizeOnMount() {
-  const map = useMap();
-  useEffect(() => {
-    let cancelled = false;
-    const run = () => {
-      if (cancelled || !isMapAlive(map)) return;
-      map.invalidateSize();
-    };
-    map.whenReady(() => {
-      requestAnimationFrame(() => {
-        setTimeout(run, 50);
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [map]);
-  return null;
-}
-
-function FlyTo({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  const skipFirst = useRef(true);
-
-  useEffect(() => {
-    if (skipFirst.current) {
-      skipFirst.current = false;
-      return;
-    }
-
-    let cancelled = false;
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    const run = () => {
-      if (cancelled || !isMapAlive(map)) return;
-      try {
-        if (reduceMotion) {
-          map.setView([lat, lng], 13, { animate: false });
-        } else {
-          map.flyTo([lat, lng], 13, { duration: 1.1, easeLinearity: 0.3 });
-        }
-      } catch {
-        // Map torn down mid-call (React Strict Mode remount) — ignore.
-      }
-    };
-
-    map.whenReady(() => {
-      requestAnimationFrame(run);
-    });
-
-    return () => {
-      cancelled = true;
-      if (isMapAlive(map)) {
-        try {
-          map.stop();
-        } catch {
-          /* ignore */
-        }
-      }
-    };
-  }, [lat, lng, map]);
-
-  return null;
-}
+// DOM node property holding the map instance we created for it, so a remount
+// (StrictMode/HMR) can always destroy a leftover instance before re-init.
+type MapHostElement = HTMLDivElement & {
+  _leaflet_id?: number;
+  __crispyMap?: L.Map;
+};
 
 export default function LocationsMap({
   locations,
@@ -140,46 +75,144 @@ export default function LocationsMap({
   locations: MapLocation[];
   selectedId: string;
 }) {
+  const hostRef = useRef<MapHostElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const skipFirstFlyRef = useRef(true);
+
   const initialCenter: [number, number] = locations[0]
     ? [locations[0].lat, locations[0].lng]
     : LONDON_CENTER;
   const selected =
     locations.find((l) => l.id === selectedId) ?? locations[0] ?? null;
 
-  const [mounted, setMounted] = useState(false);
+  // Bumped after each successful map init so dependent effects re-run on
+  // StrictMode remounts, where mapRef swaps to a brand-new instance.
+  const [mapEpoch, setMapEpoch] = useState(0);
+  const initialCenterRef = useRef(initialCenter);
+
   useEffect(() => {
-    setMounted(true);
+    const el = hostRef.current;
+    if (!el) return;
+
+    // Destroy any instance a previous mount left on this DOM node — without
+    // this, L.map() throws "Map container is being reused by another instance".
+    const stale = el.__crispyMap;
+    if (stale) {
+      try {
+        stale.remove();
+      } catch {
+        /* already torn down */
+      }
+      el.__crispyMap = undefined;
+    }
+    delete el._leaflet_id;
+
+    const map = L.map(el, {
+      center: initialCenterRef.current,
+      zoom: 13,
+      scrollWheelZoom: false,
+      attributionControl: false,
+    });
+    mapRef.current = map;
+    el.__crispyMap = map;
+
+    L.tileLayer(DARK_TILE_URL, {
+      subdomains: "abcd",
+      maxZoom: 20,
+    }).addTo(map);
+
+    let cancelled = false;
+    map.whenReady(() => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (!cancelled && isMapAlive(map)) map.invalidateSize();
+        }, 50);
+      });
+    });
+
+    setMapEpoch((e) => e + 1);
+
+    return () => {
+      cancelled = true;
+      if (markerRef.current) {
+        try {
+          markerRef.current.remove();
+        } catch {
+          /* ignore */
+        }
+        markerRef.current = null;
+      }
+      try {
+        map.remove();
+      } catch {
+        /* ignore */
+      }
+      if (mapRef.current === map) mapRef.current = null;
+      if (el.__crispyMap === map) el.__crispyMap = undefined;
+      delete el._leaflet_id;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep exactly one marker on the map: the selected location's pin.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapAlive(map) || !selected) return;
+
+    if (markerRef.current) {
+      try {
+        markerRef.current.remove();
+      } catch {
+        /* ignore */
+      }
+      markerRef.current = null;
+    }
+
+    const idx = locations.findIndex((l) => l.id === selected.id);
+    try {
+      markerRef.current = L.marker([selected.lat, selected.lng], {
+        icon: pinIcon(idx + 1),
+        zIndexOffset: 1000,
+      }).addTo(map);
+    } catch {
+      /* map torn down mid-update */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapEpoch, selected?.id]);
+
+  // Fly to the selection, skipping the initial mount.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapAlive(map) || !selected) return;
+
+    if (skipFirstFlyRef.current) {
+      skipFirstFlyRef.current = false;
+      return;
+    }
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    try {
+      if (reduceMotion) {
+        map.setView([selected.lat, selected.lng], 13, { animate: false });
+      } else {
+        map.flyTo([selected.lat, selected.lng], 13, {
+          duration: 1.1,
+          easeLinearity: 0.3,
+        });
+      }
+    } catch {
+      // Map torn down mid-call (React Strict Mode remount) — ignore.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapEpoch, selected?.lat, selected?.lng]);
 
   return (
     <div className="absolute inset-0 z-0">
-      {mounted && (
-        <MapContainer
-          center={initialCenter}
-          zoom={13}
-          scrollWheelZoom={false}
-          attributionControl={false}
-          className="crispy-map h-full w-full"
-        >
-          <TileLayer
-            url={DARK_TILE_URL}
-            subdomains="abcd"
-            maxZoom={20}
-          />
-
-          {selected && (
-            <Marker
-              key={selected.id}
-              position={[selected.lat, selected.lng]}
-              icon={pinIcon(locations.findIndex((l) => l.id === selected.id) + 1)}
-              zIndexOffset={1000}
-            />
-          )}
-
-          <FlyTo lat={selected.lat} lng={selected.lng} />
-          <InvalidateSizeOnMount />
-        </MapContainer>
-      )}
+      <div ref={hostRef} className="crispy-map h-full w-full" />
 
       <div className="pointer-events-none absolute top-2 right-2 z-[1000] text-[9px] leading-none text-white/45">
         <a
