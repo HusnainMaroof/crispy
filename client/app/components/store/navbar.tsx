@@ -9,6 +9,7 @@ import { ShoppingBag, Bike } from "lucide-react";
 const NAV_LINKS = [
   { href: "/menu", label: "Menu" },
   { href: "/locations", label: "Locations" },
+  { href: "/contact", label: "Contact" },
 ];
 
 // --- Social icons ---

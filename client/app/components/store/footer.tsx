@@ -3,6 +3,7 @@
 const quickLinks = [
   { label: "Menu", href: "/menu" },
   { label: "Locations", href: "/locations" },
+  { label: "Contact Us", href: "/contact" },
   { label: "Career", href: "/career" },
   { label: "Franchise Enquiries", href: "/franchise" },
 ];
