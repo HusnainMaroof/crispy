@@ -9,7 +9,7 @@ import { ShoppingBag, Bike } from "lucide-react";
 const NAV_LINKS = [
   { href: "/menu", label: "Menu" },
   { href: "/locations", label: "Locations" },
-  { href: "/contact", label: "Franchise" },
+  { href: "/contact", label: "Franchise inquiry" },
 ];
 
 // --- Social icons ---
@@ -162,7 +162,7 @@ const SOCIAL_LINKS = [
 ];
 
 const navItemClass =
-  "text-white text-[18px] 2xl:text-[20px] font-normal capitalize tracking-[0.4px] " +
+  "text-white text-[18px] 2xl:text-[20px] font-normal uppercase tracking-[0.4px] " +
   "[font-family:var(--font-korolev),Korolev,sans-serif] " +
   "transition-colors duration-200 hover:text-[#FF0931]";
 
