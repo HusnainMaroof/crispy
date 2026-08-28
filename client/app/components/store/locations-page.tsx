@@ -17,49 +17,85 @@ const LocationsMap = dynamic(() => import("./locations-map"), {
 
 const locations = [
   {
+    id: "harrow-road",
+    name: "Harrow Road",
+    address: "412 Harrow Road, London W9 2HU",
+    status: "open" as const,
+    hours: "11:00 AM – 11:00 PM",
+    lat: 51.5259,
+    lng: -0.1950,
+  },
+  {
     id: "tower-hill",
     name: "Tower Hill",
-    address: "2 Tower Hill Ter, London EC3N 4EE, United Kingdom",
+    address: "Unit 2, Tower Hill Terrace, London EC3N 4EE",
     status: "open" as const,
     hours: "11:00 AM – 11:00 PM",
     lat: 51.5098,
     lng: -0.0759,
   },
   {
-    id: "camden-town",
-    name: "Camden Town",
-    address: "45 Camden High St, London NW1 7JH, United Kingdom",
+    id: "kilburn",
+    name: "Kilburn",
+    address: "302 Kilburn High Rd, Kilburn, London NW6 2DB",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.539,
-    lng: -0.1426,
+    lat: 51.5371,
+    lng: -0.1920,
   },
   {
-    id: "shoreditch",
-    name: "Shoreditch",
-    address: "112 Shoreditch High St, London E1 6JN, United Kingdom",
+    id: "harrow",
+    name: "Harrow",
+    address: "253 Station Rd, Harrow, London HA1 2TB",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.5229,
-    lng: -0.0777,
+    lat: 51.5793,
+    lng: -0.3352,
   },
   {
-    id: "westminster",
-    name: "Westminster",
-    address: "9 Victoria St, London SW1H 0EX, United Kingdom",
+    id: "elephant-and-castle",
+    name: "Elephant & Castle",
+    address: "345 Walworth Rd, Elephant & Castle, London SE17 2NA",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.4994,
-    lng: -0.1248,
+    lat: 51.4864,
+    lng: -0.0986,
   },
   {
-    id: "canary-wharf",
-    name: "Canary Wharf",
-    address: "1 Canada Sq, London E14 5AB, United Kingdom",
-    status: "closed" as const,
+    id: "edgware-road",
+    name: "Edgware Road",
+    address: "340 Edgware Rd, Westminister, London W2 1EA",
+    status: "open" as const,
     hours: "11:00 AM – 11:00 PM",
-    lat: 51.5054,
-    lng: -0.0235,
+    lat: 51.5218,
+    lng: -0.1670,
+  },
+  {
+    id: "stockwell",
+    name: "Stockwell",
+    address: "314 Clapham Rd, Lambeth, London SW9 9AE",
+    status: "open" as const,
+    hours: "9:00 AM – 11:00 PM",
+    lat: 51.4726,
+    lng: -0.1180,
+  },
+  {
+    id: "wembley-central",
+    name: "Wembley Central",
+    address: "421 High Rd, Wembley, London HA9 7AB",
+    status: "closed" as const,
+    hours: "Coming Soon",
+    lat: 51.5520,
+    lng: -0.2956,
+  },
+  {
+    id: "ruislip",
+    name: "Ruislip",
+    address: "77 Victoria Road, Ruislip, London HA4 9BH",
+    status: "closed" as const,
+    hours: "Coming Soon",
+    lat: 51.5767,
+    lng: -0.4134,
   },
 ];
 
@@ -356,21 +392,97 @@ export default function Locations() {
   const [selectedId, setSelectedId] = useState<string>(locations[0].id);
   const [search, setSearch] = useState("");
 
-  // Moving side-track indicator alongside the bordered location cards
+  // Left side-track acts as a custom scrollbar for the location card list
   const trackRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [indicator, setIndicator] = useState({ top: 0, height: 90 });
+  const [indicator, setIndicator] = useState({ top: 10, height: 0});
+  const draggingRef = useRef(false);
+  const [maxListH, setMaxListH] = useState<number | null>(null);
 
+  // Show ~4 cards at a time: measure first card height + gaps
+  useEffect(() => {
+    const measure = () => {
+      const first = itemRefs.current[0];
+      if (first) {
+        const gap = window.innerWidth >= 640 ? 40 : 16; // sm:gap-10 : gap-4
+        setMaxListH(first.offsetHeight * 4 + gap * 3);
+      }
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (itemRefs.current[0]) ro.observe(itemRefs.current[0]);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  const syncIndicator = () => {
+    const sc = scrollRef.current;
+    const track = trackRef.current;
+    if (!sc || !track) return;
+    const { scrollTop, scrollHeight, clientHeight } = sc;
+    const trackH = track.clientHeight;
+    if (scrollHeight <= clientHeight || trackH <= 0) {
+      setIndicator({ top: 0, height: trackH });
+      return;
+    }
+    const thumbH = Math.max(50, trackH * (clientHeight / scrollHeight));
+    const maxScroll = scrollHeight - clientHeight;
+    const top = (scrollTop / maxScroll) * (trackH - thumbH);
+    setIndicator({ top, height: thumbH });
+  };
+
+  useEffect(() => {
+    syncIndicator();
+    const sc = scrollRef.current;
+    window.addEventListener("resize", syncIndicator);
+    sc?.addEventListener("scroll", syncIndicator, { passive: true });
+    return () => {
+      window.removeEventListener("resize", syncIndicator);
+      sc?.removeEventListener("scroll", syncIndicator);
+    };
+  }, [maxListH]);
+
+  // Keep the selected card visible inside the scroll container
   useEffect(() => {
     const idx = locations.findIndex((l) => l.id === selectedId);
     const el = itemRefs.current[idx];
-    const track = trackRef.current;
-    if (el && track) {
-      const elRect = el.getBoundingClientRect();
-      const trackRect = track.getBoundingClientRect();
-      setIndicator({ top: elRect.top - trackRect.top, height: elRect.height });
-    }
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedId]);
+
+  // Drag / click on the track to scroll the list
+  const jumpToClientY = (clientY: number) => {
+    const sc = scrollRef.current;
+    const track = trackRef.current;
+    if (!sc || !track) return;
+    const { scrollHeight, clientHeight } = sc;
+    const trackH = track.clientHeight;
+    if (scrollHeight <= clientHeight || trackH <= 0) return;
+    const thumbH = Math.max(50, trackH * (clientHeight / scrollHeight));
+    const rect = track.getBoundingClientRect();
+    const y = clientY - rect.top - thumbH / 2;
+    const ratio = Math.min(1, Math.max(0, y / (trackH - thumbH)));
+    sc.scrollTop = ratio * (scrollHeight - clientHeight);
+  };
+
+  const onTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    jumpToClientY(e.clientY);
+  };
+
+  const onTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    jumpToClientY(e.clientY);
+  };
+
+  const endDrag = () => {
+    draggingRef.current = false;
+  };
 
   return (
     <>
@@ -442,18 +554,29 @@ export default function Locations() {
         <div className="px-6 pb-6 sm:px-10 md:px-12 xl:px-25 my-20">
           <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:gap-20">
             {/* Left — bordered location cards */}
-            <div className="flex flex-1 min-w-0 gap-5 sm:gap-20">
+            <div className="flex flex-1 min-w-0 gap-5 sm:gap-10">
+              {/* Left — custom scrollbar track (draggable) */}
               <div
                 ref={trackRef}
-                className="relative w-2 shrink-0 self-stretch rounded-[4px] bg-[#D9D9D9]"
+                onPointerDown={onTrackPointerDown}
+                onPointerMove={onTrackPointerMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                className="relative w-2 shrink-0 self-stretch cursor-pointer touch-none select-none rounded-[4px] bg-[#D9D9D9]"
               >
                 <span
-                  className="absolute left-0 w-2 rounded-[4px] bg-[#FF0931] transition-all duration-300 ease-out h-[50px] translate-y-[150%]"
-                  style={{ top: indicator.top }}
+                  className="absolute left-0 w-2 rounded-[4px] bg-[#FF0931] h-20"
+                  style={{ top: indicator.top, }}
                 />
               </div>
 
-              <div className="flex flex-1 flex-col gap-4 sm:gap-10">
+              {/* Cards — scrollable, ~5 visible at a time */}
+              <div
+                ref={scrollRef}
+                data-lenis-prevent
+                className="loc-scroll flex flex-1 flex-col gap-4 overflow-y-auto sm:gap-10"
+                style={maxListH ? { maxHeight: maxListH } : undefined}
+              >
                 {locations.map((loc, i) => {
                   const isActive = loc.id === selectedId;
                   const displayNum = String(i + 1).padStart(2, "0");
@@ -531,7 +654,7 @@ export default function Locations() {
                           </p>
 
                           <p
-                            className={`m-0 mt-2 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] font-bold sm:mt-4 ${
+                            className={`m-0 mt-2  font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] font-bold sm:mt-4 ${
                               isActive ? "text-black" : "text-[#D2D2D2]"
                             }`}
                           >

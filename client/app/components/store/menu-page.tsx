@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { addItem } from "@/lib/redux/slices/cartSlice";
 import type { MenuItem } from "@/lib/redux/types";
@@ -282,6 +282,28 @@ export default function MenuPage() {
   const [dietary, setDietary] = useState("All");
   const [sort, setSort] = useState("name-asc");
 
+  const tabContainerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const underlineRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = tabContainerRef.current;
+    const underline = underlineRef.current;
+    const activeIndex = CATEGORY_NAMES.indexOf(activeCategory);
+    const activeTab = tabRefs.current[activeIndex];
+
+    if (!container || !underline || !activeTab) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+
+    const offset = tabRect.left - containerRect.left;
+    const width = tabRect.width;
+
+    underline.style.width = `${width}px`;
+    underline.style.transform = `translateX(${offset}px)`;
+  }, [activeCategory]);
+
   const filteredItems = useMemo(() => {
     let items = MOCK_ITEMS;
 
@@ -356,21 +378,29 @@ export default function MenuPage() {
 
         {/* Category Tabs */}
         <div className="bg-[#FAFAFA] py-4 px-4 sm:py-6 sm:px-6 md:px-12 xl:px-25">
-          <div className="-mb-px flex gap-4 overflow-x-auto w-full justify-between sm:w-[85%] sm:gap-0 2xl:w-[90%]">
-            {CATEGORY_NAMES.map((cat) => (
+          <div
+            ref={tabContainerRef}
+            className="relative flex gap-4 overflow-x-auto w-full justify-between sm:w-[85%] sm:gap-0 2xl:w-[90%]"
+          >
+            {CATEGORY_NAMES.map((cat, i) => (
               <button
                 key={cat}
                 type="button"
+                ref={(el) => { tabRefs.current[i] = el; }}
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap cursor-pointer border-b-[3px] pb-3 pt-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm capitalize leading-[1] tracking-[0.54px] transition-all duration-200 sm:pb-4 sm:pt-5 sm:text-[clamp(18px,2.5vw,30px)] ${
+                className={`whitespace-nowrap cursor-pointer pb-3 pt-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium capitalize leading-[1] tracking-[0.54px] transition-colors duration-200 sm:pb-4 sm:pt-5 sm:text-[clamp(18px,2.5vw,30px)] ${
                   activeCategory === cat
-                    ? "border-[#FF0931] font-extrabold text-[#FF0931]"
-                    : "border-transparent font-normal text-black hover:text-[#FF0931]"
+                    ? "text-[#FF0931]"
+                    : "text-black hover:text-[#FF0931]"
                 }`}
               >
                 {cat}
               </button>
             ))}
+            <div
+              ref={underlineRef}
+              className="absolute bottom-0 left-0 h-[3px] bg-[#FF0931] transition-[transform,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            />
           </div>
         </div>
 

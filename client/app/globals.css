@@ -549,3 +549,124 @@ html::-webkit-scrollbar {
 .crispy-tooltip.leaflet-tooltip-top::before {
   border-top-color: #1a1a1a;
 }
+
+/* --- Delivery redirect spinner --- */
+.redirect-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px dashed #FF0931;
+  border-radius: 50%;
+  animation: spin-dashed 1.2s linear infinite;
+}
+
+@keyframes spin-dashed {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Delivery overlay micro-animations --- */
+.overlay-backdrop-in {
+  animation: overlay-backdrop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes overlay-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlay-panel-in {
+  animation: overlay-panel 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes overlay-panel {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.overlay-fade-up {
+  animation: overlay-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes overlay-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.overlay-fade-in {
+  animation: overlay-fade 0.4s ease both;
+}
+
+@keyframes overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.overlay-scale-in {
+  animation: overlay-scale 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes overlay-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Stagger delays for cards */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .overlay-backdrop-in,
+  .overlay-panel-in,
+  .overlay-fade-up,
+  .overlay-fade-in,
+  .overlay-scale-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Hide native scrollbar for the locations page custom-scroll list */
+.loc-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.loc-scroll::-webkit-scrollbar {
+  display: none;
+}

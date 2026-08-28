@@ -18,8 +18,11 @@ export type MapLocation = {
   lng: number;
 };
 
-const DARK_TILE_URL =
-  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+// CARTO basemaps require an API key — without it tiles render with an
+// "API key required" watermark instead of map imagery.
+const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_BASECMAPS_API_KEY ?? "";
+
+const DARK_TILE_URL = `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`;
 
 const LONDON_CENTER: [number, number] = [51.5074, -0.1278];
 

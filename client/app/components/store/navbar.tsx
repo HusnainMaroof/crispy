@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
-import { ShoppingBag, Bike } from "lucide-react";
+import DeliveryOverlay from "./delivery-overlay";
 
 const NAV_LINKS = [
   { href: "/menu", label: "Menu" },
   { href: "/locations", label: "Locations" },
-  { href: "/contact", label: "Franchise inquiry" },
+  { href: "/franchise-inquiries", label: "Franchise inquiry" },
 ];
 
 // --- Social icons ---
@@ -189,7 +190,7 @@ function PillButton({
       : "border text-[#FF0931] hover:bg-[#FF0931]/10 hover:text-white";
 
   return (
-    <button type="button" className={`${base} ${variantClass} ${className}`}>
+    <div className={`${base} ${variantClass} ${className}`} role="presentation">
       {icon}
       <span className="flex flex-col">
         {lines.map((line) => (
@@ -198,7 +199,7 @@ function PillButton({
           </span>
         ))}
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -223,7 +224,9 @@ function SocialRail({ className = "" }: { className?: string }) {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const el = headerRef.current;
@@ -248,7 +251,7 @@ export default function Navbar() {
   }, [open]);
 
   return (
-    <header ref={headerRef} className="relative z-50 w-full bg-black">
+    <header ref={headerRef} className="sticky top-0 z-50 w-full bg-black">
       {/* Desktop navbar — fluid width capped at 1422px so it never over-stretches on ultrawide */}
       <nav className="nav-enter mx-auto hidden w-[90%] items-center justify-between gap-4 px-6 py-4 xl:flex xl:px-8 pr-4">
         <Link
@@ -309,15 +312,19 @@ export default function Navbar() {
         <div className="flex min-w-0 items-center gap-4 2xl:gap-16">
           <div className="flex items-center gap-10">
             {" "}
-            {NAV_LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`link-underline shrink-0 ${navItemClass}`}
-              >
-                {l.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((l) => {
+              const isActive = pathname === l.href || pathname.startsWith(l.href + "/");
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`link-underline shrink-0 ${navItemClass} ${isActive ? "border-b-2 border-[#FF0931] pb-0.5" : ""}`}
+                  style={isActive ? { color: "#FF0931" } : undefined}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
           </div>
 
           <div className=" flex items-center gap-8">
@@ -327,12 +334,19 @@ export default function Navbar() {
               lines={["Click", "& Collect"]}
               className="w-[150px] 2xl:w-[160px] justify-center"
             />
-            <PillButton
-              variant="filled"
-              icon={<BikeDeliveryIcon className="h-4 w-6 2xl:h-5 2xl:w-7" />}
-              lines={["Get It", "Delivered"]}
-              className="w-[150px] 2xl:w-[160px] justify-center"
-            />
+            <button
+              type="button"
+              onClick={() => setDeliveryOpen(true)}
+              aria-haspopup="dialog"
+              className="cursor-pointer"
+            >
+              <PillButton
+                variant="filled"
+                icon={<BikeDeliveryIcon className="h-4 w-6 2xl:h-5 2xl:w-7" />}
+                lines={["Get It", "Delivered"]}
+                className="w-[150px] 2xl:w-[160px] justify-center"
+              />
+            </button>
           </div>
 
           <SocialRail className="flex-col gap-1.5" />
@@ -369,17 +383,20 @@ export default function Navbar() {
           />
           <div className="menu-drop absolute inset-x-0 top-full border-b border-white/10 bg-black xl:hidden">
             <div className="flex flex-col gap-1 px-5 py-5">
-              {NAV_LINKS.map((l, i) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  style={{ animationDelay: `${0.05 + i * 0.08}s` }}
-                  className={`menu-item rounded-md px-4 py-3 transition-colors hover:bg-white/5 ${navItemClass}`}
-                >
-                  {l.label}
-                </Link>
-              ))}
+              {NAV_LINKS.map((l, i) => {
+                const isActive = pathname === l.href || pathname.startsWith(l.href + "/");
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setOpen(false)}
+                    style={{ animationDelay: `${0.05 + i * 0.08}s`, ...(isActive ? { color: "#FF0931" } : {}) }}
+                    className={`menu-item rounded-md px-4 py-3 transition-colors hover:bg-white/5 ${navItemClass} ${isActive ? "border-b-2 border-[#FF0931]" : ""}`}
+                  >
+                    {l.label}
+                  </Link>
+                );
+              })}
 
               {/* Stacked, not a horizontal row — a horizontal row of 3 pill
                   buttons + social rail cannot fit a phone viewport */}
@@ -393,12 +410,22 @@ export default function Navbar() {
                   lines={["Click", "& Collect"]}
                   className="w-full justify-center"
                 />
-                <PillButton
-                  variant="filled"
-                  icon={<BikeDeliveryIcon className="h-4 w-6" />}
-                  lines={["Get It", "Delivered"]}
-                  className="w-full justify-center"
-                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setDeliveryOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  className="cursor-pointer"
+                >
+                  <PillButton
+                    variant="filled"
+                    icon={<BikeDeliveryIcon className="h-4 w-6" />}
+                    lines={["Get It", "Delivered"]}
+                    className="w-full justify-center"
+                  />
+                </button>
               </div>
 
               <div
@@ -413,6 +440,7 @@ export default function Navbar() {
           </div>
         </>
       )}
+      {deliveryOpen && <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />}
     </header>
   );
 }

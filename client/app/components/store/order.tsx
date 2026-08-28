@@ -1,7 +1,12 @@
 // order.tsx
 "use client";
 
+import { useState } from "react";
+import DeliveryOverlay from "./delivery-overlay";
+
 export default function Order() {
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+
   return (
     <section className="relative z-0 w-full bg-[#FF0931]">
       <div className="relative -mt-[90px] pt-[140px] md:-mt-[140px] md:pt-[180px]">
@@ -64,7 +69,19 @@ export default function Order() {
            
               {/* Card 3 — Get It Delivered */}
               <div className="bg-white rounded-b-[50px] lg:rounded-br-[50px] lg:rounded-b-[0px] w-full sm:w-auto">
-                <div className="bg-[#FF0931]  rounded-b-2xl lg:rounded-b-[50px] pb-6  lg:p-10 lg:pt-0 pt-0 w-full h-[380px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px] 2xl:w-[530px] 2xl:h-[530px]">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDeliveryOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setDeliveryOpen(true);
+                    }
+                  }}
+                  aria-haspopup="dialog"
+                  className="bg-[#FF0931] rounded-b-2xl lg:rounded-b-[50px] pb-6  lg:p-10 lg:pt-0 pt-0 w-full h-[380px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px] 2xl:w-[530px] 2xl:h-[530px] cursor-pointer transition-transform duration-200 hover:scale-[1.015] active:scale-[0.99] focus:outline-none"
+                >
                   <div className="bg-[#C1001F] relative rounded-[20px] p-5 sm:p-6 pb-0 pt-6 sm:pt-8 text-left overflow-visible flex flex-col lg:flex-row w-full h-full mb-0 lg:mb-5">
                     <div className="w-[56px] h-[56px] sm:w-[68px] sm:h-[68px] lg:w-[81px] lg:h-[81px] bg-[#FF0931] flex items-center justify-center absolute rounded-[12px] sm:rounded-[15px] bottom-6 sm:bottom-8 lg:bottom-10 z-[110]">
                       <svg
@@ -104,6 +121,7 @@ export default function Order() {
           </div>
         </div>
       </div>
+      {deliveryOpen && <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />}
     </section>
   );
 }

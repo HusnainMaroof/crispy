@@ -2,6 +2,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { SVGProps, useState } from "react";
 import type { MapLocation } from "./locations-map";
 
@@ -47,57 +48,87 @@ function LocationPinIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-// PLACEHOLDER DATA — real London coordinates as stand-ins so the map/fly-to
-// animation is demoable now. Swap in real branch addresses + lat/lng before
-// shipping. Each location now has a genuinely unique id (was "01" duplicated
-// across all 5 rows before) — the displayed 01/02/03 number is derived from
-// array position instead, since a display index and a stable id are not the
-// same thing and shouldn't share a field.
 const locations = [
+  {
+    id: "harrow-road",
+    name: "Harrow Road",
+    address: "412 Harrow Road\nLondon W9 2HU",
+    status: "open" as const,
+    hours: "11AM – 11 PM",
+    lat: 51.5259,
+    lng: -0.1950,
+  },
   {
     id: "tower-hill",
     name: "Tower Hill",
-    address: "2 Tower Hill Ter, London EC3N\n4EE, United Kingdom",
+    address: "Unit 2, Tower Hill Terrace\nLondon EC3N 4EE",
     status: "open" as const,
     hours: "11AM – 11 PM",
     lat: 51.5098,
     lng: -0.0759,
   },
   {
-    id: "camden-town",
-    name: "Camden Town",
-    address: "45 Camden High St, London NW1\n7JH, United Kingdom",
+    id: "kilburn",
+    name: "Kilburn",
+    address: "302 Kilburn High Rd\nLondon NW6 2DB",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    lat: 51.539,
-    lng: -0.1426,
+    lat: 51.5371,
+    lng: -0.1920,
   },
   {
-    id: "shoreditch",
-    name: "Shoreditch",
-    address: "112 Shoreditch High St, London E1\n6JN, United Kingdom",
+    id: "harrow",
+    name: "Harrow",
+    address: "253 Station Rd\nLondon HA1 2TB",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    lat: 51.5229,
-    lng: -0.0777,
+    lat: 51.5793,
+    lng: -0.3352,
   },
   {
-    id: "westminster",
-    name: "Westminster",
-    address: "9 Victoria St, London SW1H\n0EX, United Kingdom",
+    id: "elephant-and-castle",
+    name: "Elephant & Castle",
+    address: "345 Walworth Rd\nLondon SE17 2NA",
     status: "open" as const,
     hours: "11AM – 11 PM",
-    lat: 51.4994,
-    lng: -0.1248,
+    lat: 51.4864,
+    lng: -0.0986,
   },
   {
-    id: "canary-wharf",
-    name: "Canary Wharf",
-    address: "1 Canada Sq, London E14\n5AB, United Kingdom",
+    id: "edgware-road",
+    name: "Edgware Road",
+    address: "340 Edgware Rd\nLondon W2 1EA",
+    status: "open" as const,
+    hours: "11AM – 11 PM",
+    lat: 51.5218,
+    lng: -0.1670,
+  },
+  {
+    id: "stockwell",
+    name: "Stockwell",
+    address: "314 Clapham Rd\nLondon SW9 9AE",
+    status: "open" as const,
+    hours: "11AM – 11 PM",
+    lat: 51.4726,
+    lng: -0.1180,
+  },
+  {
+    id: "wembley-central",
+    name: "Wembley Central",
+    address: "421 High Rd\nLondon HA9 7AB",
     status: "closed" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.5054,
-    lng: -0.0235,
+    hours: "Coming Soon",
+    lat: 51.5520,
+    lng: -0.2956,
+  },
+  {
+    id: "ruislip",
+    name: "Ruislip",
+    address: "77 Victoria Road\nLondon HA4 9BH",
+    status: "closed" as const,
+    hours: "Coming Soon",
+    lat: 51.5767,
+    lng: -0.4134,
   },
 ];
 
@@ -201,7 +232,7 @@ export default function Locations() {
           {/* Left — list + CTA */}
           <div className="flex-1 min-w-0 flex flex-col">
             <ul className="m-0 p-0 list-none loc-list">
-              {locations.map((loc, i) => {
+              {locations.slice(0, 5).map((loc, i) => {
                 const isActive = loc.id === selectedId;
                 const numColor = isActive ? "text-[#BDBDBD]" : "text-[#D0D0D0]";
                 const nameColor = isActive ? "text-black" : "text-[#B0B0B0]";
@@ -350,9 +381,9 @@ export default function Locations() {
               })}
             </ul>
 
-            {/* View all CTA */}
-            <button
-              type="button"
+            {/* View all CTA — links to the locations page */}
+            <Link
+              href="/locations"
               className="mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] transition-colors duration-200 pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
             >
               <span
@@ -379,7 +410,7 @@ export default function Locations() {
                   />
                 </svg>
               </span>
-            </button>
+            </Link>
           </div>
 
           {/* Right — real map card */}

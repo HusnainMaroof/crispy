@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Footer from "@/app/components/store/footer";
+import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import { ArrowUpDown } from "lucide-react";
+import Image from "next/image";
 
 const KOROLEV = "font-[family-name:var(--font-korolev),Korolev,sans-serif]";
 const INTER = "font-[family-name:var(--font-inter),Inter,sans-serif]";
@@ -27,6 +30,8 @@ function OutlineNumber({ className = "" }: { className?: string }) {
 }
 
 export default function PartnerPage() {
+  const [applicationOpen, setApplicationOpen] = useState(false);
+
   return (
     <>
       {/* 1. Hero — Grow With Crispies */}
@@ -34,6 +39,7 @@ export default function PartnerPage() {
         <div className="px-6 py-16 sm:px-10 sm:py-20 md:px-12 xl:px-25">
           <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
             <div className="flex flex-1 flex-col justify-center">
+         
               <h1
                 className={`m-0 ${KOROLEV} capitalize text-black`}
                 style={{
@@ -169,7 +175,7 @@ export default function PartnerPage() {
                     rx="9.25"
                     fill="white"
                     stroke="#C4C4C4"
-                    stroke-width="1.5"
+                    strokeWidth="1.5"
                   />
                   <path
                     d="M91.6787 105.164L99.0491 97.9888C99.3386 98.0237 100.054 98.7304 100.05 99.0837L99.9943 109.071C99.9769 112.356 97.3922 114 94.4517 114H59.274C55.8731 113.997 54 111.712 54 108.403L54.0174 54.2403C54.0174 51.6656 55.8487 49.07 58.6532 49.0665L94.4308 49C97.8492 48.993 99.7537 51.3088 99.7502 54.5901L99.7083 77.3214L92.4495 85.7766L82.7247 96.7399L81.3469 104.492C81.2422 105.09 81.3992 106.045 81.7026 106.437C82.0515 106.885 83.3944 107.381 83.9978 107.22L91.6787 105.164ZM88.5463 66.3616C89.666 66.3616 90.4125 65.3191 90.4578 64.553C90.4927 63.9863 89.8648 62.7514 89.1358 62.7514H64.5202C63.4075 62.7514 62.6052 63.8883 62.7691 64.8259C62.9331 65.7634 63.7842 66.3861 64.8271 66.3861L88.5428 66.3581L88.5463 66.3616ZM88.1871 78.182C89.5509 78.182 90.4683 77.4543 90.3288 76.1075C90.2276 75.1385 89.3835 74.4949 88.1975 74.4984L64.4644 74.5194C63.4807 74.5194 62.654 75.7227 62.7168 76.4189C62.8215 77.5488 63.6342 78.1645 64.8097 78.168L88.1836 78.1855L88.1871 78.182ZM80.5237 89.8624C81.169 89.0684 81.4341 88.1133 81.1341 87.4207C80.9074 86.8995 79.8784 86.3538 79.1703 86.3538L64.4365 86.3712C63.5016 86.3712 62.654 87.4942 62.7482 88.2953C62.8668 89.2887 63.7493 89.8694 64.7888 89.8694L80.5237 89.8624Z"
@@ -232,13 +238,13 @@ export default function PartnerPage() {
       </section>
 
       {/* 4. Become A Partner */}
-      <section className="bg-black relative py-24 sm:py-40">
+      <section className="bg-black relative py-24 sm:py-40 ">
         <div className="h-[50%] w-full bg-white absolute top-0" />
         <div className="h-[50%] w-full bg-black absolute bottom-0  " />
 
-        <div className="mx-auto max-w-[1564px] rounded-4xl px-8 py-12 sm:px-14 sm:py-16 bg-[#FEFEFE] relative border-[#C4C4C4] border-2">
-          <div className="flex flex-col items-start justify-between gap-12 lg:flex-row lg:items-center">
-            <div>
+        <div className="w-[90%] xl:w-[80%] mx-auto rounded-4xl px-8 py-12 sm:px-14 sm:py-16 bg-[#FEFEFE] relative border-[#C4C4C4] border-2">
+          <div className="flex flex-col items-center justify-between gap-12 lg:flex-row lg:items-center">
+            <div className="w-full lg:w-1/2">
               <h2
                 className={`m-0 ${KOROLEV} uppercase text-black`}
                 style={{
@@ -252,12 +258,13 @@ export default function PartnerPage() {
                 <br />A Partner
               </h2>
 
-              <a
-                href="/contact"
-                className="mt-8 inline-flex justify-between items-center gap-4 rounded-2xl bg-[#FF0000] px-7 py-6 text-white transition-transform hover:scale-105 w-full max-w-[380px] sm:w-[380px]"
+              <button
+                type="button"
+                onClick={() => setApplicationOpen(true)}
+                className="mt-8 inline-flex justify-between items-center gap-4 rounded-2xl bg-[#FF0000] px-7 py-6 text-white transition-transform hover:scale-105 w-full max-w-[380px] sm:w-[380px] cursor-pointer"
               >
                 <span className={`${INTER} text-[30px] font-semibold`}>
-                  Contact Us
+            Contact Us
                 </span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -271,173 +278,38 @@ export default function PartnerPage() {
                     fill="white"
                   />
                 </svg>
-              </a>
+              </button>
             </div>
 
-            <div className="hidden items-center gap-10 lg:flex">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="1"
-                height="356"
-                viewBox="0 0 1 356"
-                fill="none"
-                className="h-[420px] w-px shrink-0"
-                aria-hidden="true"
-              >
-                <path
-                  d="M0.5 0L0.500016 356"
-                  stroke="url(#partner_divider_gradient)"
-                />
-                <defs>
-                  <linearGradient
-                    id="partner_divider_gradient"
-                    x1="0"
-                    y1="2.18557e-08"
-                    x2="1.55613e-05"
-                    y2="356"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop stopColor="#A2A1A3" stopOpacity="0" />
-                    <stop offset="0.4904" stopColor="#3D3C3D" />
-                    <stop offset="1" stopColor="#686769" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="hidden lg:block w-px shrink-0 self-stretch">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1" height="490" viewBox="0 0 1 490" fill="none">
+  <path d="M0.5 0L0.500021 490" stroke="url(#paint0_linear_697_3103)"/>
+  <defs>
+    <linearGradient id="paint0_linear_697_3103" x1="0" y1="2.18557e-08" x2="2.14186e-05" y2="490" gradientUnits="userSpaceOnUse">
+      <stop stopColor="#A2A1A3" stopOpacity="0"/>
+      <stop offset="0.4904" stopColor="#3D3C3D"/>
+      <stop offset="1" stopColor="#686769" stopOpacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>
+            </div>
 
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 300 275"
-                fill="none"
-                className="h-[190px] w-auto shrink-0"
-                aria-hidden="true"
-              >
-                <g transform="translate(0 0)">
-                  <svg x="0" y="0" width="53" height="121" viewBox="0 0 53 121">
-                    <path
-                      d="M52.537 32.2923V27.2709C52.537 11.2091 41.6605 0 26.2685 0C10.8765 0 0 11.2091 0 27.2709V93.1951C0 109.098 10.7079 120.297 26.2685 120.297C41.8291 120.297 52.537 109.088 52.537 93.1951V87.5039H36.1523V93.6963C36.1523 102.062 31.4682 104.573 26.2781 104.573C21.0881 104.573 16.2401 102.062 16.2401 93.6963V26.7697C16.2401 18.4039 21.0929 15.7293 26.2781 15.7293C31.4634 15.7293 36.1523 18.4039 36.1523 26.7697V32.2923H52.537Z"
-                      fill="#EAEAEA"
-                    />
-                  </svg>
-                  <svg
-                    x="62"
-                    y="2"
-                    width="52"
-                    height="118"
-                    viewBox="0 0 52 118"
-                  >
-                    <path
-                      d="M35.1355 55.5634C35.1355 68.4446 29.4442 70.6228 23.088 70.6228H16.3943V15.7679H23.088C29.2804 15.7679 35.1355 18.2737 35.1355 28.8178V55.5634ZM51.1973 56.5657V28.7792C51.1973 10.038 40.4895 0 25.0975 0H0V117.97H16.3847V86.1642H23.247C25.589 91.8506 31.6128 112.264 33.9548 117.97H51.6889L38.3016 81.6632C46.1663 77.6489 51.1877 69.7843 51.1877 56.5657"
-                      fill="#EAEAEA"
-                    />
-                  </svg>
-                  <svg
-                    x="124"
-                    y="1"
-                    width="17"
-                    height="119"
-                    viewBox="0 0 17 119"
-                  >
-                    <path d="M16.2305 0H0V119.011H16.2305V0Z" fill="#EAEAEA" />
-                  </svg>
-                  <svg
-                    x="152"
-                    y="0"
-                    width="54"
-                    height="121"
-                    viewBox="0 0 54 121"
-                  >
-                    <path
-                      d="M26.6058 0.0192802C11.8789 0.0192802 1.00235 9.22362 1.00235 23.9457C1.00235 30.8032 2.00953 37.4968 9.87418 49.0432L30.9526 80.1645C35.6367 87.1906 36.8077 90.535 36.8077 95.0553C36.8077 101.243 32.2923 104.592 26.9383 104.592C21.5844 104.592 16.2305 101.913 16.2305 93.2144H0C0 110.11 11.209 120.485 26.7697 120.485C42.3303 120.485 53.0382 110.616 53.0382 95.5565C53.0382 87.1906 51.366 80.497 43.67 69.1193L22.5868 38.1474C18.7316 32.6248 17.4015 28.1094 17.4015 24.0951C17.4015 18.4039 21.5844 15.392 26.4372 15.392C31.2899 15.392 36.1427 18.2352 36.1427 26.4372H52.0455C52.0455 10.0525 41.1689 0 26.6155 0"
-                      fill="#EAEAEA"
-                    />
-                  </svg>
-                  <svg
-                    x="216"
-                    y="2"
-                    width="52"
-                    height="118"
-                    viewBox="0 0 52 118"
-                  >
-                    <path
-                      d="M35.1355 58.5608C35.1355 69.1 29.1117 71.6107 23.0879 71.6107H16.3943V15.7534H23.0879C29.2804 15.7534 35.1355 18.2593 35.1355 28.8033V58.5608ZM51.1973 58.8933V28.6106C51.1973 10.2067 40.4894 0 25.0975 0H0V117.955H16.3847V87.1714H25.0878C40.4798 87.1714 51.1877 77.2972 51.1877 58.8933"
-                      fill="#EAEAEA"
-                    />
-                  </svg>
-                  <svg
-                    x="240"
-                    y="88"
-                    width="21"
-                    height="28"
-                    viewBox="0 0 21 28"
-                  >
-                    <path
-                      d="M16.2356 11.0211L0.000274151 0V15.5269C-0.0430971 21.8976 5.06506 27.1022 11.4358 27.1745C15.2814 27.1552 18.6547 24.6059 19.7245 20.9097C20.8377 17.2039 19.4258 13.2089 16.2356 11.0211Z"
-                      fill="#E11822"
-                    />
-                  </svg>
-                  <svg
-                    x="270"
-                    y="38"
-                    width="16"
-                    height="28"
-                    viewBox="0 0 16 28"
-                  >
-                    <path
-                      d="M15.0739 0L6.0286 11.8885L13.5704 16.9822L0 27.1697V0H15.0739Z"
-                      fill="#E11822"
-                    />
-                  </svg>
-                </g>
-                <g transform="translate(0 135)">
-                  <svg
-                    x="0"
-                    y="25"
-                    width="117"
-                    height="17"
-                    viewBox="0 0 117 17"
-                  >
-                    <path d="M116.283 0H0V16.2305H116.283V0Z" fill="#EAEAEA" />
-                  </svg>
-                  <svg
-                    x="130"
-                    y="0"
-                    width="17"
-                    height="118"
-                    viewBox="0 0 17 118"
-                  >
-                    <path d="M16.2305 0H0V117.955H16.2305V0Z" fill="#EAEAEA" />
-                  </svg>
-                  <svg
-                    x="158"
-                    y="0"
-                    width="44"
-                    height="118"
-                    viewBox="0 0 44 118"
-                  >
-                    <path
-                      d="M44.0025 0H0V117.955H44.0025V102.226H16.2256V65.0809H36.9764V50.6962H16.2256V15.7245H44.0025V0Z"
-                      fill="#EAEAEA"
-                    />
-                  </svg>
-                  <svg
-                    x="214"
-                    y="0"
-                    width="54"
-                    height="121"
-                    viewBox="0 0 54 121"
-                  >
-                    <path
-                      d="M26.601 0C11.8789 0 1.00237 9.20434 1.00237 23.9265C1.00237 30.7888 2.00471 37.4824 9.86935 49.024L30.9526 80.1452C35.6367 87.1714 36.8077 90.5206 36.8077 95.036C36.8077 101.228 32.2923 104.573 26.9335 104.573C21.5748 104.573 16.2257 101.898 16.2257 93.1951H0C0 110.095 11.209 120.471 26.7697 120.471C42.3303 120.471 53.0382 110.597 53.0382 95.5372C53.0382 87.1714 51.366 80.4826 43.6652 69.1048L22.5916 38.1522C18.7364 32.6296 17.4015 28.1094 17.4015 24.0951C17.4015 18.4087 21.5844 15.3968 26.4372 15.3968C31.2899 15.3968 36.1427 18.24 36.1427 26.4372H52.0455C52.0455 10.0525 41.1737 0 26.6155 0"
-                      fill="#EAEAEA"
-                    />
-                  </svg>
-                </g>
-              </svg>
+            <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
+              <img
+                src="/images/svgLogo.svg"
+                alt="Crispies Logo"
+                className="w-full max-w-[400px] h-auto"
+              />
             </div>
           </div>
         </div>
       </section>
       <Footer />
+      {applicationOpen && (
+        <FranchiseApplicationOverlay
+          onClose={() => setApplicationOpen(false)}
+        />
+      )}
     </>
   );
 }

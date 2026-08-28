@@ -17,18 +17,24 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: false,
   },
   async headers() {
-    const connectSrc = ["'self'", apiBase].filter(Boolean).join(" ");
+    const connectSrc = [
+      "'self'",
+      apiBase,
+      "https://www.instagram.com",
+      "https://www.tiktok.com",
+    ]
+      .filter(Boolean)
+      .join(" ");
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.instagram.com https://www.tiktok.com",
+      "script-src-elem 'self' 'unsafe-inline' https://www.instagram.com https://www.tiktok.com",
       "style-src 'self' 'unsafe-inline'",
-      // basemaps.cartocdn.com = Leaflet/CARTO raster tiles (Locations map).
-      // Without this, Chrome blocks tile <img>s → blank map, markers still work.
-      "img-src 'self' https://images.unsplash.com https://res.cloudinary.com https://*.cloudinary.com https://www.zycocudi.us https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com data:",
-      "media-src 'self' https://vid.cdn-website.com",
-      "font-src 'self'",
+      "img-src 'self' data: blob: https://*.instagram.com https://*.cdninstagram.com https://*.tiktok.com https://images.unsplash.com https://res.cloudinary.com https://*.cloudinary.com https://www.zycocudi.us https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com",
+      "media-src 'self' blob: https://*.tiktokcdn.com https://vid.cdn-website.com",
+      "font-src 'self' data:",
       `connect-src ${connectSrc}`,
-      "frame-src 'none'",
+      "frame-src 'self' https://www.instagram.com https://www.tiktok.com",
       "object-src 'none'",
     ].join("; ");
     return [

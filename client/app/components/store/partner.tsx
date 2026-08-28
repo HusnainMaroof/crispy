@@ -1,5 +1,7 @@
 // partner.tsx
 
+import Link from "next/link";
+
 function ArrowIcon({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -52,8 +54,8 @@ export default function Partner() {
             </p>
 
             {/* CTA — Koulen */}
-            <button
-              type="button"
+            <Link
+              href="/franchise-inquiries"
               className="mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] transition-colors duration-200 pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
             >
               <span
@@ -70,7 +72,7 @@ export default function Partner() {
   <rect width="84" height="84" rx="15" fill="white"/>
   <path d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z" fill="#FF0000"/>
 </svg>
-            </button>
+            </Link>
           </div>
 
           {/* Right — image */}

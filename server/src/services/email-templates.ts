@@ -152,7 +152,7 @@ export function orderDeliveredEmail(order: Order): { subject: string; html: stri
 export function orderCancelledEmail(order: Order): { subject: string; html: string } {
   const content = `
     <h2 style="margin:0 0 4px;font-size:22px;color:#fff;font-weight:700">Order cancelled</h2>
-    <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6)">Your order #${order.id} has been cancelled. If you have any questions, please <a href="${BRAND.SITE}/contact" style="color:#DC2626;text-decoration:underline">contact us</a>.</p>
+    <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6)">Your order #${order.id} has been cancelled. If you have any questions, please <a href="${BRAND.SITE}/franchise-inquiries" style="color:#DC2626;text-decoration:underline">contact us</a>.</p>
     ${orderMeta(order)}
     <p style="margin:24px 0 0;font-size:13px;color:rgba(255,255,255,0.4);text-align:center">If you were charged, a refund will be processed within 3–5 business days.</p>
   `;
