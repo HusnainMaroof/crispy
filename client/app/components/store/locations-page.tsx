@@ -106,6 +106,37 @@ const mapLocations: MapLocation[] = locations.map((l) => ({
   lng: l.lng,
 }));
 
+const normalize = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+// Score a branch against the typed area/postcode. Higher is a better match,
+// 0 means no match at all.
+function scoreLocation(loc: (typeof locations)[number], query: string) {
+  const q = normalize(query);
+  if (!q) return 0;
+
+  const name = normalize(loc.name);
+  const address = normalize(loc.address);
+  const tokens = q.split(" ");
+
+  let score = 0;
+  if (name === q) score += 200;
+  if (name.includes(q)) score += 120;
+  if (address.includes(q)) score += 100;
+
+  for (const token of tokens) {
+    if (token.length < 2) continue;
+    if (name.split(" ").some((word) => word.startsWith(token))) score += 40;
+    else if (address.split(" ").some((word) => word.startsWith(token))) score += 20;
+  }
+
+  return score;
+}
+
+type SearchMessage =
+  | { type: "error"; text: string }
+  | { type: "success"; text: string; branchId: string };
+
 const INFO_CARDS = [
   {
     icon: (
@@ -391,11 +422,47 @@ function ArrowIcon({
 export default function Locations() {
   const [selectedId, setSelectedId] = useState<string>(locations[0].id);
   const [search, setSearch] = useState("");
+  const [searchMessage, setSearchMessage] = useState<SearchMessage | null>(null);
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const query = search.trim();
+    if (!query) {
+      setSearchMessage({ type: "error", text: "Enter an area or postcode to search." });
+      return;
+    }
+
+    let best: (typeof locations)[number] | null = null;
+    let bestScore = 0;
+    for (const loc of locations) {
+      const score = scoreLocation(loc, query);
+      if (score > bestScore) {
+        best = loc;
+        bestScore = score;
+      }
+    }
+
+    if (!best) {
+      setSearchMessage({
+        type: "error",
+        text: "No Crispies near that area yet. Try another area or postcode.",
+      });
+      return;
+    }
+
+    setSelectedId(best.id);
+    setSearchMessage({
+      type: "success",
+      text: `${best.name} — ${best.address}`,
+      branchId: best.id,
+    });
+  };
 
   // Left side-track acts as a custom scrollbar for the location card list
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ top: 10, height: 0});
   const draggingRef = useRef(false);
   const [maxListH, setMaxListH] = useState<number | null>(null);
@@ -484,6 +551,15 @@ export default function Locations() {
     draggingRef.current = false;
   };
 
+  // Used by the search result: bring the user to our own map, point the pin at
+  // the branch and highlight + scroll its card into view.
+  const focusBranch = (id: string) => {
+    setSelectedId(id);
+    const idx = locations.findIndex((l) => l.id === id);
+    itemRefs.current[idx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <>
       <section className="w-full bg-white">
@@ -551,7 +627,10 @@ export default function Locations() {
         </div>
 
         {/* Map + Locations List */}
-        <div className="px-6 pb-6 sm:px-10 md:px-12 xl:px-25 my-20">
+        <div
+          ref={mapSectionRef}
+          className="px-6 pb-6 sm:px-10 md:px-12 xl:px-25 my-20"
+        >
           <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:gap-20">
             {/* Left — bordered location cards */}
             <div className="flex flex-1 min-w-0 gap-5 sm:gap-10">
@@ -674,6 +753,7 @@ export default function Locations() {
                 <LocationsMap
                   locations={mapLocations}
                   selectedId={selectedId}
+                  onSelect={setSelectedId}
                 />
               </div>
             </div>
@@ -682,7 +762,8 @@ export default function Locations() {
 
         {/* Footer CTA — Can't Find Us */}
         <div className="px-6  sm:px-10 md:px-12 xl:px-25 py-20">
-          <div className="flex flex-col items-center gap-8 rounded-[30px] border-[1.5px] border-[#C4C4C4] bg-[#FDFDFD] px-6 py-8 lg:flex-row lg:justify-between xl:gap-30 lg:px-10 lg:py-10">
+          <div className="rounded-[30px] border-[1.5px] border-[#C4C4C4] bg-[#FDFDFD] px-6 py-8 lg:px-10 lg:py-10">
+            <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between xl:gap-30">
             <div className="flex  justify-between gap-20 w-full lg:w-auto  items-center">
               {" "}
               <svg
@@ -725,7 +806,10 @@ export default function Locations() {
               </div>
             </div>
 
-            <div className="flex w-full items-center gap-4 lg:contents">
+            <form
+              onSubmit={handleSearch}
+              className="flex w-full items-center gap-4 lg:contents"
+            >
               <div className="relative flex-1 rounded-[20px] border border-[#C4C4C4] bg-white h-[84px] pl-12 pr-6 font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-black outline-none placeholder:text-[#999] focus:border-[#FF0931] sm:text-[16px] flex items-center gap-6">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -743,12 +827,15 @@ export default function Locations() {
                   type="text"
                   placeholder="Enter Your Area Or Postcode"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    if (searchMessage) setSearchMessage(null);
+                  }}
                   className=" w-full outline-0 hover:border-0 placeholder:text-xl"
                 />
               </div>
               <button
-                type="button"
+                type="submit"
                 className="flex  shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FF0931] text-white transition-transform hover:scale-105"
                 aria-label="Search location"
               >
@@ -766,7 +853,34 @@ export default function Locations() {
                   />
                 </svg>
               </button>
+            </form>
             </div>
+
+            {searchMessage && (
+              <p
+                role={searchMessage.type === "error" ? "alert" : "status"}
+                className={`mt-5 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] sm:text-[16px] ${
+                  searchMessage.type === "error"
+                    ? "text-[#FF0931]"
+                    : "text-[#1F5C2E]"
+                }`}
+              >
+                {searchMessage.type === "success" ? (
+                  <>
+                    Nearest branch:{" "}
+                    <button
+                      type="button"
+                      onClick={() => focusBranch(searchMessage.branchId)}
+                      className="cursor-pointer underline underline-offset-2 transition-opacity hover:opacity-70"
+                    >
+                      {searchMessage.text}
+                    </button>
+                  </>
+                ) : (
+                  searchMessage.text
+                )}
+              </p>
+            )}
           </div>
         </div>
       </section>

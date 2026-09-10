@@ -46,10 +46,14 @@ const PIN_SVG = (num: number) => `
   >${num}</text>
 </svg>`;
 
-function pinIcon(num: number): L.DivIcon {
+function pinIcon(num: number, active = false): L.DivIcon {
   return L.divIcon({
     className: "crispy-pin-wrap",
-    html: PIN_SVG(num),
+    html: `<span style="display:block;transform:scale(${
+      active ? 1.18 : 1
+    });transform-origin:50% 100%;transition:transform 200ms ease;${
+      active ? "filter:drop-shadow(0 6px 10px rgba(0,0,0,0.45));" : ""
+    }">${PIN_SVG(num)}</span>`,
     iconSize: [52, 69],
     iconAnchor: [26, 69],
     popupAnchor: [0, -69],
@@ -74,13 +78,15 @@ type MapHostElement = HTMLDivElement & {
 export default function LocationsMap({
   locations,
   selectedId,
+  onSelect,
 }: {
   locations: MapLocation[];
   selectedId: string;
+  onSelect?: (id: string) => void;
 }) {
   const hostRef = useRef<MapHostElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const skipFirstFlyRef = useRef(true);
 
   const initialCenter: [number, number] = locations[0]
@@ -136,16 +142,17 @@ export default function LocationsMap({
 
     setMapEpoch((e) => e + 1);
 
+    const markers = markersRef.current;
     return () => {
       cancelled = true;
-      if (markerRef.current) {
+      markers.forEach((marker) => {
         try {
-          markerRef.current.remove();
+          marker.remove();
         } catch {
           /* ignore */
         }
-        markerRef.current = null;
-      }
+      });
+      markers.clear();
       try {
         map.remove();
       } catch {
@@ -155,34 +162,37 @@ export default function LocationsMap({
       if (el.__crispyMap === map) el.__crispyMap = undefined;
       delete el._leaflet_id;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep exactly one marker on the map: the selected location's pin.
+  // Render every branch as a pin; the selected one is enlarged and raised.
+  // Clicking a pin selects that branch, which bubbles up to the card list.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapAlive(map) || !selected) return;
+    if (!map || !isMapAlive(map)) return;
 
-    if (markerRef.current) {
+    markersRef.current.forEach((marker) => {
       try {
-        markerRef.current.remove();
+        marker.remove();
       } catch {
         /* ignore */
       }
-      markerRef.current = null;
-    }
+    });
+    markersRef.current.clear();
 
-    const idx = locations.findIndex((l) => l.id === selected.id);
-    try {
-      markerRef.current = L.marker([selected.lat, selected.lng], {
-        icon: pinIcon(idx + 1),
-        zIndexOffset: 1000,
-      }).addTo(map);
-    } catch {
-      /* map torn down mid-update */
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapEpoch, selected?.id]);
+    locations.forEach((loc, i) => {
+      const active = loc.id === selectedId;
+      try {
+        const marker = L.marker([loc.lat, loc.lng], {
+          icon: pinIcon(i + 1, active),
+          zIndexOffset: active ? 1000 : 0,
+        }).addTo(map);
+        marker.on("click", () => onSelect?.(loc.id));
+        markersRef.current.set(loc.id, marker);
+      } catch {
+        /* map torn down mid-update */
+      }
+    });
+  }, [mapEpoch, locations, selectedId, onSelect]);
 
   // Fly to the selection, skipping the initial mount.
   useEffect(() => {

@@ -210,6 +210,18 @@ export default function FranchiseApplicationOverlay({
   const set = (key: keyof typeof EMPTY_FORM) => (v: string) =>
     setForm((f) => ({ ...f, [key]: v }));
 
+  const textFieldsFilled = [
+    form.fullName,
+    form.email,
+    form.phone,
+    form.dob,
+    form.city,
+    form.occupation,
+    form.vision,
+  ].every((v) => v.trim() !== "");
+
+  const canSubmit = textFieldsFilled && confirmAccurate && agreeComms;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirmAccurate || !agreeComms) {
@@ -239,12 +251,11 @@ export default function FranchiseApplicationOverlay({
         data-lenis-prevent
         className="loc-scroll relative flex h-full min-h-screen w-full flex-col items-center overflow-y-auto px-4 py-10 text-center sm:px-10 sm:py-14"
       >
-        {/* Close */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Close franchise application"
-          className="fixed right-4 top-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-[#FF0931]"
+          className="fixed right-[5%] md:right-[15%] lg:right-[18%] xl:right-[20%]  top-5 md:top-[10%] z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#161616] text-white transition-colors hover:bg-[#FF0931]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -335,7 +346,7 @@ export default function FranchiseApplicationOverlay({
         {/* ---------- Application form ---------- */}
         <form
           onSubmit={handleSubmit}
-          className="mt-12 w-fit rounded-[20px] bg-white px-5 py-9 text-left sm:mt-16 sm:px-12 sm:py-14"
+          className="relative mt-12 w-fit rounded-[20px] bg-white px-5 py-9 text-left sm:mt-16 sm:px-12 sm:py-14"
         >
           <div className="mx-auto flex max-w-[820px] flex-col gap-12 sm:gap-14">
             {/* 01 — Personal Information */}
@@ -483,9 +494,7 @@ export default function FranchiseApplicationOverlay({
                   onChange={(e) => setConfirmAccurate(e.target.checked)}
                   className=" hidden"
                 />
-                <span
-                  className="h-5 w-5 shrink-0 cursor-pointer rounded border-2 border-[#FF0931] flex items-center justify-center"
-                >
+                <span className="h-5 w-5 shrink-0 cursor-pointer rounded border-2 border-[#FF0931] flex items-center justify-center">
                   {confirmAccurate && <Check className="text-[#FF0931]" />}
                 </span>
                 <span
@@ -503,10 +512,7 @@ export default function FranchiseApplicationOverlay({
                   className="hidden"
                 />
 
-                <span
-               
-                  className="h-5 w-5 shrink-0 cursor-pointer rounded border-2 border-[#FF0931] flex items-center justify-center"
-                >
+                <span className="h-5 w-5 shrink-0 cursor-pointer rounded border-2 border-[#FF0931] flex items-center justify-center">
                   {agreeComms && <Check className="text-[#FF0931]" />}
                 </span>
 
@@ -522,7 +528,12 @@ export default function FranchiseApplicationOverlay({
             {/* Submit */}
             <button
               type="submit"
-              className="group flex w-full cursor-pointer items-center justify-between gap-6 rounded-[14px] bg-[#FF0931] px-6 py-6 text-white transition-colors hover:bg-[#E0082C] sm:px-9 sm:py-7"
+              disabled={!canSubmit}
+              className={`group flex w-full items-center justify-between gap-6 rounded-[14px] px-6 py-6 text-white transition-colors sm:px-9 sm:py-7 ${
+                canSubmit
+                  ? "cursor-pointer bg-[#FF0931] hover:bg-[#E0082C]"
+                  : "cursor-not-allowed bg-[#B8B8B8]"
+              }`}
             >
               <span
                 className={`uppercase ${KOROLEV}`}

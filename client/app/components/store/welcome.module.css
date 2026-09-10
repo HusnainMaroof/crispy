@@ -1,0 +1,22 @@
+/* Scroll-pinned wrapper for the "Welcome to Crispies" section.
+   The outer box is 3 screens tall to give the pinned panel "fake scroll
+   time"; the panel sticks just below the navbar for that whole range while
+   the scroll progress drives the text reveal and the image slide. */
+
+.outer {
+  position: relative;
+  z-index: 10;
+  height: 300vh;
+  /* Breathing room kept above the panel so it never sits flush against the
+     very top of the viewport. */
+  --panel-inset: clamp(20px, 3vw, 40px);
+}
+
+.panel {
+  position: sticky;
+  top: calc(var(--navbar-h, 0px) + var(--panel-inset));
+  /* Shortened by the inset so the panel no longer fills the screen top to
+     bottom — the space above is what keeps it from feeling full-bleed. */
+  height: calc(100dvh - var(--navbar-h, 0px) - var(--panel-inset));
+  min-height: 480px;
+}

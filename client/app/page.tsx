@@ -12,8 +12,13 @@ const Page = () => {
   return (
     <div>
       <Navbar />
-      <Hero />
-      <Welcome />
+      {/* Hero + Welcome share one positioning context so the hero stays
+          pinned exactly as long as the pinned Welcome panel is on screen,
+          then scrolls away with it. */}
+      <div className="relative">
+        <Hero />
+        <Welcome />
+      </div>
       <Flavours />
       <Locations />
       <Partner />

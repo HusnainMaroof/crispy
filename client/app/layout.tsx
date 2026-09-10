@@ -78,15 +78,24 @@ export const metadata: Metadata = {
       "100% halal smash burgers and crispy chicken, delivered across London. Order delivery or click & collect.",
     url: "https://crispies.co.uk",
     locale: "en_GB",
+    images: [
+      {
+        url: "/images/og-logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Crispies",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Crispies — Halal Burgers & Chicken in London",
     description:
       "100% halal smash burgers and crispy chicken, delivered across London.",
+    images: ["/images/og-logo.png"],
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: "/images/blacksvglogo.svg",
   },
 };
 

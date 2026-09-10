@@ -328,12 +328,19 @@ export default function Navbar() {
           </div>
 
           <div className=" flex items-center gap-8">
-            <PillButton
-              variant="filled"
-              icon={<BagIcon className="h-4 w-3.5 2xl:h-5 2xl:w-4" />}
-              lines={["Click", "& Collect"]}
-              className="w-[150px] 2xl:w-[160px] justify-center"
-            />
+            <button
+              type="button"
+              onClick={() => setDeliveryOpen(true)}
+              aria-haspopup="dialog"
+              className="cursor-pointer"
+            >
+              <PillButton
+                variant="filled"
+                icon={<BagIcon className="h-4 w-3.5 2xl:h-5 2xl:w-4" />}
+                lines={["Click", "& Collect"]}
+                className="w-[150px] 2xl:w-[160px] justify-center"
+              />
+            </button>
             <button
               type="button"
               onClick={() => setDeliveryOpen(true)}
@@ -404,12 +411,22 @@ export default function Navbar() {
                 style={{ animationDelay: `${0.05 + NAV_LINKS.length * 0.08}s` }}
                 className="menu-item mt-2 flex flex-col gap-2.5"
               >
-                <PillButton
-                  variant="filled"
-                  icon={<BagIcon className="h-4 w-3.5" />}
-                  lines={["Click", "& Collect"]}
-                  className="w-full justify-center"
-                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setDeliveryOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  className="cursor-pointer"
+                >
+                  <PillButton
+                    variant="filled"
+                    icon={<BagIcon className="h-4 w-3.5" />}
+                    lines={["Click", "& Collect"]}
+                    className="w-full justify-center"
+                  />
+                </button>
                 <button
                   type="button"
                   onClick={() => {

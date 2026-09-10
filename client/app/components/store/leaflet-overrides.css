@@ -20,5 +20,6 @@
 .crispy-pin-wrap {
   background: none !important;
   border: none !important;
+  cursor: pointer;
 }
 

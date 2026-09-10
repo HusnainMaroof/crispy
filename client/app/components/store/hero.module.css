@@ -1,5 +1,6 @@
 .heroFrame {
-  position: relative;
+  position: sticky;
+  top: var(--navbar-h, 0px);
   width: 100%;
   height: calc(100vh - var(--navbar-h));
   height: calc(100dvh - var(--navbar-h));
