@@ -101,7 +101,7 @@ export default function Welcome() {
         // section is never left half-revealed for no-JS visitors.
         style={{ "--p": "1" } as React.CSSProperties}
       >
-        <div className="relative z-10 mx-auto flex max-w-8xl flex-col items-center gap-10 md:flex-row md:items-center md:gap-16 lg:gap-24">
+        <div className="relative z-10 mx-auto flex w-full flex-col items-center gap-10 md:flex-row md:items-center md:gap-16 lg:gap-24">
           {/* Text Content */}
 
           <div className="flex-1 text-center md:text-left">
@@ -149,7 +149,7 @@ export default function Welcome() {
                 style={{
                   background:
                     "url('/images/aboutimage.jpg') lightgray 50% / cover no-repeat",
-                  transform: "rotate(calc(-6deg + 6deg * var(--p)))",
+                
                   filter: `blur(calc(8px * ${BLUR_PROGRESS}))`,
                   opacity: `calc(1 - 0.3 * ${BLUR_PROGRESS})`,
                 }}
