@@ -22,6 +22,8 @@ const nextConfig: NextConfig = {
       apiBase,
       "https://www.instagram.com",
       "https://www.tiktok.com",
+      "https://api.postcodes.io",
+      "https://nominatim.openstreetmap.org",
     ]
       .filter(Boolean)
       .join(" ");

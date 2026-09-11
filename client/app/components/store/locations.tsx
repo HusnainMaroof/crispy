@@ -4,6 +4,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { SVGProps, useState } from "react";
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 import type { MapLocation } from "./locations-map";
 
 const LocationsMap = dynamic(() => import("./locations-map"), {
@@ -208,16 +209,22 @@ function BuildingIcon({ className = "" }: { className?: string }) {
 
 export default function Locations() {
   const [selectedId, setSelectedId] = useState<string>(locations[0].id);
+  const scopeRef = useScrollReveal();
 
   return (
-    <section className="relative w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 2xl:px-40 lg:py-28">
-      <div className="absolute translate-x-[-50%] left-[50%] translate-y-[-50%] top-0 ">
-        <LocationPinIcon />
+    <section
+      ref={scopeRef}
+      className="relative w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 2xl:px-40 lg:py-28"
+    >
+      <div className="absolute left-[50%] top-0 translate-x-[-50%] translate-y-[-50%]">
+        <div className="fade-up">
+          <LocationPinIcon />
+        </div>
       </div>
       <div className="mx-auto ">
         {/* Headline */}
         <h2
-          className="m-0 text-center uppercase font-semibold leading-[100%] tracking-[0.54px]"
+          className="fade-up m-0 text-center uppercase font-semibold leading-[100%] tracking-[0.54px]"
           style={{
             fontFamily: "var(--font-korolev), Korolev, sans-serif",
             fontSize: "clamp(36px, 7vw, 80px)",
@@ -269,7 +276,9 @@ export default function Locations() {
                         setSelectedId(loc.id);
                       }
                     }}
-                    className="loc-row cursor-pointer border-b border-[#EAEAEA] py-4 sm:py-5 md:py-[22px] hover:bg-gray-50 transition-colors duration-200"
+                    className="loc-row fade-up cursor-pointer border-b border-[#EAEAEA] py-4 sm:py-5 md:py-[22px] hover:bg-gray-50 transition-colors duration-200"
+                    data-reveal="lift"
+                    data-delay={String(i * 0.06)}
                   >
                     <div
                       className="loc-slide grid items-center gap-x-2 sm:gap-x-3 md:gap-x-5"
@@ -384,7 +393,8 @@ export default function Locations() {
             {/* View all CTA — links to the locations page */}
             <Link
               href="/locations"
-              className="mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] transition-colors duration-200 pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
+              className="group micro-elevate fade-up mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
+              data-delay="0.22"
             >
               <span
                 className="uppercase font-normal leading-none tracking-[0.54px]"
@@ -395,7 +405,7 @@ export default function Locations() {
               >
                 View All 10+ Location
               </span>
-              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0">
+              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="84"
@@ -414,8 +424,11 @@ export default function Locations() {
           </div>
 
           {/* Right — real map card */}
-          <div className="w-full lg:w-[420px] xl:w-[40%] shrink-0">
-            <div className="relative h-full w-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
+          <div
+            className="fade-up w-full lg:w-[420px] xl:w-[40%] shrink-0"
+            data-delay="0.1"
+          >
+            <div className="micro-elevate relative h-full w-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
               <LocationsMap locations={mapLocations} selectedId={selectedId} />
 
               {/* Bottom banner — sits above the map tiles */}

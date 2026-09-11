@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
 import Image from "next/image";
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 const SOCIAL_POSTS = [
   {
@@ -38,6 +39,7 @@ const SOCIAL_POSTS = [
 export default function Instagram() {
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
+  const scopeRef = useScrollReveal();
 
   useEffect(() => {
     if (!trackRef.current) return;
@@ -61,9 +63,9 @@ export default function Instagram() {
   const handleMouseLeave = () => animRef.current?.resume();
 
   return (
-    <section className="overflow-hidden w-full bg-[#FF0931] rounded-b-3xl lg:rounded-b-[50px]">
+    <section ref={scopeRef} className="overflow-hidden w-full bg-[#FF0931] rounded-b-3xl lg:rounded-b-[50px]">
       <div className="px-6 py-16 bg-white rounded-3xl lg:rounded-[50px]">
-        <div className="flex items-start justify-center gap-40 mx-auto px-6 py-8 sm:px-10 sm:py-10">
+        <div className="fade-up flex items-start justify-center gap-40 mx-auto px-6 py-8 sm:px-10 sm:py-10">
           <div className="flex items-start gap-20">
             <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-full bg-black sm:h-[85px] sm:w-[85px]">
               <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
@@ -129,14 +131,15 @@ export default function Instagram() {
 
           <button
             type="button"
-            className="shrink-0 rounded-[5px] bg-[#FF0931] px-5 py-1.5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-semibold text-white transition-colors hover:bg-[#E0082C]"
+            className="micro-elevate shrink-0 rounded-[5px] bg-[#FF0931] px-5 py-1.5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-semibold text-white hover:bg-[#E0082C]"
           >
             Follow
           </button>
         </div>
 
         <div
-          className="relative pb-10"
+          className="fade-up relative pb-10"
+          data-delay="0.1"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >

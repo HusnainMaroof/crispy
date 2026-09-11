@@ -1,4 +1,7 @@
 // footer.tsx
+"use client";
+
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 const quickLinks = [
   { label: "Menu", href: "/menu" },
@@ -74,15 +77,20 @@ const socials = [
 ];
 
 export default function Footer() {
+  const scopeRef = useScrollReveal();
+
   return (
-    <footer className="relative w-full bg-black">
+    <footer ref={scopeRef} className="relative w-full bg-black">
       {/* Top red line */}
 
       <div className="mx-auto  px-5 sm:px-6 xl:px-10 pt-12 sm:pt-14 md:pt-16 pb-0">
         {/* Main grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-8 lg:gap-0">
           {/* Logo */}
-          <div className="flex items-start justify-start lg:justify-center lg:border-r lg:border-white/10 lg:pr-8">
+          <div
+            className="fade-up flex items-start justify-start lg:justify-center lg:border-r lg:border-white/10 lg:pr-8"
+            data-reveal="lift"
+          >
             <a
               href="/"
               className="block w-[120px] h-[120px] sm:w-[130px] sm:h-[130px] md:w-[140px] md:h-[140px]  overflow-hidden transition-transform duration-300 hover:scale-[1.04] will-change-transform"
@@ -98,7 +106,11 @@ export default function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div className="lg:border-r lg:border-white/10 lg:px-8 xl:px-10">
+          <div
+            className="fade-up lg:border-r lg:border-white/10 lg:px-8 xl:px-10"
+            data-reveal="lift"
+            data-delay="0.06"
+          >
             <h3
               className="m-0 text-[#FF0931] uppercase font-normal leading-[100%] tracking-[0.04em]"
               style={{
@@ -127,7 +139,11 @@ export default function Footer() {
           </div>
 
           {/* Get In Touch */}
-          <div className="lg:border-r lg:border-white/10 lg:px-8 xl:px-10">
+          <div
+            className="fade-up lg:border-r lg:border-white/10 lg:px-8 xl:px-10"
+            data-reveal="lift"
+            data-delay="0.12"
+          >
             <h3
               className="m-0 text-[#FF0931] uppercase font-normal leading-[100%] tracking-[0.04em]"
               style={{
@@ -166,7 +182,11 @@ export default function Footer() {
           </div>
 
           {/* Socials */}
-          <div className="lg:pl-8 xl:pl-10">
+          <div
+            className="fade-up lg:pl-8 xl:pl-10"
+            data-reveal="lift"
+            data-delay="0.18"
+          >
             <h3
               className="m-0 text-[#FF0931] uppercase font-normal leading-[110%] tracking-[0.04em]"
               style={{

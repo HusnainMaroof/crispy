@@ -1,6 +1,8 @@
 // partner.tsx
+"use client";
 
 import Link from "next/link";
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 function ArrowIcon({ className = "" }: { className?: string }) {
   return (
@@ -22,15 +24,20 @@ function ArrowIcon({ className = "" }: { className?: string }) {
 }
 
 export default function Partner() {
+  const scopeRef = useScrollReveal();
+
   return (
-    <section className="relative w-full bg-[#FF0931] px-6 py-14 sm:px-10 sm:py-16 md:px-14 md:py-20 lg:px-20 lg:py-24">
+    <section
+      ref={scopeRef}
+      className="relative w-full bg-[#FF0931] px-6 py-14 sm:px-10 sm:py-16 md:px-14 md:py-20 lg:px-20 lg:py-24"
+    >
       <div className="mx-auto ">
         <div className="flex flex-col lg:flex-row items-center lg:items-center gap-10 sm:gap-12 lg:gap-14 xl:gap-20">
           {/* Left — copy + CTA */}
           <div className="flex-1 min-w-0 w-full text-left">
             {/* Headline — Koulen */}
             <h2
-              className="m-0 text-[#FFF] capitalize font-bold leading-[100%] tracking-[0.02em]"
+              className="fade-up m-0 text-[#FFF] capitalize font-bold leading-[100%] tracking-[0.02em]"
               style={{
                 fontFamily:
                   "var(--font-korolev), Korolev, sans-serif",
@@ -44,7 +51,8 @@ export default function Partner() {
 
             {/* Subcopy — Inter */}
             <p
-              className="m-0 mt-4 sm:mt-5 md:mt-6 text-[#FFF] font-normal leading-[140%] tracking-[0.02em] max-w-[1100px]"
+              className="fade-up m-0 mt-4 sm:mt-5 md:mt-6 text-[#FFF] font-normal leading-[140%] tracking-[0.02em] max-w-[1100px]"
+              data-delay="0.08"
               style={{
                 fontFamily: "var(--font-inter), Inter, sans-serif",
                 fontSize: "clamp(14px, 2.5vw, 30px)",
@@ -56,7 +64,8 @@ export default function Partner() {
             {/* CTA — Koulen */}
             <Link
               href="/franchise-inquiries"
-              className="mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] transition-colors duration-200 pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
+              className="group micro-elevate fade-up mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
+              data-delay="0.14"
             >
               <span
                 className="text-[#FFF] capitalize font-normal leading-[100%] tracking-[0.04em] whitespace-nowrap overflow-hidden"
@@ -68,7 +77,7 @@ export default function Partner() {
               >
                 Become A Partner
               </span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="84" height="84" viewBox="0 0 84 84" fill="none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="84" height="84" viewBox="0 0 84 84" fill="none" className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
   <rect width="84" height="84" rx="15" fill="white"/>
   <path d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z" fill="#FF0000"/>
 </svg>
@@ -76,12 +85,15 @@ export default function Partner() {
           </div>
 
           {/* Right — image */}
-          <div className="w-full lg:w-[46%] xl:w-[44%] shrink-0">
+          <div
+            className="fade-up w-full lg:w-[46%] xl:w-[44%] shrink-0"
+            data-delay="0.1"
+          >
             <div className="relative w-full overflow-hidden rounded-[20px] sm:rounded-[24px] md:rounded-[28px] aspect-[4/3] sm:aspect-[5/4] lg:aspect-[4/3.4]">
               <img
                 src="/images/partnerImages.jpg"
                 alt="Crispies team outside store"
-                className="absolute inset-0 w-full h-full object-cover object-center"
+                className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out hover:scale-[1.04]"
                 draggable={false}
               />
             </div>

@@ -5,7 +5,7 @@ import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
 import HowToGetStarted from "@/app/components/store/how-to-get-started";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, FilePenLine } from "lucide-react";
 import Image from "next/image";
 
 const KOROLEV = "font-[family-name:var(--font-korolev),Korolev,sans-serif]";
@@ -112,9 +112,7 @@ export default function PartnerPage() {
                 src="/images/partnerImages.jpg"
                 alt="The Crispies team celebrating a store opening"
                 className="w-full rounded-[50px] object-cover   lg:w-[420px] xl:h-[500px] xl:w-[685px]"
-                style={{
-
-                }}
+                style={{}}
               />
             </div>
           </div>
@@ -144,17 +142,27 @@ export default function PartnerPage() {
       <section className="bg-[#FF0931] w-full">
         <HowToGetStarted
           heading={
-            <h2
-              className={`m-0 shrink-0 ${KOROLEV} capitalize`}
-              style={{
-                fontSize: "clamp(44px, 10vw, 150px)",
-                fontWeight: 900,
-                lineHeight: "100%",
-              }}
-            >
-              <span className="block text-black"> How To Get</span>
-              <span className="block text-white">Started?</span>
-            </h2>
+            <div className=" flex items-center justify-between gap-6 sm:gap-12  lg:gap-0">
+              <h2
+                className={`m-0 shrink-0 ${KOROLEV} capitalize  text-[44px] sm:text-[70px] md:text-[80px] lg:text-[100px]  xl:text-[135px] 2xl:text-[150px]`}
+                style={{
+                  fontWeight: 900,
+                  lineHeight: "100%",
+                }}
+              >
+                <span className="lg:block text-black"> How To Get</span>
+                <span className="lg:block text-white pl-3 lg:pl-0">
+                  Started?
+                </span>
+              </h2>
+
+              <div className="  p-5   rounded-[10px] max-sm:translate-x-0 bg-white lg:hidden  ">
+                <FilePenLine
+                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-[162px] lg:h-[162px] text-black "
+                  strokeWidth={1.5}
+                />
+              </div>
+            </div>
           }
           items={GET_STARTED_ITEMS}
         />
@@ -166,7 +174,7 @@ export default function PartnerPage() {
         <div className="h-[50%] w-full bg-black absolute bottom-0  " />
 
         <div className="w-[90%] xl:w-[80%] mx-auto rounded-4xl px-8 py-12 sm:px-14 sm:py-16 bg-[#FEFEFE] relative border-[#C4C4C4] border-2">
-          <div className="flex flex-col items-center justify-between gap-12 lg:flex-row lg:items-center">
+          <div className="flex  items-center justify-between gap-12  lg:items-center">
             <div className="w-full lg:w-1/2">
               <h2
                 className={`m-0 ${KOROLEV} uppercase text-black`}
@@ -184,44 +192,48 @@ export default function PartnerPage() {
               <button
                 type="button"
                 onClick={() => setApplicationOpen(true)}
-                className="mt-8 inline-flex justify-between items-center gap-4 rounded-2xl bg-[#FF0000] px-7 py-6 text-white transition-transform hover:scale-105 w-full max-w-[380px] sm:w-[380px] cursor-pointer"
+                className="mt-8 inline-flex justify-between items-center gap-4 rounded-[10px] lg:rounded-2xl bg-[#FF0000]  px-2 py-3 lg:px-7 lg:py-6 text-white transition-transform hover:scale-105  w-fit  lg:w-[380px] cursor-pointer"
               >
-                <span className={`${INTER} text-[30px] font-semibold`}>
+                <span
+                  className={`${INTER}  lg:text-[30px] font-semibold text-nowrap`}
+                >
                   Contact Us
                 </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="33"
-                  height="33"
-                  viewBox="0 0 33 33"
-                  fill="none"
-                >
-                  <path
-                    d="M3.36031 33L0 29.6441L24.9869 4.64668H5.68668L5.72977 0H33V27.2777H28.3042L28.3473 8.00261L3.36031 33Z"
-                    fill="white"
-                  />
-                </svg>
+                <div className="flex items-center justify-center w-[10px] lg:w-auto">
+                  {" "}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="33"
+                    height="33"
+                    viewBox="0 0 33 33"
+                    fill="none"
+                  >
+                    <path
+                      d="M3.36031 33L0 29.6441L24.9869 4.64668H5.68668L5.72977 0H33V27.2777H28.3042L28.3473 8.00261L3.36031 33Z"
+                      fill="white"
+                    />
+                  </svg>
+                </div>
               </button>
             </div>
 
-            <div className="hidden lg:block w-px shrink-0 self-stretch">
+            <div className="h-[clamp(10px,20vw,490px)] w-px shrink-0 self-stretch">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="1"
-                height="490"
+                width="100%"
+                height="100%"
                 viewBox="0 0 1 490"
+                preserveAspectRatio="none"
                 fill="none"
               >
-                <path
-                  d="M0.5 0L0.500021 490"
-                  stroke="url(#paint0_linear_697_3103)"
-                />
+                <path d="M0.5 0V490" stroke="url(#paint0_linear_697_3103)" />
+
                 <defs>
                   <linearGradient
                     id="paint0_linear_697_3103"
                     x1="0"
-                    y1="2.18557e-08"
-                    x2="2.14186e-05"
+                    y1="0"
+                    x2="0"
                     y2="490"
                     gradientUnits="userSpaceOnUse"
                   >
@@ -237,7 +249,7 @@ export default function PartnerPage() {
               <img
                 src="/images/svgLogo.svg"
                 alt="Crispies Logo"
-                className="w-full max-w-[400px] h-auto"
+                className="w-[220px ]      sm:w-[280px]  md:w-[300px]  lg:w-[480px] xl:max-w-[520px] h-auto"
               />
             </div>
           </div>

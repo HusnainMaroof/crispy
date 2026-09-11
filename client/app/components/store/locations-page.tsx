@@ -3,6 +3,8 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { resolveNearestBranch } from "@/lib/location-search";
+import { useLenis } from "@/app/components/providers/smooth-scroll";
 import type { MapLocation } from "./locations-map";
 import Footer from "@/app/components/store/footer";
 
@@ -20,82 +22,91 @@ const locations = [
     id: "harrow-road",
     name: "Harrow Road",
     address: "412 Harrow Road, London W9 2HU",
+    postcode: "W9 2HU",
     status: "open" as const,
     hours: "11:00 AM – 11:00 PM",
-    lat: 51.5259,
-    lng: -0.1950,
+    lat: 51.523411,
+    lng: -0.196294,
   },
   {
     id: "tower-hill",
     name: "Tower Hill",
     address: "Unit 2, Tower Hill Terrace, London EC3N 4EE",
+    postcode: "EC3N 4EE",
     status: "open" as const,
     hours: "11:00 AM – 11:00 PM",
-    lat: 51.5098,
-    lng: -0.0759,
+    lat: 51.509201,
+    lng: -0.078397,
   },
   {
     id: "kilburn",
     name: "Kilburn",
     address: "302 Kilburn High Rd, Kilburn, London NW6 2DB",
+    postcode: "NW6 2DB",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.5371,
-    lng: -0.1920,
+    lat: 51.544201,
+    lng: -0.200361,
   },
   {
     id: "harrow",
     name: "Harrow",
     address: "253 Station Rd, Harrow, London HA1 2TB",
+    postcode: "HA1 2TB",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.5793,
-    lng: -0.3352,
+    lat: 51.583105,
+    lng: -0.332066,
   },
   {
     id: "elephant-and-castle",
     name: "Elephant & Castle",
     address: "345 Walworth Rd, Elephant & Castle, London SE17 2NA",
+    postcode: "SE17 2NA",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.4864,
-    lng: -0.0986,
+    lat: 51.48606,
+    lng: -0.094754,
   },
   {
     id: "edgware-road",
     name: "Edgware Road",
-    address: "340 Edgware Rd, Westminister, London W2 1EA",
+    address: "340 Edgware Rd, Westminster, London W2 1EA",
+    postcode: "W2 1EA",
     status: "open" as const,
     hours: "11:00 AM – 11:00 PM",
-    lat: 51.5218,
-    lng: -0.1670,
+    lat: 51.52107,
+    lng: -0.171146,
   },
   {
     id: "stockwell",
     name: "Stockwell",
     address: "314 Clapham Rd, Lambeth, London SW9 9AE",
+    postcode: "SW9 9AE",
     status: "open" as const,
     hours: "9:00 AM – 11:00 PM",
-    lat: 51.4726,
-    lng: -0.1180,
+    lat: 51.470752,
+    lng: -0.124765,
   },
   {
     id: "wembley-central",
     name: "Wembley Central",
     address: "421 High Rd, Wembley, London HA9 7AB",
+    postcode: "HA9 7AB",
     status: "closed" as const,
     hours: "Coming Soon",
-    lat: 51.5520,
-    lng: -0.2956,
+    lat: 51.553282,
+    lng: -0.29421,
   },
   {
     id: "ruislip",
     name: "Ruislip",
     address: "77 Victoria Road, Ruislip, London HA4 9BH",
+    postcode: "HA4 9BH",
     status: "closed" as const,
     hours: "Coming Soon",
-    lat: 51.5767,
-    lng: -0.4134,
+    lat: 51.571683,
+    lng: -0.411649,
   },
 ];
 
@@ -106,36 +117,14 @@ const mapLocations: MapLocation[] = locations.map((l) => ({
   lng: l.lng,
 }));
 
-const normalize = (value: string) =>
-  value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-
-// Score a branch against the typed area/postcode. Higher is a better match,
-// 0 means no match at all.
-function scoreLocation(loc: (typeof locations)[number], query: string) {
-  const q = normalize(query);
-  if (!q) return 0;
-
-  const name = normalize(loc.name);
-  const address = normalize(loc.address);
-  const tokens = q.split(" ");
-
-  let score = 0;
-  if (name === q) score += 200;
-  if (name.includes(q)) score += 120;
-  if (address.includes(q)) score += 100;
-
-  for (const token of tokens) {
-    if (token.length < 2) continue;
-    if (name.split(" ").some((word) => word.startsWith(token))) score += 40;
-    else if (address.split(" ").some((word) => word.startsWith(token))) score += 20;
-  }
-
-  return score;
-}
-
 type SearchMessage =
   | { type: "error"; text: string }
-  | { type: "success"; text: string; branchId: string };
+  | {
+      type: "success";
+      text: string;
+      branchId: string;
+      prefix: string;
+    };
 
 const INFO_CARDS = [
   {
@@ -422,9 +411,51 @@ function ArrowIcon({
 export default function Locations() {
   const [selectedId, setSelectedId] = useState<string>(locations[0].id);
   const [search, setSearch] = useState("");
+  const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState<SearchMessage | null>(null);
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
+  const lenis = useLenis();
+
+  const navbarOffset = () => {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(
+      "--navbar-h",
+    );
+    const height = parseFloat(raw);
+    return -(Number.isFinite(height) && height > 0 ? height + 12 : 100);
+  };
+
+  const scrollListToBranch = (id: string) => {
+    const idx = locations.findIndex((l) => l.id === id);
+    const sc = scrollRef.current;
+    const el = itemRefs.current[idx];
+    if (!sc || !el) return;
+    const next =
+      sc.scrollTop +
+      el.getBoundingClientRect().top -
+      sc.getBoundingClientRect().top -
+      8;
+    sc.scrollTo({ top: Math.max(0, next), behavior: "smooth" });
+  };
+
+  const scrollPageToMap = () => {
+    const section = mapSectionRef.current;
+    if (!section) return;
+    lenis.scrollTo(section, { offset: navbarOffset() });
+  };
+
+  const revealBranch = (id: string) => {
+    setSelectedId(id);
+    window.setTimeout(() => {
+      scrollListToBranch(id);
+      scrollPageToMap();
+    }, 80);
+  };
+
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const query = search.trim();
     if (!query) {
@@ -432,37 +463,38 @@ export default function Locations() {
       return;
     }
 
-    let best: (typeof locations)[number] | null = null;
-    let bestScore = 0;
-    for (const loc of locations) {
-      const score = scoreLocation(loc, query);
-      if (score > bestScore) {
-        best = loc;
-        bestScore = score;
+    setSearching(true);
+    try {
+      const result = await resolveNearestBranch(query, locations);
+      if ("error" in result) {
+        setSearchMessage({ type: "error", text: result.error });
+        return;
       }
-    }
 
-    if (!best) {
+      const distanceText =
+        result.distanceMiles != null
+          ? ` (${result.distanceMiles.toFixed(1)} mi away)`
+          : "";
+
+      const prefix =
+        result.via === "suggest"
+          ? "Did you mean this location? "
+          : result.via === "name"
+            ? "Matching branch: "
+            : `Nearest Crispies to ${result.searchedLabel}: `;
+
       setSearchMessage({
-        type: "error",
-        text: "No Crispies near that area yet. Try another area or postcode.",
+        type: "success",
+        text: `${result.branch.name} — ${result.branch.address}${distanceText}`,
+        branchId: result.branch.id,
+        prefix,
       });
-      return;
+      revealBranch(result.branch.id);
+    } finally {
+      setSearching(false);
     }
-
-    setSelectedId(best.id);
-    setSearchMessage({
-      type: "success",
-      text: `${best.name} — ${best.address}`,
-      branchId: best.id,
-    });
   };
 
-  // Left side-track acts as a custom scrollbar for the location card list
-  const trackRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const mapSectionRef = useRef<HTMLDivElement>(null);
   const [indicator, setIndicator] = useState({ top: 10, height: 0});
   const draggingRef = useRef(false);
   const [maxListH, setMaxListH] = useState<number | null>(null);
@@ -513,11 +545,9 @@ export default function Locations() {
     };
   }, [maxListH]);
 
-  // Keep the selected card visible inside the scroll container
+  // Keep the selected card visible inside the list, without moving the page
   useEffect(() => {
-    const idx = locations.findIndex((l) => l.id === selectedId);
-    const el = itemRefs.current[idx];
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    scrollListToBranch(selectedId);
   }, [selectedId]);
 
   // Drag / click on the track to scroll the list
@@ -549,15 +579,6 @@ export default function Locations() {
 
   const endDrag = () => {
     draggingRef.current = false;
-  };
-
-  // Used by the search result: bring the user to our own map, point the pin at
-  // the branch and highlight + scroll its card into view.
-  const focusBranch = (id: string) => {
-    setSelectedId(id);
-    const idx = locations.findIndex((l) => l.id === id);
-    itemRefs.current[idx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -628,8 +649,9 @@ export default function Locations() {
 
         {/* Map + Locations List */}
         <div
+          id="locations-results"
           ref={mapSectionRef}
-          className="px-6 pb-6 sm:px-10 md:px-12 xl:px-25 my-20"
+          className="scroll-mt-[var(--navbar-h,88px)] px-6 pb-6 sm:px-10 md:px-12 xl:px-25 my-20"
         >
           <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:gap-20">
             {/* Left — bordered location cards */}
@@ -823,8 +845,15 @@ export default function Locations() {
                     stroke="#696969"
                   />
                 </svg>
+                <label htmlFor="location-search" className="sr-only">
+                  Search by area or UK postcode
+                </label>
                 <input
-                  type="text"
+                  id="location-search"
+                  type="search"
+                  autoComplete="postal-code"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="Enter Your Area Or Postcode"
                   value={search}
                   onChange={(e) => {
@@ -836,7 +865,8 @@ export default function Locations() {
               </div>
               <button
                 type="submit"
-                className="flex  shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FF0931] text-white transition-transform hover:scale-105"
+                disabled={searching}
+                className="flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FF0931] text-white transition-transform hover:scale-105 disabled:cursor-wait disabled:opacity-70"
                 aria-label="Search location"
               >
                 <svg
@@ -859,7 +889,8 @@ export default function Locations() {
             {searchMessage && (
               <p
                 role={searchMessage.type === "error" ? "alert" : "status"}
-                className={`mt-5 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] sm:text-[16px] ${
+                aria-live="polite"
+                className={`mt-8 w-full break-words border-t border-[#EAEAEA] pt-5 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] leading-relaxed sm:text-[16px] ${
                   searchMessage.type === "error"
                     ? "text-[#FF0931]"
                     : "text-[#1F5C2E]"
@@ -867,10 +898,10 @@ export default function Locations() {
               >
                 {searchMessage.type === "success" ? (
                   <>
-                    Nearest branch:{" "}
+                    {searchMessage.prefix}
                     <button
                       type="button"
-                      onClick={() => focusBranch(searchMessage.branchId)}
+                      onClick={() => revealBranch(searchMessage.branchId)}
                       className="cursor-pointer underline underline-offset-2 transition-opacity hover:opacity-70"
                     >
                       {searchMessage.text}

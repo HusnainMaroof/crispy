@@ -88,6 +88,7 @@ export default function LocationsMap({
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const skipFirstFlyRef = useRef(true);
+  const didFitBoundsRef = useRef(false);
 
   const initialCenter: [number, number] = locations[0]
     ? [locations[0].lat, locations[0].lng]
@@ -192,6 +193,18 @@ export default function LocationsMap({
         /* map torn down mid-update */
       }
     });
+
+    if (!didFitBoundsRef.current && locations.length > 1) {
+      didFitBoundsRef.current = true;
+      try {
+        const bounds = L.latLngBounds(
+          locations.map((loc) => [loc.lat, loc.lng] as [number, number]),
+        );
+        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 12 });
+      } catch {
+        /* map torn down mid-update */
+      }
+    }
   }, [mapEpoch, locations, selectedId, onSelect]);
 
   // Fly to the selection, skipping the initial mount.

@@ -2,6 +2,7 @@
 import { useRef, useEffect } from "react";
 import type { SVGProps } from "react";
 import gsap from "gsap";
+import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 // --- Divider dot-lines ---
 function DividerLineLeft(props: SVGProps<SVGSVGElement>) {
@@ -335,6 +336,7 @@ const SLIDER_IMAGES = [
 export default function DiscoverFlavours() {
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
+  const scopeRef = useScrollReveal();
 
   useEffect(() => {
     if (!trackRef.current) return;
@@ -354,16 +356,16 @@ export default function DiscoverFlavours() {
   const handleMouseEnter = () => animRef.current?.pause();
   const handleMouseLeave = () => animRef.current?.resume();
   return (
-    <section className="relative w-full overflow-hidden bg-white  ">
+    <section ref={scopeRef} className="relative w-full overflow-hidden bg-white  ">
       <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
         {/* Heading */}
-        <h2 className="text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(32px,7vw,60px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
+        <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(32px,7vw,60px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
           discover your{" "}
           <span className="text-[#FF0931]">crispies flavours</span>
         </h2>
 
         {/* Divider: Crispies Original Flavours */}
-        <div className="flex items-center gap-14">
+        <div className="fade-up flex items-center gap-14" data-delay="0.06">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
           <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
             Crispies Original Flavours
@@ -373,10 +375,11 @@ export default function DiscoverFlavours() {
 
         {/* Flavour tiles */}
         <div className="flex flex-wrap items-stretch justify-center md:gap-16">
-          {FLAVOUR_TILES.map(({ label, Icon }) => (
+          {FLAVOUR_TILES.map(({ label, Icon }, i) => (
             <div
               key={label}
-              className="flex w-[120px] h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white  px-3 py-5 text-center sm:w-[130px]"
+              className="micro-elevate fade-up flex w-[120px] h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white  px-3 py-5 text-center sm:w-[130px]"
+              data-delay={String(0.08 + i * 0.05)}
             >
               <Icon className="h-8 w-6 text-[#EE3346]" />
               <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-medium capitalize leading-tight tracking-[0.54px] text-white sm:text-[15px]">
@@ -387,7 +390,7 @@ export default function DiscoverFlavours() {
         </div>
 
         {/* Divider: Flaming Grill Flavour */}
-        <div className="mt-6 flex items-center gap-24">
+        <div className="fade-up mt-6 flex items-center gap-24" data-delay="0.12">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
           <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
             Flaming Grill Flavour
@@ -396,7 +399,7 @@ export default function DiscoverFlavours() {
         </div>
 
         {/* Heat scale */}
-        <div className="w-full max-w-5xl">
+        <div className="fade-up w-full max-w-5xl" data-delay="0.16">
           <div className="flex items-end justify-between">
             {SCALE_ITEMS.map(({ label, Icon }) => (
               <div
@@ -418,7 +421,7 @@ export default function DiscoverFlavours() {
         </div>
 
         {/* Infinite Slider Gallery */}
-        <div className="w-full  mx-auto">
+        <div className="fade-up w-full  mx-auto" data-delay="0.2">
           <div
             className="relative mt-10 w-full"
             onMouseEnter={handleMouseEnter}
@@ -447,7 +450,7 @@ export default function DiscoverFlavours() {
 
             {/* Static Center CTA */}
             <div className="pointer-events-auto absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 p-5 bg-black  ">
-              <div className="relative flex h-[220px] w-[220px] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:h-[260px] sm:w-[260px] sm:p-5 shadow-2xl">
+              <div className="micro-elevate relative flex h-[220px] w-[220px] flex-col overflow-hidden rounded-2xl bg-white p-4 sm:h-[260px] sm:w-[260px] sm:p-5 shadow-2xl">
                 <div className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF0931] sm:right-4 sm:top-4 sm:h-10 sm:w-10">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

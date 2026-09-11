@@ -234,7 +234,7 @@ export default function FranchiseApplicationOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center"
+      className="fixed inset-0 z-[999] flex items-center justify-center "
       role="dialog"
       aria-modal="true"
       aria-label="Franchise application"
@@ -249,13 +249,13 @@ export default function FranchiseApplicationOverlay({
       {/* Panel — full-screen black, white bg kept only on the form card */}
       <div
         data-lenis-prevent
-        className="loc-scroll relative flex h-full min-h-screen w-full flex-col items-center overflow-y-auto px-4 py-10 text-center sm:px-10 sm:py-14"
+        className="loc-scroll relative flex h-full mt-40 w-fit bg-black/80 rounded-[20px] flex-col items-center overflow-y-auto px-4 py-10 text-center sm:px-10 sm:py-14 "
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Close franchise application"
-          className="fixed right-[5%] md:right-[15%] lg:right-[18%] xl:right-[20%]  top-5 md:top-[10%] z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#161616] text-white transition-colors hover:bg-[#FF0931]"
+          className="fixed right-[5%] md:right-[15%] lg:right-[18%] xl:right-[20%]  top-5 md:top-[10%] z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white text-black hover:text-white transition-colors hover:bg-[#FF0931]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

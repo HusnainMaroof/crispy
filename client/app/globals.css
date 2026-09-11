@@ -64,8 +64,13 @@ html::-webkit-scrollbar {
   }
   .loc-row,
   .loc-hover-red,
-  .loc-slide {
+  .loc-slide,
+  .micro-elevate {
     transition-duration: 0.01ms !important;
+  }
+  .micro-elevate:hover,
+  .micro-elevate:active {
+    transform: none !important;
   }
   .burger-line {
     transition-duration: 0.01ms !important;
@@ -464,10 +469,26 @@ html::-webkit-scrollbar {
   color: #ff0931;
 }
 .loc-row .loc-slide {
-  transition: transform 0.35s ease;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .loc-row:hover .loc-slide {
-  transform: translateX(6px);
+  transform: translateX(6px) translateY(-2px);
+}
+
+/* Subtle hover lift — used on tiles / cards / CTAs, does not change layout */
+.micro-elevate {
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+  will-change: transform;
+}
+.micro-elevate:hover {
+  transform: translateY(-4px);
+}
+.micro-elevate:active {
+  transform: translateY(-1px);
 }
 
 /* --- Leaflet map theme (Locations section) --- */
