@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "powershell",
+      "Shell(pnpm:*)",
+      "Shell(curl -s -o NUL -w \"HTTP %{http_code}\\n\" http://localhost:3000/locations)",
+      "Shell(agent-browser:*)",
+      "Shell(curl -s -o NUL -w dev 3000: HTTP %{http_code}\\n http://localhost:3000/)",
+      "Shell(curl -s http://localhost:3000/)",
+      "Shell(Select-String:*)",
+      "Shell(Select-Object:*)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}
