@@ -351,28 +351,21 @@ export default function MenuPage() {
     <>
       <section className="w-full bg-white ">
         {/* Header */}
-        <div className="py-10  px-6  sm:px-10 md:px-12 xl:px-25">
-          <div className="flex items-center justify-between gap-8 ">
-            <div>
-              <h1 className="m-0 leading-[1] tracking-[0.54px] capitalize text-nowrap">
-                <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(60px,12vw,150px)] font-black text-black">
-                  Our{" "}
-                </span>
-                <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(60px,12vw,150px)] font-black text-[#FF0931]">
-                  Menu
-                </span>
-              </h1>
-              <p className="mt-4 max-w-[500px] font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,2.5vw,30px)] font-normal leading-[1] tracking-[0.54px] text-black capitalize">
-                Explore our full menu and find <br /> your next favorite.
-              </p>
-            </div>
-            <div className=" shrink-0 sm:block">
-              <img
-                src="/images/orderOnimage.png"
-                alt="Crispies"
-                className="  w-[320px] sm:w-[480px]  xl:h-auto xl:w-auto ml-auto  object-cover "
-              />
-            </div>
+
+        <div
+          className="relative h-[300px] md:h-[400px] 2xl:h-[600px]  w-full bg-cover bg-center"
+          style={{ backgroundImage: "url('/images/menu%20hero%20section.avif')" }}
+        >
+
+          <div className="absolute flex  items-center justify-center gap-4  bg-[#FF0931]  rounded-b-xl md:rounded-b-2xl   left-[35%] -translate-x-1/2  md:px-8 px-5 py-3 md:py-6 2xl:px-12 2xl:py-8">
+            <h1 className=" leading-[1] tracking-[0.54px] capitalize text-nowrap">
+              <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[60px]  2xl:text-[80px] font-black text-white">
+                Our{" "} 
+              </span>
+              <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[60px]  2xl:text-[80px] font-black text-black">
+                Menu
+              </span>
+            </h1>
           </div>
         </div>
 
@@ -386,7 +379,9 @@ export default function MenuPage() {
               <button
                 key={cat}
                 type="button"
-                ref={(el) => { tabRefs.current[i] = el; }}
+                ref={(el) => {
+                  tabRefs.current[i] = el;
+                }}
                 onClick={() => setActiveCategory(cat)}
                 className={`whitespace-nowrap cursor-pointer pb-3 pt-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium capitalize leading-[1] tracking-[0.54px] transition-colors duration-200 sm:pb-4 sm:pt-5 sm:text-[clamp(18px,2.5vw,30px)] ${
                   activeCategory === cat

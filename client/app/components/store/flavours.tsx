@@ -454,9 +454,9 @@ export default function DiscoverFlavours() {
               <Link
                 href="/menu"
                 aria-label="Order on the website"
-                className="micro-elevate relative flex h-[220px] w-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-2xl sm:h-[260px] sm:w-[260px] sm:p-5"
+                className="relative flex h-[220px] w-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-2xl sm:h-[260px] sm:w-[260px] sm:p-5"
               >
-                <span className="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] transition-transform duration-200 hover:scale-110 sm:right-4 sm:top-4 sm:h-10 sm:w-10">
+                <span className="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] sm:right-4 sm:top-4 sm:h-10 sm:w-10">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"

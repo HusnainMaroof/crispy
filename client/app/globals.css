@@ -468,13 +468,6 @@ html::-webkit-scrollbar {
 .loc-row:hover .loc-hover-red {
   color: #ff0931;
 }
-.loc-row .loc-slide {
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.loc-row:hover .loc-slide {
-  transform: translateX(6px) translateY(-2px);
-}
-
 /* Subtle hover lift — used on tiles / cards / CTAs, does not change layout */
 .micro-elevate {
   transition:

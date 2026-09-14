@@ -647,6 +647,141 @@ export default function Locations() {
           </div>
         </div>
 
+
+
+ <div className="px-6  sm:px-10 md:px-12 xl:px-25 py-20">
+          <div className="rounded-[30px] border-[1.5px] border-[#C4C4C4] bg-[#FDFDFD] px-6 py-8 lg:px-10 lg:py-10">
+            <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between xl:gap-30">
+            <div className="flex  justify-between gap-20 w-full lg:w-auto  items-center">
+              {" "}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="85"
+                height="82"
+                viewBox="0 0 85 82"
+                fill="none"
+              >
+                <path
+                  d="M75.7059 53.0703L68.0744 53.0834C66.6922 53.0834 65.8145 54.125 65.9324 55.4023C66.0372 56.5684 67.0984 57.4462 68.3889 57.2234L72.7516 57.3151L79.6494 77.8449C79.6494 77.8449 5.04401 78.7227 3.26878 78.3362L11.6078 57.2234L14.2542 57.2627H17.8833C19.0952 57.2627 20.0057 56.3129 20.0254 55.2386C20.0516 54.2101 19.2065 53.0965 18.0078 53.09L8.54861 53.0703L0 77.9104V81.9653L84.7 81.8539V79.856L75.7059 53.0703Z"
+                  fill="#E21E2F"
+                />
+                <path
+                  d="M65.9718 13.8387C63.155 8.47369 58.5826 4.37953 53.008 1.96234C47.3089 -0.500706 40.9876 -0.605516 35.0854 1.42519C30.3165 3.0694 26.0062 5.82068 22.6064 9.54145C18.5778 13.95 16.3505 19.4853 15.8003 25.4006C14.7653 36.6219 19.2852 47.5484 26.0193 56.3983C30.4869 62.2677 35.9763 67.1283 42.147 71.1176C42.9986 71.6679 43.7585 71.5172 44.5446 71.0063C46.7652 69.5455 48.8483 68.1174 50.8791 66.3488C58.1044 60.0405 63.6201 52.0552 66.7513 42.9498C69.9415 33.6544 70.5965 22.6428 65.9652 13.8387H65.9718ZM44.9638 47.9414C33.5133 49.3236 23.0846 41.1091 21.709 29.652C20.3464 18.3128 28.4431 7.76622 40.0377 6.41024C51.6717 5.0477 62.0021 13.4718 63.2598 24.8765C64.5175 36.2747 56.3489 46.5658 44.9573 47.9414H44.9638Z"
+                  fill="black"
+                />
+                <path
+                  d="M54.4556 20.9596C47.1058 11.7821 26.3402 17.7235 30.2051 23.534C30.6833 24.248 31.5349 24.5559 32.5633 24.5559L52.9293 24.5428C53.794 24.5428 54.7635 24.248 55.0386 23.5667C55.3793 22.7413 55.019 21.6539 54.4556 20.953V20.9596ZM37.1947 21.5688C36.5723 21.7587 35.8583 21.3264 35.6684 20.6648C35.4915 20.0621 35.8911 19.335 36.6379 19.1712C37.2995 19.0271 37.9152 19.466 38.0593 19.9901C38.2624 20.7172 37.8759 21.3657 37.1947 21.5753V21.5688ZM42.6514 20.3897C41.9635 20.5207 41.3019 20.049 41.184 19.3743C41.0595 18.6799 41.505 18.038 42.3107 17.9135C42.9461 17.8152 43.575 18.3459 43.6733 18.9027C43.7977 19.6232 43.313 20.2652 42.6514 20.3897ZM48.7107 21.3461C48.1146 21.667 47.4464 21.464 47.1255 21.0644C46.6145 20.429 46.7979 19.6298 47.5578 19.204C48.1932 18.8437 48.94 19.1647 49.2151 19.7542C49.4771 20.311 49.2348 21.0578 48.7042 21.3461H48.7107Z"
+                  fill="#E21E2F"
+                />
+                <path
+                  d="M54.7438 32.3455C54.9796 34.5727 53.7088 36.4135 51.5012 36.4135H33.166C31.3514 36.4135 30.2051 35.0706 29.9954 33.4002C29.943 33.0071 29.9234 31.8804 30.5391 31.8804L53.7285 31.8477C54.0691 31.8477 54.7111 32.0769 54.7438 32.3455Z"
+                  fill="#E21E2F"
+                />
+                <path
+                  d="M49.5624 25.8924C51.9533 25.6828 54.8094 26.0365 54.7963 28.1262C54.7898 29.207 53.5779 30.3534 52.3267 30.3599L33.8408 30.4189C31.9345 30.4189 30.1265 29.9079 29.9759 28.3489C29.8252 26.7898 31.3057 25.8793 33.2774 25.8793H42.7038L46.156 29.4232L49.5624 25.8858V25.8924Z"
+                  fill="#E21E2F"
+                />
+              </svg>
+              <div>
+                <h3 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[36px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
+                  Cant find us
+                </h3>
+                <p className="m-0 mt-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal capitalize leading-[100%] tracking-[0.54px] text-[#696969]  sm:text-[20px]">
+                  Search for your area and
+                  <br />
+                  find nearest crispies
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleSearch}
+              className="flex w-full items-center gap-4 lg:contents"
+            >
+              <div className="relative flex-1 rounded-[20px] border border-[#C4C4C4] bg-white h-[84px] pl-12 pr-6 font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-black outline-none placeholder:text-[#999] focus:border-[#FF0931] sm:text-[16px] flex items-center gap-6">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="32"
+                  viewBox="0 0 24 32"
+                  fill="none"
+                >
+                  <path
+                    d="M8.85742 1.11133C11.3883 0.239895 14.0878 0.286972 16.5156 1.33691C18.8751 2.36081 20.8063 4.08169 22.0146 6.32617L22.0693 6.42871C24.0548 10.2059 23.7922 14.9826 22.3906 19.0693C21.1051 22.8103 18.9011 26.123 16.0186 28.8047L15.4326 29.332C14.5513 30.1001 13.6434 30.7238 12.6543 31.375C12.5176 31.4639 12.4247 31.4937 12.3604 31.499C12.3076 31.5034 12.2359 31.4949 12.126 31.4238C9.40719 29.6648 6.9956 27.5264 5.03613 24.9502C2.07171 21.0513 0.115631 16.2808 0.563477 11.4199C0.800749 8.86737 1.75919 6.49437 3.48047 4.60938C4.94197 3.00872 6.79769 1.82091 8.85645 1.11035L8.85742 1.11133ZM11.3652 2.32715L10.8525 2.37402C5.38608 3.01385 1.57071 7.98868 2.21289 13.3369C2.86123 18.7399 7.77579 22.6151 13.1748 21.9629L13.1738 21.9619C18.5418 21.3121 22.3906 16.4596 21.7979 11.084C21.2236 5.8734 16.6375 1.98117 11.3652 2.32715Z"
+                    stroke="#696969"
+                  />
+                </svg>
+                <label htmlFor="location-search" className="sr-only">
+                  Search by area or UK postcode
+                </label>
+                <input
+                  id="location-search"
+                  type="search"
+                  autoComplete="postal-code"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="Enter Your Area Or Postcode"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    if (searchMessage) setSearchMessage(null);
+                  }}
+                  className=" w-full outline-0 hover:border-0 placeholder:text-xl"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={searching}
+                className="flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FF0931] text-white transition-transform hover:scale-105 disabled:cursor-wait disabled:opacity-70"
+                aria-label="Search location"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="84"
+                  height="84"
+                  viewBox="0 0 84 84"
+                  fill="none"
+                >
+                  <rect width="84" height="84" rx="15" fill="#FF0000" />
+                  <path
+                    d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z"
+                    fill="white"
+                  />
+                </svg>
+              </button>
+            </form>
+            </div>
+
+            {searchMessage && (
+              <p
+                role={searchMessage.type === "error" ? "alert" : "status"}
+                aria-live="polite"
+                className={`mt-8 w-full break-words border-t border-[#EAEAEA] pt-5 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] leading-relaxed sm:text-[16px] ${
+                  searchMessage.type === "error"
+                    ? "text-[#FF0931]"
+                    : "text-[#1F5C2E]"
+                }`}
+              >
+                {searchMessage.type === "success" ? (
+                  <>
+                    {searchMessage.prefix}
+                    <button
+                      type="button"
+                      onClick={() => revealBranch(searchMessage.branchId)}
+                      className="cursor-pointer underline underline-offset-2 transition-opacity hover:opacity-70"
+                    >
+                      {searchMessage.text}
+                    </button>
+                  </>
+                ) : (
+                  searchMessage.text
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+
+
         {/* Map + Locations List */}
         <div
           id="locations-results"
@@ -783,137 +918,7 @@ export default function Locations() {
         </div>
 
         {/* Footer CTA — Can't Find Us */}
-        <div className="px-6  sm:px-10 md:px-12 xl:px-25 py-20">
-          <div className="rounded-[30px] border-[1.5px] border-[#C4C4C4] bg-[#FDFDFD] px-6 py-8 lg:px-10 lg:py-10">
-            <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between xl:gap-30">
-            <div className="flex  justify-between gap-20 w-full lg:w-auto  items-center">
-              {" "}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="85"
-                height="82"
-                viewBox="0 0 85 82"
-                fill="none"
-              >
-                <path
-                  d="M75.7059 53.0703L68.0744 53.0834C66.6922 53.0834 65.8145 54.125 65.9324 55.4023C66.0372 56.5684 67.0984 57.4462 68.3889 57.2234L72.7516 57.3151L79.6494 77.8449C79.6494 77.8449 5.04401 78.7227 3.26878 78.3362L11.6078 57.2234L14.2542 57.2627H17.8833C19.0952 57.2627 20.0057 56.3129 20.0254 55.2386C20.0516 54.2101 19.2065 53.0965 18.0078 53.09L8.54861 53.0703L0 77.9104V81.9653L84.7 81.8539V79.856L75.7059 53.0703Z"
-                  fill="#E21E2F"
-                />
-                <path
-                  d="M65.9718 13.8387C63.155 8.47369 58.5826 4.37953 53.008 1.96234C47.3089 -0.500706 40.9876 -0.605516 35.0854 1.42519C30.3165 3.0694 26.0062 5.82068 22.6064 9.54145C18.5778 13.95 16.3505 19.4853 15.8003 25.4006C14.7653 36.6219 19.2852 47.5484 26.0193 56.3983C30.4869 62.2677 35.9763 67.1283 42.147 71.1176C42.9986 71.6679 43.7585 71.5172 44.5446 71.0063C46.7652 69.5455 48.8483 68.1174 50.8791 66.3488C58.1044 60.0405 63.6201 52.0552 66.7513 42.9498C69.9415 33.6544 70.5965 22.6428 65.9652 13.8387H65.9718ZM44.9638 47.9414C33.5133 49.3236 23.0846 41.1091 21.709 29.652C20.3464 18.3128 28.4431 7.76622 40.0377 6.41024C51.6717 5.0477 62.0021 13.4718 63.2598 24.8765C64.5175 36.2747 56.3489 46.5658 44.9573 47.9414H44.9638Z"
-                  fill="black"
-                />
-                <path
-                  d="M54.4556 20.9596C47.1058 11.7821 26.3402 17.7235 30.2051 23.534C30.6833 24.248 31.5349 24.5559 32.5633 24.5559L52.9293 24.5428C53.794 24.5428 54.7635 24.248 55.0386 23.5667C55.3793 22.7413 55.019 21.6539 54.4556 20.953V20.9596ZM37.1947 21.5688C36.5723 21.7587 35.8583 21.3264 35.6684 20.6648C35.4915 20.0621 35.8911 19.335 36.6379 19.1712C37.2995 19.0271 37.9152 19.466 38.0593 19.9901C38.2624 20.7172 37.8759 21.3657 37.1947 21.5753V21.5688ZM42.6514 20.3897C41.9635 20.5207 41.3019 20.049 41.184 19.3743C41.0595 18.6799 41.505 18.038 42.3107 17.9135C42.9461 17.8152 43.575 18.3459 43.6733 18.9027C43.7977 19.6232 43.313 20.2652 42.6514 20.3897ZM48.7107 21.3461C48.1146 21.667 47.4464 21.464 47.1255 21.0644C46.6145 20.429 46.7979 19.6298 47.5578 19.204C48.1932 18.8437 48.94 19.1647 49.2151 19.7542C49.4771 20.311 49.2348 21.0578 48.7042 21.3461H48.7107Z"
-                  fill="#E21E2F"
-                />
-                <path
-                  d="M54.7438 32.3455C54.9796 34.5727 53.7088 36.4135 51.5012 36.4135H33.166C31.3514 36.4135 30.2051 35.0706 29.9954 33.4002C29.943 33.0071 29.9234 31.8804 30.5391 31.8804L53.7285 31.8477C54.0691 31.8477 54.7111 32.0769 54.7438 32.3455Z"
-                  fill="#E21E2F"
-                />
-                <path
-                  d="M49.5624 25.8924C51.9533 25.6828 54.8094 26.0365 54.7963 28.1262C54.7898 29.207 53.5779 30.3534 52.3267 30.3599L33.8408 30.4189C31.9345 30.4189 30.1265 29.9079 29.9759 28.3489C29.8252 26.7898 31.3057 25.8793 33.2774 25.8793H42.7038L46.156 29.4232L49.5624 25.8858V25.8924Z"
-                  fill="#E21E2F"
-                />
-              </svg>
-              <div>
-                <h3 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[36px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
-                  Cant find us
-                </h3>
-                <p className="m-0 mt-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal capitalize leading-[100%] tracking-[0.54px] text-[#696969]  sm:text-[20px]">
-                  Search for your area and
-                  <br />
-                  find nearest crispies
-                </p>
-              </div>
-            </div>
-
-            <form
-              onSubmit={handleSearch}
-              className="flex w-full items-center gap-4 lg:contents"
-            >
-              <div className="relative flex-1 rounded-[20px] border border-[#C4C4C4] bg-white h-[84px] pl-12 pr-6 font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-black outline-none placeholder:text-[#999] focus:border-[#FF0931] sm:text-[16px] flex items-center gap-6">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="32"
-                  viewBox="0 0 24 32"
-                  fill="none"
-                >
-                  <path
-                    d="M8.85742 1.11133C11.3883 0.239895 14.0878 0.286972 16.5156 1.33691C18.8751 2.36081 20.8063 4.08169 22.0146 6.32617L22.0693 6.42871C24.0548 10.2059 23.7922 14.9826 22.3906 19.0693C21.1051 22.8103 18.9011 26.123 16.0186 28.8047L15.4326 29.332C14.5513 30.1001 13.6434 30.7238 12.6543 31.375C12.5176 31.4639 12.4247 31.4937 12.3604 31.499C12.3076 31.5034 12.2359 31.4949 12.126 31.4238C9.40719 29.6648 6.9956 27.5264 5.03613 24.9502C2.07171 21.0513 0.115631 16.2808 0.563477 11.4199C0.800749 8.86737 1.75919 6.49437 3.48047 4.60938C4.94197 3.00872 6.79769 1.82091 8.85645 1.11035L8.85742 1.11133ZM11.3652 2.32715L10.8525 2.37402C5.38608 3.01385 1.57071 7.98868 2.21289 13.3369C2.86123 18.7399 7.77579 22.6151 13.1748 21.9629L13.1738 21.9619C18.5418 21.3121 22.3906 16.4596 21.7979 11.084C21.2236 5.8734 16.6375 1.98117 11.3652 2.32715Z"
-                    stroke="#696969"
-                  />
-                </svg>
-                <label htmlFor="location-search" className="sr-only">
-                  Search by area or UK postcode
-                </label>
-                <input
-                  id="location-search"
-                  type="search"
-                  autoComplete="postal-code"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  placeholder="Enter Your Area Or Postcode"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    if (searchMessage) setSearchMessage(null);
-                  }}
-                  className=" w-full outline-0 hover:border-0 placeholder:text-xl"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={searching}
-                className="flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FF0931] text-white transition-transform hover:scale-105 disabled:cursor-wait disabled:opacity-70"
-                aria-label="Search location"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="84"
-                  height="84"
-                  viewBox="0 0 84 84"
-                  fill="none"
-                >
-                  <rect width="84" height="84" rx="15" fill="#FF0000" />
-                  <path
-                    d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z"
-                    fill="white"
-                  />
-                </svg>
-              </button>
-            </form>
-            </div>
-
-            {searchMessage && (
-              <p
-                role={searchMessage.type === "error" ? "alert" : "status"}
-                aria-live="polite"
-                className={`mt-8 w-full break-words border-t border-[#EAEAEA] pt-5 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] leading-relaxed sm:text-[16px] ${
-                  searchMessage.type === "error"
-                    ? "text-[#FF0931]"
-                    : "text-[#1F5C2E]"
-                }`}
-              >
-                {searchMessage.type === "success" ? (
-                  <>
-                    {searchMessage.prefix}
-                    <button
-                      type="button"
-                      onClick={() => revealBranch(searchMessage.branchId)}
-                      className="cursor-pointer underline underline-offset-2 transition-opacity hover:opacity-70"
-                    >
-                      {searchMessage.text}
-                    </button>
-                  </>
-                ) : (
-                  searchMessage.text
-                )}
-              </p>
-            )}
-          </div>
-        </div>
+       
       </section>
 
       <Footer />

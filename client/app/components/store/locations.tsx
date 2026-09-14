@@ -330,7 +330,7 @@ export default function Locations() {
 
                       {/* Status */}
                       <span
-                        className={`${statusBg} inline-flex items-center justify-center gap-1.5 w-fit rounded-full px-3 py-[5px] text-white font-medium leading-none whitespace-nowrap transition-transform duration-200 hover:scale-105`}
+                        className={`${statusBg} inline-flex items-center justify-center gap-1.5 w-fit rounded-full px-3 py-[5px] text-white font-medium leading-none whitespace-nowrap`}
                         style={{
                           fontFamily: "var(--font-inter), Inter, sans-serif",
                           fontSize: "clamp(11px, 1.15vw, 13px)",
@@ -361,7 +361,7 @@ export default function Locations() {
                           e.stopPropagation();
                           setSelectedId(loc.id);
                         }}
-                        className="shrink-0 flex items-center justify-center text-[#FF0931]  hover:text-white transition-all duration-200 hover:scale-110"
+                        className="shrink-0 flex items-center justify-center text-[#FF0931] hover:text-white transition-colors duration-200"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -393,7 +393,7 @@ export default function Locations() {
             {/* View all CTA — links to the locations page */}
             <Link
               href="/locations"
-              className="group micro-elevate fade-up mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
+              className="group fade-up mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
               data-delay="0.22"
             >
               <span
@@ -405,7 +405,7 @@ export default function Locations() {
               >
                 View All 10+ Location
               </span>
-              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+              <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="84"

@@ -78,43 +78,34 @@ export default function PartnerPage() {
   return (
     <>
       {/* 1. Hero — Grow With Crispies */}
-      <section className="w-full bg-white">
-        <div className="px-6 py-16 sm:px-10 sm:py-20 md:px-12 xl:px-25">
-          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-            <div className="flex flex-1 flex-col justify-center">
-              <h1
-                className={`m-0 ${KOROLEV} capitalize text-black`}
-                style={{
-                  fontSize: "clamp(40px, 10vw, 150px)",
-                  fontWeight: 900,
-                  lineHeight: "100%",
-                }}
-              >
-                Grow With <span className="text-[#FF0931]">Crispies</span>
-              </h1>
-              <p
-                className={`m-0 mt-6 max-w-[720px] ${INTER} capitalize text-black`}
-                style={{
-                  fontSize: "clamp(16px, 2.2vw, 30px)",
-                  fontWeight: 400,
-                  lineHeight: "100%",
-                  letterSpacing: "0.54px",
-                }}
-              >
-                join a fast-growing brand with bold flavours, loyal customers
-                and a proven recipe for success.
-              </p>
-            </div>
+      <section className="w-full ">
+        <div className=" w-full aspect-[16/9] bg-amber-500 bg-center bg-cover" 
+          style={{ backgroundImage: "url('/images/frinchies-inquiry-hero-section.avif')" }}/> 
 
-            <div className="w-full shrink-0 lg:w-auto">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/partnerImages.jpg"
-                alt="The Crispies team celebrating a store opening"
-                className="w-full rounded-[50px] object-cover   lg:w-[420px] xl:h-[500px] xl:w-[685px]"
-                style={{}}
-              />
-            </div>
+        <div className="px-6 py-16 sm:px-10 sm:py-20 md:px-12  bg-white">
+          <div className="flex flex-col md:flex-row   md:justify-center md:items-center   gap-5  md:gap-10  xl:gap-20">
+            <h1
+              className={`m-0 ${KOROLEV} capitalize text-black text-5xl lg:text-[60px] xl:text-[100px] `}
+              style={{
+           
+                fontWeight: 900,
+                lineHeight: "100%",
+              }}
+            >
+              Grow With <span className="text-[#FF0931]">Crispies</span>
+            </h1>
+            <p
+              className={`m-0   ${INTER} capitalize text-black text-[14px] sm:text-[16px] md:text-[14px]  xl:text-[24px] `}
+              style={{
+
+                fontWeight: 400,
+                lineHeight: "100%",
+                letterSpacing: "0.54px",
+              }}
+            >
+              join a fast-growing brand with bold flavours, loyal <br /> customers and
+              a proven recipe for success.
+            </p>
           </div>
         </div>
       </section>

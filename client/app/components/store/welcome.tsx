@@ -111,7 +111,7 @@ export default function Welcome() {
                 TO <span className="text-[#FF0931]">CRISPIES</span>
               </span>
             </h2>
-            <p className="mt-6 max-w-lg font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(16px,3vw,30px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black md:mt-8">
+            <p className="mt-6 max-w-lg font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(16px,3vw,30px)] font-normal capitalize leading-[1.5] tracking-[0.54px] text-black md:mt-8">
               {WORDS.map((word, i) => {
                 const start = (i * WORD_STEP).toFixed(4);
                 const span = WORD_WINDOW.toFixed(4);
@@ -126,7 +126,7 @@ export default function Welcome() {
                     }}
                   >
                     {word}
-                    {i < WORDS.length - 1 ? " " : ""}
+                    {i < WORDS.length - 1 ? "\u00A0" : ""}
                   </span>
                 );
               })}
@@ -149,7 +149,7 @@ export default function Welcome() {
                 style={{
                   background:
                     "url('/images/aboutimage.jpg') lightgray 50% / cover no-repeat",
-                
+
                   filter: `blur(calc(8px * ${BLUR_PROGRESS}))`,
                   opacity: `calc(1 - 0.3 * ${BLUR_PROGRESS})`,
                 }}
@@ -161,7 +161,7 @@ export default function Welcome() {
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
                   background:
-                    "url('/images/aboutimage.jpg') lightgray 50% / cover no-repeat",
+                    "url('/images/welcome-to-cripiesimage2.avif') top center / 100% 155% no-repeat",
                   transform:
                     "translateY(calc(120vh - (120vh - 10%) * var(--p))) rotate(calc(4deg - 12deg * var(--p)))",
                 }}

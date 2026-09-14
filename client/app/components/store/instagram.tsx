@@ -129,12 +129,14 @@ export default function Instagram() {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="micro-elevate shrink-0 rounded-[5px] bg-[#FF0931] px-5 py-1.5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-semibold text-white hover:bg-[#E0082C]"
+          <a
+            href="https://www.instagram.com/crispiesuk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-[5px] bg-[#FF0931] px-5 py-1.5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-semibold text-white hover:bg-[#E0082C]"
           >
             Follow
-          </button>
+          </a>
         </div>
 
         <div
