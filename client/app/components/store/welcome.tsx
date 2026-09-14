@@ -148,7 +148,7 @@ export default function Welcome() {
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
                   background:
-                    "url('/images/aboutimage.jpg') lightgray 50% / cover no-repeat",
+                    "url('/images/welcomeSectionimageOne.jpg.avif') lightgray 10% / cover no-repeat",
 
                   filter: `blur(calc(8px * ${BLUR_PROGRESS}))`,
                   opacity: `calc(1 - 0.3 * ${BLUR_PROGRESS})`,
@@ -161,7 +161,7 @@ export default function Welcome() {
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
                   background:
-                    "url('/images/welcome-to-cripiesimage2.avif') top center / 100% 155% no-repeat",
+                    "url('/images/welcomeSectionimageTwo.jpg.avif') top center / 100% 155% no-repeat",
                   transform:
                     "translateY(calc(120vh - (120vh - 10%) * var(--p))) rotate(calc(4deg - 12deg * var(--p)))",
                 }}
