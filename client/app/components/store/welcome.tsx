@@ -14,6 +14,14 @@ const WORDS = PARAGRAPH.split(" ");
 // wipe, and the step is derived from the word count plus that overlap so the
 // final word reaches full opacity exactly on 1 — the same moment the incoming
 // image arrives.
+
+const FRONT_BLUR_START = 0.2;
+const FRONT_BLUR_END = 1.1;
+const FRONT_MAX_BLUR = 8;
+
+const FRONT_BLUR_PROGRESS = `clamp(0, (var(--p) - ${FRONT_BLUR_START}) / ${FRONT_BLUR_END - FRONT_BLUR_START}, 1)`;
+const FRONT_BLUR = `calc(${FRONT_MAX_BLUR}px * (1 - ${FRONT_BLUR_PROGRESS}))`;
+
 const REVEAL_SPAN = 1;
 const REVEAL_OVERLAP = 4;
 const WORD_STEP = REVEAL_SPAN / (WORDS.length + REVEAL_OVERLAP - 1);
@@ -138,12 +146,10 @@ export default function Welcome() {
               reveal the blurred straight-edged copy behind them.
               At --p: 1 this is exactly the shipped design; the transforms only
               pull the two layers apart while the section scrolls. */}
-          <div className="w-full flex-1 md:w-auto">
+          <div className="w-full   flex-1 md:w-auto">
             {/* Width is capped by the viewport height too, so the taller image
                 can never overflow the pinned panel on short laptop screens. */}
-            <div className="relative mx-auto aspect-[3/2] max-w-[620px] md:max-w-[min(980px,118vh)] md:mx-0">
-              {/* Back layer: settles into place, unrotated; stays sharp until
-                  the front image has risen near the top, then blurs behind it */}
+            <div className="relative mx-auto     w-[280px] h-[280px]  lg:w-[620px] lg:h-[620px] my-20  md:mx-0">
               <div
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
@@ -151,19 +157,20 @@ export default function Welcome() {
                     "url('/images/welcomeSectionimageOne.jpg.avif') lightgray 10% / cover no-repeat",
 
                   filter: `blur(calc(8px * ${BLUR_PROGRESS}))`,
-                  opacity: `calc(1 - 0.3 * ${BLUR_PROGRESS})`,
+                  opacity: `calc(1 - 0.5 * ${BLUR_PROGRESS})`,
                 }}
               />
 
-              {/* Front layer: slides up from below the panel and tilts into
-                  its -5.059deg resting rotation */}
               <div
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
                   background:
-                    "url('/images/welcomeSectionimageTwo.jpg.avif') top center / 100% 155% no-repeat",
+                    "url('/images/welcomeSectionimageTwo.jpg.avif') lightgray top center / cover no-repeat",
+
                   transform:
                     "translateY(calc(120vh - (120vh - 10%) * var(--p))) rotate(calc(4deg - 12deg * var(--p)))",
+
+                  filter: `blur(${FRONT_BLUR})`,
                 }}
               />
             </div>

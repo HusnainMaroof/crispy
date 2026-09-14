@@ -249,26 +249,25 @@ export default function FranchiseApplicationOverlay({
       {/* Panel — full-screen black, white bg kept only on the form card */}
       <div
         data-lenis-prevent
-        className="loc-scroll relative flex h-full mt-40 w-fit bg-black/80 rounded-[20px] flex-col items-center overflow-y-auto px-4 py-10 text-center sm:px-10 sm:py-14 "
+        className="loc-scroll relative flex h-full mt-40 w-[90%] rounded-2xl border border-[#242424] bg-black bg-black rounded-[20px] flex-col items-center overflow-y-auto px-4 py-10 text-center sm:px-10 sm:py-14 "
       >
-        <button
+             <button
           type="button"
           onClick={onClose}
-          aria-label="Close franchise application"
-          className="fixed right-[5%] md:right-[15%] lg:right-[18%] xl:right-[20%]  top-5 md:top-[10%] z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white text-black hover:text-white transition-colors hover:bg-[#FF0931]"
+          aria-label="Close"
+          className="overlay-fade-in absolute right-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
-            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
-            className="h-5 w-5"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
           >
-            <path
-              d="M6 6L18 18M18 6L6 18"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
           </svg>
         </button>
 

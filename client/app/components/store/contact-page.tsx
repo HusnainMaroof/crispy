@@ -79,7 +79,7 @@ export default function PartnerPage() {
     <>
       {/* 1. Hero — Grow With Crispies */}
       <section className="w-full ">
-        <div className=" w-full aspect-[16/9] bg-amber-500 bg-center bg-cover" 
+        <div className=" w-full aspect-[16/6]  bg-top bg-cover" 
           style={{ backgroundImage: "url('/images/frinchies-inquiry-hero-section.avif')" }}/> 
 
         <div className="px-6 py-16 sm:px-10 sm:py-20 md:px-12  bg-white">
