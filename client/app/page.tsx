@@ -11,7 +11,7 @@ import Footer from "@/app/components/store/footer";
 const Page = () => {
   return (
     <div>
-      <div className="h-screen w-screen bg-white flex items-center justify-center">
+      {/* <div className="h-screen w-screen bg-white flex items-center justify-center">
         <div className="flex flex-col gap-10">
           {" "}
           <h3 className="text-black text-2xl font-semibold pl-3.5 border-l-3 border-red-500">
@@ -50,9 +50,9 @@ const Page = () => {
             If you are a visitor, contact the website owner or try again later.
           </span>
         </div>
-      </div>
+      </div> */}
 
-      {/* <Navbar />
+      <Navbar />
       <div className="relative">
         <Hero />
         <Welcome />
@@ -61,7 +61,7 @@ const Page = () => {
       <Locations />
       <Partner />
       <Instagram />
-      <Footer /> */}
+      <Footer />
     </div>
   );
 };
