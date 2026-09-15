@@ -17,15 +17,15 @@ const Page = () => {
           <h3 className="text-black text-2xl font-semibold pl-3.5 border-l-3 border-red-500">
             This Deployment{" "}
             <span className="text-xl text-gray-800">
-              is paused by the owner.
+              is Failed due to over storage.
             </span>
           </h3>
           <h3 className="text-black text-2xl font-semibold pl-3.5 border-l-3 border-green-500">
-            Your connection
+            Your connection{" "}
             <span className="text-xl text-gray-800">is working correctly</span>
           </h3>
           <h3 className="text-black text-2xl font-semibold pl-3.5 border-l-3 border-green-500">
-            Vercel
+            Vercel{" "}
             <span className="text-xl text-gray-800">is working correctly.</span>
           </h3>
           <div className="border-[2px] border-gray-600 rounded-[5px]  p-5 flex-col items-center justify-center">
@@ -40,7 +40,7 @@ const Page = () => {
               <span className="text-xl text-gray-800">: DEPLOYMENT_FAILED</span>
             </h3>
             <h3 className="text-black text-2xl font-semibold ">
-              ID:
+              ID
               <span className="text-xl text-gray-800">
                 : sin1::wqcnm-1789489241339-94fbb6045e93
               </span>
