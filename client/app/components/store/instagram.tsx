@@ -5,36 +5,28 @@ import gsap from "gsap";
 import Image from "next/image";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
-const SOCIAL_POSTS = [
-  {
-    platform: "instagram",
-    url: "https://www.instagram.com/p/DcDTaClMQSG/",
-    image: "/images/heroimage.png",
-    likes: "1,243",
-    comments: "87",
-  },
-  {
-    platform: "tiktok",
-    url: "https://www.tiktok.com/@caboras/video/7565191082303833366",
-    image: "/images/aboutimage.jpg",
-    likes: "3,567",
-    comments: "214",
-  },
-  {
-    platform: "instagram",
-    url: "https://www.instagram.com/p/DcDTaClMQSG/",
-    image: "/images/frienchies.png",
-    likes: "982",
-    comments: "56",
-  },
-  {
-    platform: "tiktok",
-    url: "https://www.tiktok.com/@caboras/video/7565191082303833366",
-    image: "/images/partnerImages.jpg",
-    likes: "2,105",
-    comments: "143",
-  },
+const INSTAGRAM_REELS = [
+  "https://www.instagram.com/reel/DXohuMwDTw3/",
+  "https://www.instagram.com/reel/DcgNQ9xNZzU/",
+  "https://www.instagram.com/reel/DcA2VEfs3cf/",
+  "https://www.instagram.com/reel/DbYdlyNNaRR/",
+  "https://www.instagram.com/reel/DauQEe8NqlT/",
+  "https://www.instagram.com/reel/DZzxwhstJp6/",
+  "https://www.instagram.com/reel/DXRFf4nCidl/",
+  "https://www.instagram.com/reel/CjatkkYjtRf/",
 ];
+
+const REEL_IMAGES = [
+  "/images/heroimage.png",
+  "/images/aboutimage.jpg",
+  "/images/frienchies.png",
+  "/images/partnerImages.jpg",
+];
+
+const SOCIAL_POSTS = INSTAGRAM_REELS.map((url, i) => ({
+  url,
+  image: REEL_IMAGES[i % REEL_IMAGES.length],
+}));
 
 const MARQUEE_COPIES = 3;
 
@@ -184,7 +176,7 @@ export default function Instagram() {
               {[...SOCIAL_POSTS, ...SOCIAL_POSTS, ...SOCIAL_POSTS].map(
                 (post, i) => (
                 <a
-                  key={`${post.platform}-${post.url}-${i}`}
+                  key={`${post.url}-${i}`}
                   href={post.url}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -212,34 +204,6 @@ export default function Instagram() {
                     </div>
                   </div>
 
-                  <div className="absolute bottom-0 left-0 right-0 flex items-center gap-3 p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 sm:p-4">
-                    <div className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="white"
-                        className="h-4 w-4"
-                      >
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                      <span className="text-xs font-semibold text-white sm:text-sm">
-                        {post.likes}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="white"
-                        className="h-4 w-4"
-                      >
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                      </svg>
-                      <span className="text-xs font-semibold text-white sm:text-sm">
-                        {post.comments}
-                      </span>
-                    </div>
-                  </div>
                 </a>
               ))}
             </div>
