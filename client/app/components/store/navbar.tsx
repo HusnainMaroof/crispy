@@ -313,7 +313,8 @@ export default function Navbar() {
           <div className="flex items-center gap-10">
             {" "}
             {NAV_LINKS.map((l) => {
-              const isActive = pathname === l.href || pathname.startsWith(l.href + "/");
+              const isActive =
+                pathname === l.href || pathname.startsWith(l.href + "/");
               return (
                 <Link
                   key={l.href}
@@ -363,14 +364,56 @@ export default function Navbar() {
       {/* Mobile navbar */}
       <nav className="flex h-14 items-center justify-between px-5 xl:hidden">
         <Link href="/" aria-label="Crispies home">
-          <Image
-            src="/images/cripieslogoblack.png"
-            alt="Crispies"
-            width={48}
-            height={48}
-            className="block"
-            priority
-          />
+          <div className="h-20 w-20  flex items-center justify-center">
+            {" "}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+
+              viewBox="0 0 198 58"
+              fill="none"
+            >
+              <path
+                d="M24.1728 14.8284V12.5241C24.1728 5.15341 19.1684 0.00963323 12.0864 0.00963323C5.0044 0.00963323 0 5.15341 0 12.5241V42.7764C0 50.0741 4.9268 55.2135 12.0864 55.2135C19.246 55.2135 24.1728 50.0697 24.1728 42.7764V40.1647H16.634V43.0064C16.634 46.8454 14.4788 47.9976 12.0908 47.9976C9.70282 47.9976 7.47224 46.8454 7.47224 43.0064V12.2941C7.47224 8.45507 9.70504 7.22773 12.0908 7.22773C14.4766 7.22773 16.634 8.45507 16.634 12.2941V14.8284H24.1728Z"
+                fill="white"
+              />
+              <path
+                d="M45.8862 26.0372C45.8862 31.9483 43.2675 32.9479 40.3429 32.9479H37.2631V7.77525H40.3429C43.1922 7.77525 45.8862 8.92519 45.8862 13.7638V26.0372ZM53.2764 26.4972V13.7461C53.2764 5.14586 48.3496 0.539461 41.2676 0.539461H29.72V54.6752H37.2587V40.0798H40.4161C41.4937 42.6892 44.2653 52.0568 45.3429 54.6752H53.5025L47.3429 38.0143C50.9615 36.1722 53.2719 32.5631 53.2719 26.4972"
+                fill="white"
+              />
+              <path
+                d="M84.3007 0.00884759C77.5247 0.00884759 72.5202 4.23267 72.5202 10.9886C72.5202 14.1354 72.9837 17.2071 76.6023 22.5057L86.3007 36.7871C88.4558 40.0113 88.9947 41.5461 88.9947 43.6204C88.9947 46.4598 86.9171 47.9968 84.4537 47.9968C81.9903 47.9968 79.5269 46.7672 79.5269 42.7756H72.0591C72.0591 50.5289 77.2164 55.2901 84.376 55.2901C91.5357 55.2901 96.4624 50.7611 96.4624 43.8504C96.4624 40.0113 95.6931 36.9397 92.1521 31.7185L82.4514 17.5056C80.6776 14.9714 80.0657 12.8992 80.0657 11.0571C80.0657 8.44543 81.9903 7.06329 84.2231 7.06329C86.4559 7.06329 88.6887 8.36803 88.6887 12.1319H96.0057C96.0057 4.61303 91.0013 0 84.3051 0"
+                fill="white"
+              />
+              <path
+                d="M117.322 27.4199C117.322 32.2563 114.551 33.4085 111.779 33.4085H108.699V7.77584H111.779C114.628 7.77584 117.322 8.92578 117.322 13.7644V27.4199ZM124.712 27.5725V13.6759C124.712 5.23048 119.786 0.546686 112.704 0.546686H101.156V54.6758H108.695V40.5492H112.699C119.781 40.5492 124.708 36.018 124.708 27.5725"
+                fill="white"
+              />
+              <path
+                d="M67.2844 0.00963323H59.8166V54.623H67.2844V0.00963323Z"
+                fill="white"
+              />
+              <path
+                d="M143.419 3.25362H135.952V57.3827H143.419V3.25362Z"
+                fill="white"
+              />
+              <path
+                d="M171.289 3.25603H151.043V57.3851H171.289V50.167H158.509V33.1213H168.057V26.5202H158.509V10.4719H171.289V3.25603Z"
+                fill="white"
+              />
+              <path
+                d="M185.836 2.71657C179.062 2.71657 174.058 6.94039 174.058 13.6963C174.058 16.8454 174.519 19.917 178.138 25.2134L187.838 39.4948C189.993 42.719 190.532 44.256 190.532 46.3281C190.532 49.1698 188.455 50.7045 185.989 50.7045C183.523 50.7045 181.062 49.4772 181.062 45.4833H173.597C173.597 53.2388 178.754 58 185.914 58C193.073 58 198 53.4688 198 46.5581C198 42.7191 197.231 39.6496 193.687 34.4284L183.991 20.2244C182.217 17.6901 181.603 15.6158 181.603 13.7737C181.603 11.1642 183.528 9.78208 185.761 9.78208C187.993 9.78208 190.226 11.0868 190.226 14.8485H197.543C197.543 7.32961 192.541 2.71657 185.843 2.71657"
+                fill="white"
+              />
+              <path
+                d="M133.431 17.6409L129.27 23.0964L132.74 25.4339L126.496 30.1089V17.6409H133.431Z"
+                fill="#FF0931"
+              />
+              <path
+                d="M117.85 47.0849L110.38 42.0274V49.1526C110.36 52.0761 112.711 54.4645 115.642 54.4976C117.411 54.4888 118.963 53.3189 119.456 51.6228C119.968 49.9222 119.318 48.0889 117.85 47.0849Z"
+                fill="#FF0931"
+              />
+            </svg>
+          </div>
         </Link>
         <button
           aria-label="Toggle menu"
@@ -391,13 +434,17 @@ export default function Navbar() {
           <div className="menu-drop absolute inset-x-0 top-full border-b border-white/10 bg-black xl:hidden">
             <div className="flex flex-col gap-1 px-5 py-5">
               {NAV_LINKS.map((l, i) => {
-                const isActive = pathname === l.href || pathname.startsWith(l.href + "/");
+                const isActive =
+                  pathname === l.href || pathname.startsWith(l.href + "/");
                 return (
                   <Link
                     key={l.href}
                     href={l.href}
                     onClick={() => setOpen(false)}
-                    style={{ animationDelay: `${0.05 + i * 0.08}s`, ...(isActive ? { color: "#FF0931" } : {}) }}
+                    style={{
+                      animationDelay: `${0.05 + i * 0.08}s`,
+                      ...(isActive ? { color: "#FF0931" } : {}),
+                    }}
                     className={`menu-item rounded-md px-4 py-3 transition-colors hover:bg-white/5 ${navItemClass} ${isActive ? "border-b-2 border-[#FF0931]" : ""}`}
                   >
                     {l.label}
@@ -457,7 +504,9 @@ export default function Navbar() {
           </div>
         </>
       )}
-      {deliveryOpen && <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />}
+      {deliveryOpen && (
+        <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />
+      )}
     </header>
   );
 }

@@ -93,7 +93,7 @@ export default function Footer() {
           >
             <a
               href="/"
-              className="block w-[120px] h-[120px] sm:w-[130px] sm:h-[130px] md:w-[140px] md:h-[140px]  overflow-hidden transition-transform duration-300 hover:scale-[1.04] will-change-transform"
+              className="block w-[120px] h-[120px] sm:w-[130px] sm:h-[130px] md:w-[140px] md:h-[140px]  overflow-hidden "
               aria-label="Crispies home"
             >
               <img

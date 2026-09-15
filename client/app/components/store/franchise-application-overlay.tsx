@@ -249,13 +249,13 @@ export default function FranchiseApplicationOverlay({
       {/* Panel — full-screen black, white bg kept only on the form card */}
       <div
         data-lenis-prevent
-        className="loc-scroll relative flex h-full mt-40 w-[90%] rounded-2xl border border-[#242424] bg-black bg-black rounded-[20px] flex-col items-center overflow-y-auto px-4 py-10 text-center sm:px-10 sm:py-14 "
+        className="loc-scroll relative flex h-[95vh]  w-[95%] md:w-[90%]  rounded-2xl border border-[#242424] bg-black bg-black rounded-[20px] flex-col items-center overflow-y-auto px-4 pb-8 pt-12 shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6 my-10!"
       >
              <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="overlay-fade-in absolute right-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
+          className="overlay-fade-in fixed right-8 md:right-14 lg:right-20 2xl:right-24 top-8 md:top-10   flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
             width="14"

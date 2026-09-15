@@ -20,16 +20,7 @@ export const About = () => {
         </p>
 
         <div className="relative mt-8 flex w-full items-center justify-center overflow-hidden md:mt-16">
-          <div
-            className={`${styles.sideImg} ${styles.sideLeft} z-100`}
-            style={{
-              background:
-                "url('/images/aboutimage.jpg') lightgray 50% / cover no-repeat",
-            }}
-            aria-hidden="true"
-          />
-
-          <div
+           <div
             className="relative z-10 h-[200px] w-[220px] shrink-0 overflow-hidden rounded-[32px] sm:h-[360px] sm:w-[360px] sm:rounded-[44px] md:h-[420px] md:w-[420px] lg:h-[520px] lg:w-[50%] lg:rounded-[66px]"
             style={{
               background:

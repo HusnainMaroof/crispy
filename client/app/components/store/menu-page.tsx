@@ -357,12 +357,12 @@ export default function MenuPage() {
           style={{ backgroundImage: "url('/images/menu%20hero%20section.avif')" }}
         >
 
-          <div className="absolute flex  items-center justify-center gap-4  bg-[#FF0931]  rounded-b-xl md:rounded-b-2xl   left-[35%] -translate-x-1/2  md:px-8 px-5 py-3 md:py-6 2xl:px-8 2xl:py-6">
+          <div className="absolute flex  items-center justify-center gap-4  bg-[#FF0931]  rounded-b-xl md:rounded-b-2xl   left-[35%] -translate-x-1/2  px-4 lg:px-6 py-3  md:py-4 lg:py-5   2xl:px-8 2xl:py-6">
             <h1 className=" leading-[1] tracking-[0.54px] capitalize text-nowrap">
-              <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[60px]  2xl:text-[60px] font-black text-white">
+              <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[50px]  2xl:text-[60px] font-black text-white">
                 Our{" "} 
               </span>
-              <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[60px]  2xl:text-[60px] font-black text-black">
+              <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[50px]  2xl:text-[60px] font-black text-black">
                 Menu
               </span>
             </h1>

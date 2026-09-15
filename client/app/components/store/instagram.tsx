@@ -36,26 +36,57 @@ const SOCIAL_POSTS = [
   },
 ];
 
+const MARQUEE_COPIES = 3;
+
 export default function Instagram() {
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
   const scopeRef = useScrollReveal();
 
   useEffect(() => {
-    if (!trackRef.current) return;
+    const track = trackRef.current;
+    if (!track) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Width of one full set of cards including the gap that follows it, so
+    // moving by exactly this amount lands on identical content (seamless loop).
+    const getLoopWidth = () => {
+      const cards = Array.from(track.children) as HTMLElement[];
+      const perSet = cards.length / MARQUEE_COPIES;
+      const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+      return (
+        cards
+          .slice(0, perSet)
+          .reduce((total, card) => total + card.offsetWidth, 0) +
+        gap * perSet
+      );
+    };
 
     const timer = setTimeout(() => {
-      animRef.current = gsap.to(trackRef.current!, {
-        xPercent: -50,
+      animRef.current = gsap.to(track, {
+        x: () => -getLoopWidth(),
         duration: 25,
         ease: "none",
         repeat: -1,
+        modifiers: {
+          // Wrap the position every tick so the loop stays seamless even if
+          // card sizes change (responsive breakpoints, resized window).
+          x: (value) => {
+            const width = getLoopWidth();
+            const current = Number(value);
+            if (!width || !Number.isFinite(current)) return value;
+            return gsap.utils.wrap(-width, 0, current);
+          },
+        },
       });
     }, 3000);
 
     return () => {
       clearTimeout(timer);
       animRef.current?.kill();
+      animRef.current = null;
+      gsap.set(track, { clearProps: "transform" });
     };
   }, []);
 
@@ -150,7 +181,8 @@ export default function Instagram() {
               ref={trackRef}
               className="flex items-center gap-6 px-4 sm:gap-8 sm:px-6"
             >
-              {[...SOCIAL_POSTS, ...SOCIAL_POSTS].map((post, i) => (
+              {[...SOCIAL_POSTS, ...SOCIAL_POSTS, ...SOCIAL_POSTS].map(
+                (post, i) => (
                 <a
                   key={`${post.platform}-${post.url}-${i}`}
                   href={post.url}

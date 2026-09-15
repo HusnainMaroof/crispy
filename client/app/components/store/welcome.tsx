@@ -149,7 +149,7 @@ export default function Welcome() {
           <div className="w-full   flex-1 md:w-auto">
             {/* Width is capped by the viewport height too, so the taller image
                 can never overflow the pinned panel on short laptop screens. */}
-            <div className="relative mx-auto     w-[280px] h-[280px]  lg:w-[620px] lg:h-[620px] my-20  md:mx-0">
+            <div className="relative mx-auto     w-[280px] h-[280px] sm:w-[360px] sm:h-[360px]  md:w-[380px] md:h-[380px]   lg:w-[420px] lg:h-[420px]  2xl:w-[620px] 2xl:h-[620px] my-20  md:mx-0">
               <div
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{

@@ -117,12 +117,12 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
         aria-hidden
       />
 
-      <div className="overlay-panel-in relative my-auto flex min-h-[85vh] max-h-[90vh] w-[90%] flex-col justify-center overflow-y-auto rounded-2xl border border-[#242424] bg-black px-4 pb-8 pt-12 shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6 md:px-8 md:pb-10 md:pt-12">
+      <div className="overlay-panel-in relative my-auto  h-[95vh]  flex w-full  md:w-[90%] flex-col justify-center overflow-y-auto rounded-2xl border border-[#242424] bg-black px-4  shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6 md:px-8 ">
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="overlay-fade-in absolute right-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
+          className="overlay-fade-in fixed right-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
             width="14"
@@ -132,6 +132,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
             stroke="currentColor"
             strokeWidth="2.4"
             strokeLinecap="round"
+        className="pointer-events-none"
           >
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />

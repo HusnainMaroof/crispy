@@ -837,17 +837,16 @@ export default function Locations() {
                         isActive ? "border-[#FF0931]" : "border-[#EAEAEA]"
                       }`}
                     >
-                      <button
-                        type="button"
-                        aria-label={`Show ${loc.name} on map`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedId(loc.id);
-                        }}
-                        className="absolute right-5  shrink-0 transition-transform duration-200 hover:scale-110 sm:right-6"
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${loc.name} in Google Maps`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-5 shrink-0 sm:right-6"
                       >
                         <ArrowIcon className="h-[42px] w-[42px] sm:h-[44px] sm:w-[44px]" />
-                      </button>
+                      </a>
 
                       <div className="flex w-full items-center gap-4 pr-14 sm:gap-10 sm:pl-10 sm:pr-0 lg:gap-20 ">
                         <span
