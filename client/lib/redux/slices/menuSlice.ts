@@ -41,13 +41,18 @@ function mapMenuCategory(raw: Record<string, unknown>): MenuCategory {
   };
 }
 
-export const fetchFullMenu = createAsyncThunk("menu/fetchFullMenu", async () => {
-  const data = await api.get<Record<string, unknown>[]>("/menu/full");
+function menuPath(path: string, locationId?: string) {
+  if (!locationId) return path;
+  return `${path}?location_id=${encodeURIComponent(locationId)}`;
+}
+
+export const fetchFullMenu = createAsyncThunk("menu/fetchFullMenu", async (locationId?: string) => {
+  const data = await api.get<Record<string, unknown>[]>(menuPath("/menu/full", locationId));
   return data.map(mapMenuCategory) as unknown as MenuCategory[];
 });
 
-export const fetchDeals = createAsyncThunk("menu/fetchDeals", async () => {
-  const data = await api.get<Record<string, unknown>[]>("/menu/deals");
+export const fetchDeals = createAsyncThunk("menu/fetchDeals", async (locationId?: string) => {
+  const data = await api.get<Record<string, unknown>[]>(menuPath("/menu/deals", locationId));
   return data.map(mapMenuItem) as unknown as Deal[];
 });
 

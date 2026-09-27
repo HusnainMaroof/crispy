@@ -5,7 +5,7 @@ import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
 import HowToGetStarted from "@/app/components/store/how-to-get-started";
-import { ArrowUpDown, FilePenLine } from "lucide-react";
+import { ArrowUpDown, Download, FilePenLine } from "lucide-react";
 import Image from "next/image";
 
 const KOROLEV = "font-[family-name:var(--font-korolev),Korolev,sans-serif]";
@@ -84,7 +84,8 @@ export default function PartnerPage() {
 
         <div className="px-6 py-16 sm:px-10 sm:py-20 md:px-12  bg-white">
           <div className="flex flex-col md:flex-row   md:justify-center md:items-center   gap-5  md:gap-10  xl:gap-20">
-            <h1
+       <div className="flex flex-col gap-6   items-start justify-center">
+             <h1
               className={`m-0 ${KOROLEV} capitalize text-black text-5xl lg:text-[60px] xl:text-[100px] `}
               style={{
            
@@ -106,6 +107,11 @@ export default function PartnerPage() {
               join a fast-growing brand with bold flavours, loyal <br /> customers and
               a proven recipe for success.
             </p>
+       </div>
+       <button className="bg-[#FF0931] text-white py-16 px-16 text-4xl rounded-2xl hover:bg-[#ff0000] transition-colors duration-300 flex items-center gap-6">
+      Download Franchise Brochure 
+<Download  className="w-16 h-16 sm:w-16 sm:h-16  text-white "/>
+       </button>
           </div>
         </div>
       </section>

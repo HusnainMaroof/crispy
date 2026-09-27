@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
       "script-src-elem 'self' 'unsafe-inline' https://www.instagram.com https://www.tiktok.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.instagram.com https://*.cdninstagram.com https://*.tiktok.com https://images.unsplash.com https://res.cloudinary.com https://*.cloudinary.com https://www.zycocudi.us https://*.basemaps.cartocdn.com https://basemaps.cartocdn.com",
-      "media-src 'self' blob: https://*.tiktokcdn.com https://vid.cdn-website.com",
+      "media-src 'self' blob: https://*.tiktokcdn.com https://vid.cdn-website.com https://res.cloudinary.com https://*.cloudinary.com",
       "font-src 'self' data:",
       `connect-src ${connectSrc}`,
       "frame-src 'self' https://www.instagram.com https://www.tiktok.com",
@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const target = apiBase || "http://localhost:3001";
+    const target = apiBase || "http://localhost:4000";
     return [
       {
         source: "/api/:path*",

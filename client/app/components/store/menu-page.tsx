@@ -1,243 +1,17 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addItem } from "@/lib/redux/slices/cartSlice";
+import { fetchDeals, fetchFullMenu } from "@/lib/redux/slices/menuSlice";
+import { useUI } from "@/lib/context/ui-context";
+import type { AppDispatch, RootState } from "@/lib/redux/store";
 import type { MenuItem } from "@/lib/redux/types";
-import Image from "next/image";
 import Footer from "@/app/components/store/footer";
 import DownloadApp from "@/app/components/store/download-app";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
-type MockItem = MenuItem & { category: string };
-
-const MOCK_ITEMS: MockItem[] = [
-  {
-    id: "1",
-    name: "Crispies Fries Chicken",
-    description: "",
-    price: "£6.00",
-    priceValue: 6,
-    image: "/images/aboutimage.jpg",
-    category: "Chicken",
-  },
-  {
-    id: "2",
-    name: "Crispies Fries Chicken",
-    description: "",
-    price: "£6.00",
-    priceValue: 6,
-    image: "/images/aboutimage.jpg",
-    category: "Chicken",
-  },
-  {
-    id: "3",
-    name: "Crispies Fries Chicken",
-    description: "",
-    price: "£6.00",
-    priceValue: 6,
-    image: "/images/aboutimage.jpg",
-    category: "Chicken",
-  },
-  {
-    id: "4",
-    name: "Crispies Fries Chicken",
-    description: "",
-    price: "£6.00",
-    priceValue: 6,
-    image: "/images/aboutimage.jpg",
-    category: "Chicken",
-  },
-  {
-    id: "5",
-    name: "Classic Smash Burger",
-    description: "",
-    price: "£8.50",
-    priceValue: 8.5,
-    image: "/images/aboutimage.jpg",
-    category: "Burger",
-  },
-  {
-    id: "6",
-    name: "Classic Smash Burger",
-    description: "",
-    price: "£8.50",
-    priceValue: 8.5,
-    image: "/images/aboutimage.jpg",
-    category: "Burger",
-  },
-  {
-    id: "7",
-    name: "Classic Smash Burger",
-    description: "",
-    price: "£8.50",
-    priceValue: 8.5,
-    image: "/images/aboutimage.jpg",
-    category: "Burger",
-  },
-  {
-    id: "8",
-    name: "Classic Smash Burger",
-    description: "",
-    price: "£8.50",
-    priceValue: 8.5,
-    image: "/images/aboutimage.jpg",
-    category: "Burger",
-  },
-  {
-    id: "9",
-    name: "Chicken Wrap",
-    description: "",
-    price: "£7.00",
-    priceValue: 7,
-    image: "/images/aboutimage.jpg",
-    category: "Wraps",
-  },
-  {
-    id: "10",
-    name: "Chicken Wrap",
-    description: "",
-    price: "£7.00",
-    priceValue: 7,
-    image: "/images/aboutimage.jpg",
-    category: "Wraps",
-  },
-  {
-    id: "11",
-    name: "Chicken Wrap",
-    description: "",
-    price: "£7.00",
-    priceValue: 7,
-    image: "/images/aboutimage.jpg",
-    category: "Wraps",
-  },
-  {
-    id: "12",
-    name: "Chicken Wrap",
-    description: "",
-    price: "£7.00",
-    priceValue: 7,
-    image: "/images/aboutimage.jpg",
-    category: "Wraps",
-  },
-  {
-    id: "13",
-    name: "Loaded Fries",
-    description: "",
-    price: "£5.50",
-    priceValue: 5.5,
-    image: "/images/aboutimage.jpg",
-    category: "Sides",
-  },
-  {
-    id: "14",
-    name: "Loaded Fries",
-    description: "",
-    price: "£5.50",
-    priceValue: 5.5,
-    image: "/images/aboutimage.jpg",
-    category: "Sides",
-  },
-  {
-    id: "15",
-    name: "Loaded Fries",
-    description: "",
-    price: "£5.50",
-    priceValue: 5.5,
-    image: "/images/aboutimage.jpg",
-    category: "Sides",
-  },
-  {
-    id: "16",
-    name: "Loaded Fries",
-    description: "",
-    price: "£5.50",
-    priceValue: 5.5,
-    image: "/images/aboutimage.jpg",
-    category: "Sides",
-  },
-  {
-    id: "17",
-    name: "Cola Drink",
-    description: "",
-    price: "£2.50",
-    priceValue: 2.5,
-    image: "/images/aboutimage.jpg",
-    category: "Drinks",
-  },
-  {
-    id: "18",
-    name: "Cola Drink",
-    description: "",
-    price: "£2.50",
-    priceValue: 2.5,
-    image: "/images/aboutimage.jpg",
-    category: "Drinks",
-  },
-  {
-    id: "19",
-    name: "Cola Drink",
-    description: "",
-    price: "£2.50",
-    priceValue: 2.5,
-    image: "/images/aboutimage.jpg",
-    category: "Drinks",
-  },
-  {
-    id: "20",
-    name: "Cola Drink",
-    description: "",
-    price: "£2.50",
-    priceValue: 2.5,
-    image: "/images/aboutimage.jpg",
-    category: "Drinks",
-  },
-  {
-    id: "21",
-    name: "Chocolate Brownie",
-    description: "",
-    price: "£4.00",
-    priceValue: 4,
-    image: "/images/aboutimage.jpg",
-    category: "Desserts",
-  },
-  {
-    id: "22",
-    name: "Chocolate Brownie",
-    description: "",
-    price: "£4.00",
-    priceValue: 4,
-    image: "/images/aboutimage.jpg",
-    category: "Desserts",
-  },
-  {
-    id: "23",
-    name: "Chocolate Brownie",
-    description: "",
-    price: "£4.00",
-    priceValue: 4,
-    image: "/images/aboutimage.jpg",
-    category: "Desserts",
-  },
-  {
-    id: "24",
-    name: "Chocolate Brownie",
-    description: "",
-    price: "£4.00",
-    priceValue: 4,
-    image: "/images/aboutimage.jpg",
-    category: "Desserts",
-  },
-];
-
-const CATEGORY_NAMES = [
-  "All",
-  "Chicken",
-  "Burger",
-  "Wraps",
-  "Sides",
-  "Drinks",
-  "Desserts",
-];
+type MenuCard = MenuItem & { category: string };
 
 const DIETARY_OPTIONS = ["All", "Halal", "Vegan", "Vegetarian"];
 const SORT_OPTIONS = [
@@ -247,36 +21,12 @@ const SORT_OPTIONS = [
   { value: "price-desc", label: "Price High-Low" },
 ];
 
-function AddIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="59"
-      height="59"
-      viewBox="0 0 59 59"
-      fill="none"
-    >
-      <rect
-        x="0.5"
-        y="0.5"
-        width="58"
-        height="58"
-        rx="8.5"
-        fill="#F7F8F8"
-        stroke="#E2E2E2"
-      />
-      <path
-        d="M17 29H29M29 29H42M29 29V17M29 29L29 42"
-        stroke="black"
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export default function MenuPage() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const menu = useSelector((state: RootState) => state.menu);
+  const cart = useSelector((state: RootState) => state.cart);
+  const { toggleCart } = useUI();
+  const { redirect } = useStoreOrdering();
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [dietary, setDietary] = useState("All");
@@ -286,10 +36,30 @@ export default function MenuPage() {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const underlineRef = useRef<HTMLDivElement>(null);
 
+  const [menuFetched, setMenuFetched] = useState(false);
+
+  useEffect(() => {
+    Promise.all([dispatch(fetchFullMenu()), dispatch(fetchDeals())]).finally(() => setMenuFetched(true));
+  }, [dispatch]);
+
+  const categoryNames = useMemo(
+    () => ["All", ...menu.categories.map((category) => category.title)],
+    [menu.categories],
+  );
+  const effectiveCategory = categoryNames.includes(activeCategory) ? activeCategory : "All";
+
+  const menuItems = useMemo<MenuCard[]>(
+    () =>
+      menu.categories.flatMap((category) =>
+        category.items.map((item) => ({ ...item, category: category.title })),
+      ),
+    [menu.categories],
+  );
+
   useEffect(() => {
     const container = tabContainerRef.current;
     const underline = underlineRef.current;
-    const activeIndex = CATEGORY_NAMES.indexOf(activeCategory);
+    const activeIndex = categoryNames.indexOf(effectiveCategory);
     const activeTab = tabRefs.current[activeIndex];
 
     if (!container || !underline || !activeTab) return;
@@ -302,13 +72,13 @@ export default function MenuPage() {
 
     underline.style.width = `${width}px`;
     underline.style.transform = `translateX(${offset}px)`;
-  }, [activeCategory]);
+  }, [effectiveCategory, categoryNames]);
 
   const filteredItems = useMemo(() => {
-    let items = MOCK_ITEMS;
+    let items = menuItems;
 
-    if (activeCategory !== "All") {
-      items = items.filter((item) => item.category === activeCategory);
+    if (effectiveCategory !== "All") {
+      items = items.filter((item) => item.category === effectiveCategory);
     }
 
     if (search.trim()) {
@@ -341,10 +111,23 @@ export default function MenuPage() {
     }
 
     return sorted;
-  }, [activeCategory, search, dietary, sort]);
+  }, [effectiveCategory, search, dietary, sort, menuItems]);
 
-  const handleAddToCart = (item: MockItem) => {
-    dispatch(addItem({ id: item.id, name: item.name, price: item.priceValue }));
+  const visibleDeals = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return menu.deals.filter((deal) => !q || deal.name.toLowerCase().includes(q));
+  }, [menu.deals, search]);
+
+  const handleAddToCart = async (item: MenuCard) => {
+    if (await redirect()) return;
+    dispatch(addItem({ id: item.id, kind: "product", name: item.name, price: item.priceValue, locationId: cart.locationId }));
+    toggleCart();
+  };
+
+  const handleAddDeal = async (deal: (typeof menu.deals)[number]) => {
+    if (await redirect()) return;
+    dispatch(addItem({ id: deal.id, kind: "deal", name: deal.name, price: deal.priceValue, locationId: cart.locationId }));
+    toggleCart();
   };
 
   return (
@@ -375,7 +158,7 @@ export default function MenuPage() {
             ref={tabContainerRef}
             className="relative flex gap-4 overflow-x-auto w-full justify-between sm:w-[85%] sm:gap-0 2xl:w-[90%]"
           >
-            {CATEGORY_NAMES.map((cat, i) => (
+            {categoryNames.map((cat, i) => (
               <button
                 key={cat}
                 type="button"
@@ -384,7 +167,7 @@ export default function MenuPage() {
                 }}
                 onClick={() => setActiveCategory(cat)}
                 className={`whitespace-nowrap cursor-pointer pb-3 pt-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium capitalize leading-[1] tracking-[0.54px] transition-colors duration-200 sm:pb-4 sm:pt-5 sm:text-[clamp(18px,2.5vw,30px)] ${
-                  activeCategory === cat
+                  effectiveCategory === cat
                     ? "text-[#FF0931]"
                     : "text-black hover:text-[#FF0931]"
                 }`}
@@ -495,9 +278,13 @@ export default function MenuPage() {
 
         {/* Menu Grid */}
         <div className=" pb-10 px-6  sm:px-10 md:px-12 xl:px-25">
-          {filteredItems.length === 0 && (
+          {(!menuFetched || menu.loading || filteredItems.length === 0) && (
             <div className="py-20 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-[#999]">
-              No items found. Try a different search or category.
+              {!menuFetched || menu.loading
+                ? "Loading menu..."
+                : menu.error
+                  ? "Menu could not be loaded."
+                  : "No items found. Try a different search or category."}
             </div>
           )}
 
@@ -547,7 +334,7 @@ export default function MenuPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => handleAddToCart(item)}
+                        onClick={() => void handleAddToCart(item)}
                         className="flex cursor-pointer h-[59px] w-[59px] shrink-0 items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8] transition-colors hover:bg-[#FF0931] hover:border-[#FF0931] group/btn"
                         aria-label={`Add ${item.name} to cart`}
                       >
@@ -582,6 +369,28 @@ export default function MenuPage() {
             </div>
           )}
         </div>
+
+        {visibleDeals.length > 0 && (
+          <div className="pb-10 px-6 sm:px-10 md:px-12 xl:px-25">
+            <h2 className="mb-4 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[28px] uppercase text-black">Deals</h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
+              {visibleDeals.map((deal) => (
+                <div key={deal.id} className="group overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
+                  <img src={deal.image} alt={deal.name} className="h-[264px] w-full object-cover" loading="lazy" />
+                  <div className="flex items-center justify-between gap-2 px-3 py-5 sm:px-4">
+                    <div>
+                      <h3 className="m-0 truncate font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-medium text-black sm:text-[20px]">{deal.name}</h3>
+                      <p className="m-0 mt-1 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-black sm:text-[25px]">{deal.price}</p>
+                    </div>
+                    <button type="button" onClick={() => void handleAddDeal(deal)} className="flex h-[59px] w-[59px] cursor-pointer items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8]" aria-label={`Add ${deal.name} to cart`}>
+                      <span className="text-2xl leading-none">+</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Download App Banner */}
         <div className="px-6 pb-10 sm:px-10 md:px-12 xl:px-25">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
@@ -24,15 +25,6 @@ const statusLabels: Record<string, string> = {
   delivered: "Delivered",
   cancelled: "Cancelled",
 };
-
-const statusOptions = [
-  { value: "pending", label: "Pending" },
-  { value: "preparing", label: "Preparing" },
-  { value: "ready", label: "Ready" },
-  { value: "out-for-delivery", label: "Out for Delivery" },
-  { value: "delivered", label: "Delivered" },
-  { value: "cancelled", label: "Cancelled" },
-];
 
 const filterOptions = [
   { value: "all", label: "All Orders" },
@@ -67,7 +59,7 @@ export default function OrdersPage() {
         description="View and manage customer orders."
       />
 
-      {loading && <TableSkeleton />}
+      {loading ? <TableSkeleton /> : <>
 
       {/* Status Filter */}
       <div className="mb-6">
@@ -86,10 +78,11 @@ export default function OrdersPage() {
           <thead>
             <tr className="border-b border-white/10 text-left text-xs font-medium uppercase tracking-wider text-white/50">
               <th className="px-6 py-3">Order</th>
+              <th className="px-6 py-3">Placed</th>
+              <th className="px-6 py-3">Branch</th>
               <th className="px-6 py-3">Customer</th>
-              <th className="px-6 py-3">Items</th>
+              <th className="px-6 py-3">Fulfilment</th>
               <th className="px-6 py-3">Total</th>
-              <th className="px-6 py-3">Location</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3 text-right">Actions</th>
             </tr>
@@ -102,21 +95,22 @@ export default function OrdersPage() {
                 style={{ animationDelay: `${index * 30}ms` }}
               >
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
-                  {order.id}
+                  <Link href={`/admin/orders/${order.id}`} className="underline">{order.id}</Link>
+                </td>
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-white/70">
+                  {new Date(order.createdAt).toLocaleString()}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-white/70">
+                  {order.location}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-white/70">
                   {order.customer}
                 </td>
-                <td className="max-w-xs truncate px-6 py-4 text-sm text-white/70">
-                  {order.items.length > 0
-                    ? order.items.map((item) => `${item.quantity}x ${item.name}`).join(", ")
-                    : "—"}
+                <td className="whitespace-nowrap px-6 py-4 text-sm capitalize text-white/70">
+                  {order.fulfilment}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
                   £{order.total.toFixed(2)}
-                </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-white/70">
-                  {order.location}
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -129,9 +123,16 @@ export default function OrdersPage() {
                 </td>
                 <td className="px-6 py-4 text-right">
                   <Dropdown
-                    options={statusOptions}
+                    options={[
+                      { value: order.status, label: statusLabels[order.status] },
+                      ...order.allowedStatuses
+                        .filter((status) => status !== order.status)
+                        .map((status) => ({ value: status, label: statusLabels[status] ?? status })),
+                    ]}
                     value={order.status}
-                    onChange={(value) => handleStatusChange(order.id, value)}
+                    onChange={(value) => {
+                      if (value !== order.status) handleStatusChange(order.id, value);
+                    }}
                     className="w-32"
                   />
                 </td>
@@ -139,12 +140,13 @@ export default function OrdersPage() {
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="py-12 text-center text-sm text-white/50">
             No orders found matching your criteria.
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

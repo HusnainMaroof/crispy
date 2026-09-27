@@ -1,121 +1,15 @@
 // locations.tsx
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useStoreLocations } from "@/lib/use-store-locations";
+import { useBranchSelection } from "@/lib/branch-selection";
 import { resolveNearestBranch } from "@/lib/location-search";
 import { useLenis } from "@/app/components/providers/smooth-scroll";
 import type { MapLocation } from "./locations-map";
 import Footer from "@/app/components/store/footer";
 
-const LocationsMap = dynamic(() => import("./locations-map"), {
-  ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
-      Loading map…
-    </div>
-  ),
-});
-
-const locations = [
-  {
-    id: "harrow-road",
-    name: "Harrow Road",
-    address: "412 Harrow Road, London W9 2HU",
-    postcode: "W9 2HU",
-    status: "open" as const,
-    hours: "11:00 AM – 11:00 PM",
-    lat: 51.523411,
-    lng: -0.196294,
-  },
-  {
-    id: "tower-hill",
-    name: "Tower Hill",
-    address: "Unit 2, Tower Hill Terrace, London EC3N 4EE",
-    postcode: "EC3N 4EE",
-    status: "open" as const,
-    hours: "11:00 AM – 11:00 PM",
-    lat: 51.509201,
-    lng: -0.078397,
-  },
-  {
-    id: "kilburn",
-    name: "Kilburn",
-    address: "302 Kilburn High Rd, Kilburn, London NW6 2DB",
-    postcode: "NW6 2DB",
-    status: "open" as const,
-    hours: "9:00 AM – 11:00 PM",
-    lat: 51.544201,
-    lng: -0.200361,
-  },
-  {
-    id: "harrow",
-    name: "Harrow",
-    address: "253 Station Rd, Harrow, London HA1 2TB",
-    postcode: "HA1 2TB",
-    status: "open" as const,
-    hours: "9:00 AM – 11:00 PM",
-    lat: 51.583105,
-    lng: -0.332066,
-  },
-  {
-    id: "elephant-and-castle",
-    name: "Elephant & Castle",
-    address: "345 Walworth Rd, Elephant & Castle, London SE17 2NA",
-    postcode: "SE17 2NA",
-    status: "open" as const,
-    hours: "9:00 AM – 11:00 PM",
-    lat: 51.48606,
-    lng: -0.094754,
-  },
-  {
-    id: "edgware-road",
-    name: "Edgware Road",
-    address: "340 Edgware Rd, Westminster, London W2 1EA",
-    postcode: "W2 1EA",
-    status: "open" as const,
-    hours: "11:00 AM – 11:00 PM",
-    lat: 51.52107,
-    lng: -0.171146,
-  },
-  {
-    id: "stockwell",
-    name: "Stockwell",
-    address: "314 Clapham Rd, Lambeth, London SW9 9AE",
-    postcode: "SW9 9AE",
-    status: "open" as const,
-    hours: "9:00 AM – 11:00 PM",
-    lat: 51.470752,
-    lng: -0.124765,
-  },
-  {
-    id: "wembley-central",
-    name: "Wembley Central",
-    address: "421 High Rd, Wembley, London HA9 7AB",
-    postcode: "HA9 7AB",
-    status: "closed" as const,
-    hours: "Coming Soon",
-    lat: 51.553282,
-    lng: -0.29421,
-  },
-  {
-    id: "ruislip",
-    name: "Ruislip",
-    address: "77 Victoria Road, Ruislip, London HA4 9BH",
-    postcode: "HA4 9BH",
-    status: "closed" as const,
-    hours: "Coming Soon",
-    lat: 51.571683,
-    lng: -0.411649,
-  },
-];
-
-const mapLocations: MapLocation[] = locations.map((l) => ({
-  id: l.id,
-  name: l.name,
-  lat: l.lat,
-  lng: l.lng,
-}));
+import LocationsMap from "./client-locations-map";
 
 type SearchMessage =
   | { type: "error"; text: string }
@@ -409,7 +303,17 @@ function ArrowIcon({
 }
 
 export default function Locations() {
-  const [selectedId, setSelectedId] = useState<string>(locations[0].id);
+  const { locations } = useStoreLocations();
+  const mapLocations = useMemo(
+    () =>
+      locations.flatMap((location) =>
+        location.lat != null && location.lng != null
+          ? [{ id: location.id, name: location.name, lat: location.lat, lng: location.lng }]
+          : [],
+      ),
+    [locations],
+  );
+  const [selectedId, setSelectedId] = useState("");
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState<SearchMessage | null>(null);
@@ -419,6 +323,10 @@ export default function Locations() {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const mapSectionRef = useRef<HTMLDivElement>(null);
   const lenis = useLenis();
+
+  useEffect(() => {
+    if (!selectedId && locations[0]) setSelectedId(locations[0].id);
+  }, [locations, selectedId]);
 
   const navbarOffset = () => {
     const raw = getComputedStyle(document.documentElement).getPropertyValue(
@@ -447,8 +355,15 @@ export default function Locations() {
     lenis.scrollTo(section, { offset: navbarOffset() });
   };
 
-  const revealBranch = (id: string) => {
+  const { selectBranch } = useBranchSelection();
+  const chooseBranch = (id: string) => {
+    const name = locations.find((location) => location.id === id)?.name ?? "this branch";
+    if (!selectBranch(id, name)) return;
     setSelectedId(id);
+  };
+
+  const revealBranch = (id: string) => {
+    chooseBranch(id);
     window.setTimeout(() => {
       scrollListToBranch(id);
       scrollPageToMap();
@@ -465,7 +380,14 @@ export default function Locations() {
 
     setSearching(true);
     try {
-      const result = await resolveNearestBranch(query, locations);
+      const result = await resolveNearestBranch(
+        query,
+        locations.flatMap((location) =>
+          location.lat != null && location.lng != null
+            ? [{ ...location, lat: location.lat, lng: location.lng }]
+            : [],
+        ),
+      );
       if ("error" in result) {
         setSearchMessage({ type: "error", text: result.error });
         return;
@@ -826,11 +748,11 @@ export default function Locations() {
                       role="button"
                       tabIndex={0}
                       aria-pressed={isActive}
-                      onClick={() => setSelectedId(loc.id)}
+                      onClick={() => chooseBranch(loc.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          setSelectedId(loc.id);
+                          chooseBranch(loc.id);
                         }
                       }}
                       className={`relative shrink-0 cursor-pointer flex items-center rounded-[20px] border-2 bg-white px-6 py-6 transition-colors duration-200 sm:h-[221px] sm:px-7 sm:py-0 ${
@@ -838,7 +760,7 @@ export default function Locations() {
                       }`}
                     >
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${loc.lat != null && loc.lng != null ? `${loc.lat},${loc.lng}` : encodeURIComponent(loc.address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Open ${loc.name} in Google Maps`}
@@ -909,7 +831,7 @@ export default function Locations() {
                 <LocationsMap
                   locations={mapLocations}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  onSelect={chooseBranch}
                 />
               </div>
             </div>

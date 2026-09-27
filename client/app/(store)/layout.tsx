@@ -1,12 +1,14 @@
 import { Toaster } from "react-hot-toast";
 import SmoothScroll from "@/app/components/providers/smooth-scroll";
-import Navbar from "@/app/components/store/navbar";
+import Navbar, { type NavbarContent } from "@/app/components/store/navbar";
+import { loadCmsPage } from "@/lib/load-cms";
 
-export default function StoreLayout({
+export default async function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const navbar = await loadCmsPage<{ sections?: NavbarContent }>("navbar");
   return (
     <SmoothScroll>
       <Toaster
@@ -31,7 +33,7 @@ export default function StoreLayout({
         }}
       />
       <div className="min-h-screen bg-brand-black text-white selection:bg-brand-red selection:text-white">
-        <Navbar />
+        <Navbar content={navbar?.sections} />
         <main>{children}</main>
       </div>
     </SmoothScroll>

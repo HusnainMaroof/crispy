@@ -13,7 +13,7 @@ export function useSettings() {
     deliveryFee: 2.99,
     freeDeliveryThreshold: 20,
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);

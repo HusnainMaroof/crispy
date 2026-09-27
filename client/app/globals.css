@@ -169,7 +169,7 @@ html::-webkit-scrollbar {
 
 /* --- Admin micro-animations --- */
 .admin-fade-in {
-  animation: admin-fade-in 0.3s ease-out both;
+  animation: none;
 }
 .admin-slide-up {
   animation: admin-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;

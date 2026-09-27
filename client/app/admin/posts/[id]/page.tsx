@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import PageHeader from "@/app/components/admin/ui/page-header";
+import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import { useJobPosts } from "@/lib/admin/use-job-posts";
 import { getLocationOptions } from "@/lib/admin/location-options";
@@ -266,16 +267,7 @@ export default function EditJobPostPage() {
     });
   }, [id, post, fetchJobPosts, getJobPost]);
 
-  if (loading) {
-    return (
-      <div className="admin-fade-in">
-        <PageHeader title="Loading..." />
-        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
-          <p className="text-sm text-white/50">Loading job post...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton />;
 
   if (!post) {
     return (

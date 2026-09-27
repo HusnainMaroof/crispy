@@ -8,5 +8,6 @@ export interface ApiResponse<T = unknown> {
 export interface AuthPayload {
   sub: string;
   email: string;
-  role: "admin" | "superadmin";
+  role: "admin" | "superadmin" | "branch_manager";
+  tabs?: string[];
 }

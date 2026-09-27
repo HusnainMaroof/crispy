@@ -8,6 +8,7 @@ export const ERROR_CODES = {
   NOT_FOUND: "ERR_NOT_FOUND",
   VALIDATION: "ERR_VALIDATION",
   CONFLICT: "ERR_CONFLICT",
+  ITEM_UNAVAILABLE: "ERR_ITEM_UNAVAILABLE",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -62,5 +63,14 @@ export class ForbiddenException extends AppError {
 export class ConflictException extends AppError {
   constructor(message = "Conflict") {
     super(message, HTTPSTATUS.CONFLICT, ERROR_CODES.CONFLICT);
+  }
+}
+
+export class ItemUnavailableException extends AppError {
+  public readonly item: { kind: "product" | "deal"; id: string };
+
+  constructor(message: string, item: { kind: "product" | "deal"; id: string }) {
+    super(message, HTTPSTATUS.BAD_REQUEST, ERROR_CODES.ITEM_UNAVAILABLE);
+    this.item = item;
   }
 }

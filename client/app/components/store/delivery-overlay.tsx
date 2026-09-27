@@ -1,16 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const locations = [
-  { id: "harrow-road-maida-vale", name: "Harrow Road - Maida Vale" },
-  { id: "tower-hill", name: "Tower Hill" },
-  { id: "kilburn", name: "Kilburn" },
-  { id: "harrow", name: "Harrow" },
-  { id: "elephant-and-castle", name: "Elephant & Castle" },
-  { id: "edgware-road", name: "Edgware Road" },
-  { id: "stockwell", name: "Stockwell" },
-];
+import { useStoreLocations } from "@/lib/use-store-locations";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
+import { useBranchSelection } from "@/lib/branch-selection";
 
 const platforms = [
   {
@@ -83,6 +76,9 @@ const platforms = [
 ];
 
 export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
+  const { locations } = useStoreLocations();
+  const { redirect } = useStoreOrdering();
+  const { selectBranch } = useBranchSelection();
   const [selected, setSelected] = useState<string | null>("");
   const [step, setStep] = useState<"branch" | "platform" | "redirect">(
     "branch",
@@ -159,7 +155,10 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
                   <button
                     key={loc.id}
                     type="button"
-                    onClick={() => setSelected(loc.id)}
+                    onClick={() => {
+                    if (!selectBranch(loc.id, loc.name)) return;
+                    setSelected(loc.id);
+                  }}
                     aria-pressed={isSelected}
                     className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] cursor-pointer items-center justify-between overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[120px] ${
                       isSelected
@@ -344,7 +343,9 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
               disabled={!platform}
               onClick={() => {
                 if (platform) {
-                  setStep("redirect");
+                  void redirect().then((didRedirect) => {
+                    if (!didRedirect) setStep("redirect");
+                  });
                 }
               }}
               className={`overlay-fade-up stagger-4 mx-auto mt-8 flex w-full max-w-[90%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-10 md:max-w-[80%] md:py-4 md:text-[14px] lg:max-w-[70%] ${

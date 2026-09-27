@@ -1,3 +1,25 @@
+export function PageSkeleton() {
+  return (
+    <div aria-hidden="true">
+      <div className="mb-8 space-y-2">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      <TableSkeleton />
+    </div>
+  );
+}
+
+export function SidebarSkeleton() {
+  return (
+    <div className="space-y-2 p-2" aria-hidden="true">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <Skeleton key={index} className="h-11 w-full rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div className={`animate-pulse rounded bg-white/10 ${className}`} />

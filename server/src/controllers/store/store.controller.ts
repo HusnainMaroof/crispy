@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { getLocations, getLocationById, getSettings, getHomepageContent } from "../../services/store.service.js";
+import { getLocations, getLocationById, getSettings } from "../../services/store.service.js";
+import { getPublicCmsPage } from "../../services/cms.service.js";
+import { localeFromAcceptLanguage } from "../../config/locales.js";
+import { NotFoundException } from "../../utils/app-error.js";
 import { sendSuccess } from "../../utils/response.js";
 import { envConfig } from "../../config/env.js";
 
@@ -13,7 +16,7 @@ const COOKIE_OPTIONS = {
 
 export const StoreController = {
   async locations(_req: Request, res: Response) {
-    const locations = await getLocations();
+    const locations = await getLocations({ activeOnly: true });
     sendSuccess(res, locations);
   },
 
@@ -30,6 +33,10 @@ export const StoreController = {
     }
     try {
       const location = await getLocationById(id);
+      if (location.status !== "active") {
+        sendSuccess(res, null);
+        return;
+      }
       sendSuccess(res, location);
     } catch {
       sendSuccess(res, null);
@@ -38,6 +45,7 @@ export const StoreController = {
 
   async setLocation(req: Request, res: Response) {
     const location = await getLocationById(req.body.location_id);
+    if (location.status !== "active") throw new NotFoundException("Location not found");
     res.cookie("crispy_location_id", location.id, COOKIE_OPTIONS);
     sendSuccess(res, location);
   },
@@ -47,8 +55,8 @@ export const StoreController = {
     sendSuccess(res, settings);
   },
 
-  async homepage(_req: Request, res: Response) {
-    const content = await getHomepageContent();
-    sendSuccess(res, content);
+  async content(req: Request, res: Response) {
+    const requested = req.query.locale ?? req.cookies?.crispy_locale ?? localeFromAcceptLanguage(req.headers["accept-language"]);
+    sendSuccess(res, await getPublicCmsPage((req.params.page as string | undefined) ?? "home", requested));
   },
 };

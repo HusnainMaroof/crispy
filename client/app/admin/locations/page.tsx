@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import PageHeader from "@/app/components/admin/ui/page-header";
+import { CardGridSkeleton } from "@/app/components/admin/ui/skeleton";
 import Modal from "@/app/components/admin/ui/modal";
 import { useLocations } from "@/lib/admin/use-locations";
 
@@ -15,7 +16,7 @@ export default function LocationsPage() {
     fetchLocations();
   }, [fetchLocations]);
 
-  const handleSave = async (id: string, data: { hours: string; phone: string }) => {
+  const handleSave = async (id: string, data: { name: string; address: string; hours: string; phone: string }) => {
     try {
       await updateLocation(id, data);
       toast.success("Location updated");
@@ -26,10 +27,10 @@ export default function LocationsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this location?")) return;
+    if (!confirm("Deactivate this branch? Existing orders stay attached to it.")) return;
     try {
       await deleteLocation(id);
-      toast.success("Location deleted");
+      toast.success("Branch deactivated");
     } catch {
       toast.error("Failed to delete location");
     }
@@ -60,11 +61,7 @@ export default function LocationsPage() {
         }
       />
 
-      {loading && (
-        <p className="mb-4 text-sm text-white/50">Loading locations...</p>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {loading ? <CardGridSkeleton /> : <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {locations.map((location) => (
           <div
             key={location.id}
@@ -121,7 +118,7 @@ export default function LocationsPage() {
             )}
           </div>
         ))}
-      </div>
+      </div>}
 
       {locations.length === 0 && !loading && (
         <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
@@ -242,15 +239,25 @@ function LocationEditForm({
   onSave,
   onCancel,
 }: {
-  location: { hours: string; phone: string };
-  onSave: (data: { hours: string; phone: string }) => void;
+  location: { name: string; address: string; hours: string; phone: string };
+  onSave: (data: { name: string; address: string; hours: string; phone: string }) => void;
   onCancel: () => void;
 }) {
+  const [name, setName] = useState(location.name);
+  const [address, setAddress] = useState(location.address);
   const [hours, setHours] = useState(location.hours);
   const [phone, setPhone] = useState(location.phone);
 
   return (
     <div className="space-y-3">
+      <div>
+        <label className="mb-1 block text-xs text-white/50">Name</label>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-brand-red/50" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-white/50">Address</label>
+        <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-brand-red/50" />
+      </div>
       <div>
         <label className="mb-1 block text-xs text-white/50">Hours</label>
         <input
@@ -271,7 +278,7 @@ function LocationEditForm({
       </div>
       <div className="flex gap-2">
         <button
-          onClick={() => onSave({ hours, phone })}
+          onClick={() => onSave({ name, address, hours, phone })}
           className="rounded-lg bg-brand-red px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
         >
           Save

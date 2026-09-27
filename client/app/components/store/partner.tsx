@@ -1,7 +1,6 @@
 // partner.tsx
 "use client";
 
-import Link from "next/link";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
 function ArrowIcon({ className = "" }: { className?: string }) {
@@ -23,8 +22,25 @@ function ArrowIcon({ className = "" }: { className?: string }) {
   );
 }
 
-export default function Partner() {
+const DEFAULT_TITLE = ["Bring Crispies", "to your city."];
+
+export default function Partner({
+  title = DEFAULT_TITLE.join("\n"),
+  description = "Join London's fastest-growing halal restaurant brand.",
+  ctaLabel = "Become A Partner",
+  imageUrl = "/images/partnerImages.jpg",
+  ctaUrl = "/franchise-inquiries",
+}: {
+  title?: string;
+  description?: string;
+  ctaLabel?: string;
+  imageUrl?: string | null;
+  ctaUrl?: string | null;
+}) {
+  const lines = (title.trim() ? title : DEFAULT_TITLE.join("\n")).split("\n");
+  const picture = imageUrl || "/images/partnerImages.jpg";
   const scopeRef = useScrollReveal();
+  const externalCta = /^https:\/\//i.test(ctaUrl || "");
 
   return (
     <section
@@ -44,9 +60,12 @@ export default function Partner() {
                 fontSize: "clamp(36px, 7vw, 150px)",
               }}
             >
-              Bring Crispies
-              <br />
-              to your city.
+              {lines.map((line, index) => (
+                <span key={`${line}-${index}`}>
+                  {line}
+                  {index < lines.length - 1 ? <br /> : null}
+                </span>
+              ))}
             </h2>
 
             {/* Subcopy — Inter */}
@@ -58,12 +77,14 @@ export default function Partner() {
                 fontSize: "clamp(14px, 2.5vw, 30px)",
               }}
             >
-              Join London&apos;s fastest-growing halal <br /> restaurant brand.
+              {description}
             </p>
 
             {/* CTA — Koulen */}
-            <Link
-              href="/franchise-inquiries"
+            <a
+              href={ctaUrl || "/franchise-inquiries"}
+              target={externalCta ? "_blank" : undefined}
+              rel={externalCta ? "noopener noreferrer" : undefined}
               className="group micro-elevate fade-up mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
               data-delay="0.14"
             >
@@ -75,13 +96,13 @@ export default function Partner() {
                   fontSize: "clamp(22px, 2.8vw, 50px)",
                 }}
               >
-                Become A Partner
+                {ctaLabel}
               </span>
             <svg xmlns="http://www.w3.org/2000/svg" width="84" height="84" viewBox="0 0 84 84" fill="none" className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
   <rect width="84" height="84" rx="15" fill="white"/>
   <path d="M29.3603 59L26 55.6441L50.9869 30.6467H31.6867L31.7298 26H59V53.2777H54.3042L54.3473 34.0026L29.3603 59Z" fill="#FF0000"/>
 </svg>
-            </Link>
+            </a>
           </div>
 
           {/* Right — image */}
@@ -91,7 +112,7 @@ export default function Partner() {
           >
             <div className="relative w-full overflow-hidden rounded-[20px] sm:rounded-[24px] md:rounded-[28px] aspect-[4/3] sm:aspect-[5/4] lg:aspect-[4/3.4]">
               <img
-                src="/images/partnerImages.jpg"
+                src={picture}
                 alt="Crispies team outside store"
                 className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out hover:scale-[1.04]"
                 draggable={false}

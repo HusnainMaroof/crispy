@@ -49,6 +49,39 @@ export const jobApplicationStatusSchema = z.object({
   status: z.enum(["pending", "reviewed", "shortlisted", "rejected", "hired"]),
 });
 
+export const staffRoleSchema = z.enum(["superadmin", "admin", "branch_manager"]);
+
+const staffTabSchema = z.enum([
+  "dashboard", "menu", "categories", "orders", "customers", "staff", "branches",
+  "deals", "branch-menu", "posts", "locations", "content", "settings",
+]);
+
+export const createStaffSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email(),
+  password: z.string().min(8).max(128),
+  tabs: z.array(staffTabSchema).min(1),
+  branchIds: z.array(z.string().min(1)).max(20).default([]),
+});
+
+export const updateStaffSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(8).max(128).optional(),
+  role: staffRoleSchema.optional(),
+  tabs: z.array(staffTabSchema).min(1).optional(),
+  branchIds: z.array(z.string().min(1)).max(20).optional(),
+  is_active: z.boolean().optional(),
+}).refine((value) => Object.values(value).some((item) => item !== undefined), { message: "Nothing to update" });
+
+export const staffBranchesSchema = z.object({
+  branchIds: z.array(z.string().min(1)).max(20),
+});
+
+export const ownProfileSchema = z.object({
+  name: z.string().min(1).max(200),
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),

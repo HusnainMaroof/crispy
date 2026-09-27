@@ -23,7 +23,7 @@ function mapLocation(raw: Record<string, unknown>): AdminLocation {
 
 export function useLocations() {
   const [locations, setLocations] = useState<AdminLocation[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchLocations = useCallback(async () => {
     setLoading(true);

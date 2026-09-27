@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model menu_categories {
+  id         String       @id
+  number     String
+  title      String
+  image      String       @default("")
+  sort_order Int          @default(0)
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+  menu_items menu_items[]
+}
+
+model menu_items {
+  id            String           @id
+  category_id   String
+  category      menu_categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  name          String
+  description   String           @default("")
+  price         Decimal          @db.Decimal(10, 2)
+  image         String           @default("")
+  badge         String?
+  badge_variant String?
+  sort_order    Int              @default(0)
+  active        Boolean          @default(true)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+  order_items        order_items[]
+  branch_menu_items  branch_menu_items[]
+
+  @@index([category_id, active])
+}
+
+model deals {
+  id            String   @id
+  name          String
+  description   String   @default("")
+  price         Decimal  @db.Decimal(10, 2)
+  image         String   @default("")
+  badge         String?
+  badge_variant String?
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  branch_deals  branch_deals[]
+  order_items   order_items[]
+
+  @@index([active])
+}
+
+model locations {
+  id                       String                @id
+  name                     String
+  slug                     String?               @unique
+  address                  String
+  postcode                 String?
+  city                     String?
+  hours                    String
+  phone                    String
+  lat                      Decimal?              @db.Decimal(10, 7)
+  lng                      Decimal?              @db.Decimal(10, 7)
+  status                   String                @default("active")
+  delivery_enabled         Boolean               @default(true)
+  collection_enabled       Boolean               @default(true)
+  delivery_fee             Decimal?              @db.Decimal(10, 2)
+  free_delivery_threshold  Decimal?              @db.Decimal(10, 2)
+  sort_order               Int                   @default(0)
+  created_at               DateTime              @default(now())
+  updated_at               DateTime              @updatedAt
+  orders                   orders[]
+  branch_menu_items        branch_menu_items[]
+  branch_deals             branch_deals[]
+  admin_branch_access      admin_branch_access[]
+}
+
+model orders {
+  id             BigInt        @id @default(autoincrement())
+  customer_name  String
+  email          String
+  phone          String
+  address        String?
+  postcode       String?
+  city           String?
+  notes          String?
+  fulfilment     String        @default("delivery")
+  payment_method String        @default("card")
+  subtotal       Decimal       @db.Decimal(10, 2)
+  delivery_fee   Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+  status         String        @default("pending")
+  location_id    String?
+  location       locations?    @relation(fields: [location_id], references: [id], onDelete: SetNull)
+  customer_id    String?
+  customer       customers?    @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+  checkout_key   String?       @unique
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  order_items    order_items[]
+
+  @@index([status, location_id])
+  @@index([created_at])
+  @@index([customer_id])
+}
+
+model order_items {
+  id           BigInt      @id @default(autoincrement())
+  order_id     BigInt
+  order        orders      @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  menu_item_id String?
+  menu_item    menu_items? @relation(fields: [menu_item_id], references: [id], onDelete: SetNull)
+  deal_id      String?
+  deal         deals?      @relation(fields: [deal_id], references: [id], onDelete: SetNull)
+  kind         String      @default("product")
+  name         String
+  price        Decimal     @db.Decimal(10, 2)
+  quantity     Int
+  created_at   DateTime    @default(now())
+
+  @@index([order_id])
+}
+
+model customers {
+  id         String   @id
+  name       String?
+  email      String?
+  phone      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  orders     orders[]
+}
+
+model business_settings {
+  id                      BigInt   @id @default(autoincrement())
+  delivery_fee            Decimal  @default(2.99) @db.Decimal(10, 2)
+  free_delivery_threshold Decimal  @default(20.00) @db.Decimal(10, 2)
+  updated_at              DateTime @updatedAt
+}
+
+model job_posts {
+  id            String             @id
+  title         String
+  location      String
+  type          String
+  salary        String
+  description   String
+  requirements  Json               @default("[]")
+  status        String             @default("draft")
+  applications  Int                @default(0)
+  created_at    DateTime           @default(now())
+  updated_at    DateTime           @updatedAt
+  job_applications job_applications[]
+
+  @@index([status])
+}
+
+model job_applications {
+  id             String    @id
+  job_post_id    String
+  job_post       job_posts @relation(fields: [job_post_id], references: [id], onDelete: Cascade)
+  applicant_name String
+  email          String
+  phone          String?
+  cv_url         String?
+  cover_letter   String?
+  status         String    @default("pending")
+  notes          String?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@index([job_post_id])
+  @@index([status])
+}
+
+model contact_messages {
+  id         BigInt   @id @default(autoincrement())
+  name       String
+  email      String
+  subject    String
+  message    String
+  type       String   @default("general")
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([read])
+}
+
+model admin_profiles {
+  id                  String                @id @default(uuid())
+  email               String                @unique
+  name                String
+  role                String                @default("admin")
+  tabs                String[]              @default([])
+  password_hash       String
+  is_active           Boolean               @default(true)
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+  admin_branch_access admin_branch_access[]
+}
+
+model branch_menu_items {
+  id           BigInt    @id @default(autoincrement())
+  location_id  String
+  location     locations @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  menu_item_id String
+  menu_item    menu_items @relation(fields: [menu_item_id], references: [id], onDelete: Cascade)
+  price        Decimal?  @db.Decimal(10, 2)
+  available    Boolean   @default(true)
+  sort_order   Int?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  @@unique([location_id, menu_item_id])
+  @@index([location_id, available])
+}
+
+model branch_deals {
+  id          BigInt    @id @default(autoincrement())
+  location_id String
+  location    locations @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  deal_id     String
+  deal        deals     @relation(fields: [deal_id], references: [id], onDelete: Cascade)
+  price       Decimal?  @db.Decimal(10, 2)
+  available   Boolean   @default(true)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  @@unique([location_id, deal_id])
+}
+
+model admin_branch_access {
+  admin_id    String
+  admin       admin_profiles @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+  location_id String
+  location    locations      @relation(fields: [location_id], references: [id], onDelete: Cascade)
+  created_at  DateTime       @default(now())
+
+  @@id([admin_id, location_id])
+}
+
+model homepage_content {
+  key        String   @id
+  content    Json     @default("{}")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model cms_sections {
+  id           String   @id @default(uuid())
+  page         String
+  key          String
+  sort_order   Int      @default(0)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  translations cms_section_translations[]
+
+  @@unique([page, key])
+  @@index([page, is_active, sort_order])
+}
+
+model cms_section_translations {
+  id           String       @id @default(uuid())
+  section_id   String
+  section      cms_sections @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  locale       String
+  content      Json         @default("{}")
+  is_published Boolean      @default(false)
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+
+  @@unique([section_id, locale])
+}

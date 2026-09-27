@@ -9,8 +9,17 @@ export type AdminOrder = {
   items: { name: string; quantity: number; price: number }[];
   total: number;
   status: "pending" | "preparing" | "ready" | "out-for-delivery" | "delivered" | "cancelled";
+  allowedStatuses: string[];
+  fulfilment: string;
   createdAt: string;
   location: string;
+  email?: string;
+  phone?: string;
+  address?: string | null;
+  notes?: string | null;
+  paymentMethod?: string;
+  subtotal?: number;
+  deliveryFee?: number;
 };
 
 function mapOrder(raw: Record<string, unknown>): AdminOrder {
@@ -21,8 +30,17 @@ function mapOrder(raw: Record<string, unknown>): AdminOrder {
     items: mapOrderItems(rawItems),
     total: raw.total as number,
     status: raw.status as AdminOrder["status"],
+    allowedStatuses: (raw.allowed_statuses as string[]) ?? [],
+    fulfilment: (raw.fulfilment as string) ?? "",
     createdAt: raw.created_at as string,
-    location: raw.location_id as string,
+    location: (raw.location_name as string) || (raw.location_id as string),
+    email: raw.email as string | undefined,
+    phone: raw.phone as string | undefined,
+    address: (raw.address as string | null) ?? null,
+    notes: (raw.notes as string | null) ?? null,
+    paymentMethod: raw.payment_method as string | undefined,
+    subtotal: raw.subtotal as number | undefined,
+    deliveryFee: raw.delivery_fee as number | undefined,
   };
 }
 
@@ -36,7 +54,7 @@ function mapOrderItems(items: Record<string, unknown>[]): AdminOrder["items"] {
 
 export function useOrders() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async (filters?: { status?: string; location_id?: string }) => {
     setLoading(true);

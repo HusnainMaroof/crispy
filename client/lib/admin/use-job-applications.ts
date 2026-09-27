@@ -35,7 +35,7 @@ function mapApplication(raw: Record<string, unknown>): AdminJobApplication {
 
 export function useJobApplications() {
   const [applications, setApplications] = useState<AdminJobApplication[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchApplications = useCallback(async (filters?: { job_post_id?: string; status?: string }) => {
     setLoading(true);

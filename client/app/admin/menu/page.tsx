@@ -91,7 +91,7 @@ export default function MenuPage() {
         }
       />
 
-      {loading && <TableSkeleton />}
+      {loading ? <TableSkeleton /> : <>
 
       {/* Filters */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
@@ -126,11 +126,10 @@ export default function MenuPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {filtered.map((item, index) => (
+            {filtered.map((item) => (
               <tr
                 key={item.id}
-                className="transition-colors hover:bg-white/5 admin-slide-up"
-                style={{ animationDelay: `${index * 30}ms` }}
+                className="transition-colors hover:bg-white/5"
               >
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -195,6 +194,7 @@ export default function MenuPage() {
           </div>
         )}
       </div>
+      </>}
 
       {/* Delete Confirmation Modal */}
       {deletingItem && (

@@ -3,9 +3,15 @@
 
 import { useState } from "react";
 import DeliveryOverlay from "./delivery-overlay";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 export default function Order() {
   const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const { redirect } = useStoreOrdering();
+  const openOrdering = async () => {
+    if (await redirect()) return;
+    setDeliveryOpen(true);
+  };
 
   return (
     <section className="relative z-0 w-full bg-[#FF0931]">
@@ -72,11 +78,11 @@ export default function Order() {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => setDeliveryOpen(true)}
+                  onClick={() => void openOrdering()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setDeliveryOpen(true);
+                      void openOrdering();
                     }
                   }}
                   aria-haspopup="dialog"

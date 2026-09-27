@@ -1,22 +1,30 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { clearAuthToken } from "@/lib/api";
+import { NAV_SECTIONS, adminTab, type AdminTabId } from "@/lib/admin/tabs";
+import { SidebarSkeleton } from "@/app/components/admin/ui/skeleton";
 
-const mainNavItems = [
-  { href: "/admin", label: "Dashboard", icon: DashboardIcon },
-  { href: "/admin/menu", label: "Menu", icon: MenuIcon },
-  { href: "/admin/categories", label: "Categories", icon: CategoriesIcon },
-  { href: "/admin/orders", label: "Orders", icon: OrdersIcon },
-  { href: "/admin/deals", label: "Deals", icon: DealsIcon },
-  { href: "/admin/posts", label: "Job Posts", icon: PostsIcon },
-  { href: "/admin/locations", label: "Locations", icon: LocationsIcon },
-];
+const ICONS: Record<string, (props: { className?: string }) => ReactNode> = {
+  dashboard: DashboardIcon,
+  ordering: OrdersIcon,
+  menu: MenuIcon,
+  branches: LocationsIcon,
+  content: HomepageIcon,
+  posts: PostsIcon,
+  staff: StaffIcon,
+  settings: SettingsIcon,
+};
+
+const SINGLE_TABS: AdminTabId[] = ["dashboard", "posts", "staff"];
+
+type CmsItem = { href: string; label: string };
 
 const bottomNavItems = [
-  { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
+  { id: "settings", href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 interface SidebarProps {
@@ -24,11 +32,14 @@ interface SidebarProps {
   collapsed: boolean;
   onClose: () => void;
   onToggleCollapse: () => void;
+  allowed: string[] | null;
+  cmsItems: CmsItem[];
 }
 
-export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, allowed, cmsItems }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     onClose();
@@ -102,43 +113,83 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-1 space-y-1 p-2">
-          {mainNavItems.map((item) => {
-            const isActive =
-              item.href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(item.href);
-
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Admin">
+          {allowed === null && <SidebarSkeleton />}
+          {allowed !== null && <>
+          {SINGLE_TABS.filter((id) => id === "dashboard" && allowed?.includes(id)).map((id) => (
+            <NavLink key={id} href={adminTab(id).href} label={adminTab(id).label} icon={ICONS.dashboard} active={pathname === "/admin"} collapsed={collapsed} />
+          ))}
+          {NAV_SECTIONS.map((section) => {
+            const children = section.id === "content"
+              ? (allowed?.includes("content") ? cmsItems : [])
+              : section.tabIds.filter((id) => allowed?.includes(id)).map((id) => ({ href: adminTab(id).href, label: adminTab(id).label }));
+            if (children.length === 0) return null;
+            const active = children.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+            const expanded = collapsed ? false : (openGroups[section.id] ?? active);
+            const Icon = ICONS[section.id] ?? MenuIcon;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                  collapsed ? "justify-center" : ""
-                } ${
-                  isActive
-                    ? "bg-brand-red text-white shadow-lg shadow-brand-red/20"
-                    : "text-white/50 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <item.icon
-                  className={`h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-                    isActive ? "text-white" : "text-white/50 group-hover:text-white"
-                  }`}
-                />
-                {!collapsed && <span>{item.label}</span>}
-                {isActive && !collapsed && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+              <div key={section.id}>
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  title={collapsed ? section.label : undefined}
+                  onClick={() => {
+                    if (collapsed) {
+                      onToggleCollapse();
+                      setOpenGroups((current) => ({ ...current, [section.id]: true }));
+                      return;
+                    }
+                    setOpenGroups((current) => ({ ...current, [section.id]: !expanded }));
+                  }}
+                  className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${
+                    collapsed ? "justify-center" : ""
+                  } ${active ? "text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  {!collapsed && <span className="flex-1 text-left">{section.label}</span>}
+                  {!collapsed && <ChevronRightIcon className={`h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />}
+                </button>
+                {expanded && (
+                  <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-2">
+                    {children.map((item) => {
+                      const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          aria-current={isActive ? "page" : undefined}
+                          className={`flex min-h-11 items-center rounded-lg px-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${
+                            isActive ? "bg-[#FF0931] text-white" : "text-white/60 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-              </Link>
+              </div>
             );
           })}
+          {SINGLE_TABS.filter((id) => id !== "dashboard" && allowed?.includes(id)).map((id) => {
+            const tab = adminTab(id);
+            return (
+              <NavLink
+                key={id}
+                href={tab.href}
+                label={tab.label}
+                icon={ICONS[id]}
+                active={pathname === tab.href || pathname.startsWith(`${tab.href}/`)}
+                collapsed={collapsed}
+              />
+            );
+          })}
+          </>}
         </nav>
 
         {/* Bottom Section */}
         <div className="border-t border-white/10 p-2 space-y-1">
-          {bottomNavItems.map((item) => {
+          {bottomNavItems.filter((item) => allowed?.includes(item.id)).map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link
@@ -180,6 +231,22 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse }
   );
 }
 
+function NavLink({ href, label, icon: Icon, active, collapsed }: { href: string; label: string; icon: (props: { className?: string }) => ReactNode; active: boolean; collapsed: boolean }) {
+  return (
+    <Link
+      href={href}
+      title={collapsed ? label : undefined}
+      aria-current={active ? "page" : undefined}
+      className={`group flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${
+        collapsed ? "justify-center" : ""
+      } ${active ? "bg-brand-red text-white shadow-lg shadow-brand-red/20" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      {!collapsed && <span>{label}</span>}
+    </Link>
+  );
+}
+
 function DashboardIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,14 +263,6 @@ function MenuIcon({ className }: { className?: string }) {
   );
 }
 
-function CategoriesIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-    </svg>
-  );
-}
-
 function OrdersIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,10 +271,18 @@ function OrdersIcon({ className }: { className?: string }) {
   );
 }
 
-function DealsIcon({ className }: { className?: string }) {
+function HomepageIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+    </svg>
+  );
+}
+
+function StaffIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   );
 }

@@ -33,7 +33,7 @@ function mapJobPost(raw: Record<string, unknown>): AdminJobPost {
 
 export function useJobPosts() {
   const [jobPosts, setJobPosts] = useState<AdminJobPost[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchJobPosts = useCallback(async (filters?: { status?: string }) => {
     setLoading(true);

@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import Dropdown from "@/app/components/admin/ui/dropdown";
+import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useJobPosts } from "@/lib/admin/use-job-posts";
 import { useJobApplications, type AdminJobApplication } from "@/lib/admin/use-job-applications";
 
@@ -108,12 +109,10 @@ function PostJobsTab() {
     }
   };
 
+  if (loading) return <TableSkeleton />;
+
   return (
     <>
-      {loading && (
-        <p className="mb-4 text-sm text-white/50">Loading job posts...</p>
-      )}
-
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
           <input
@@ -295,12 +294,10 @@ function ReviewApplicationsTab() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  if (loading) return <TableSkeleton />;
+
   return (
     <>
-      {loading && (
-        <p className="mb-4 text-sm text-white/50">Loading applications...</p>
-      )}
-
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
           <input

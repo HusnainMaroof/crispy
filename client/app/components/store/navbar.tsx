@@ -1,17 +1,48 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
+import { useSelector } from "react-redux";
+import { useUI } from "@/lib/context/ui-context";
+import { cartCount } from "@/lib/cart-model";
+import type { RootState } from "@/lib/redux/store";
 import DeliveryOverlay from "./delivery-overlay";
+import { SUPPORTED_LOCALES } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
-const NAV_LINKS = [
-  { href: "/menu", label: "Menu" },
-  { href: "/locations", label: "Locations" },
-  { href: "/franchise-inquiries", label: "Franchise inquiry" },
+type NavLink = { label?: string; href?: string };
+type SocialLink = { platform?: string; label?: string; url?: string };
+export type NavbarContent = {
+  logo?: { imageUrl?: string; alt?: string };
+  navigation?: { links?: NavLink[]; showLanguage?: boolean; cartLabel?: string; menuLabel?: string; closeLabel?: string };
+  actions?: {
+    showCollect?: boolean;
+    collectLine1?: string;
+    collectLine2?: string;
+    collectIcon?: string;
+    showDeliver?: boolean;
+    deliverLine1?: string;
+    deliverLine2?: string;
+    deliverIcon?: string;
+  };
+  socials?: { show?: boolean; links?: SocialLink[] };
+};
+
+const DEFAULT_LINKS: Required<NavLink>[] = [
+  { label: "Menu", href: "/menu" },
+  { label: "Locations", href: "/locations" },
+  { label: "Franchise inquiry", href: "/franchise-inquiries" },
 ];
+const DEFAULT_SOCIALS: Required<SocialLink>[] = [
+  { platform: "instagram", label: "Instagram", url: "https://instagram.com" },
+  { platform: "facebook", label: "Facebook", url: "https://facebook.com" },
+  { platform: "x", label: "X", url: "https://twitter.com" },
+];
+
+const SOCIAL_ICONS: Record<string, (props: SVGProps<SVGSVGElement>) => ReactNode> = {};
 
 // --- Social icons ---
 function InstagramIcon(props: SVGProps<SVGSVGElement>) {
@@ -156,11 +187,15 @@ function BikeDeliveryIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-const SOCIAL_LINKS = [
-  { href: "https://instagram.com", label: "Instagram", Icon: InstagramIcon },
-  { href: "https://facebook.com", label: "Facebook", Icon: FacebookIcon },
-  { href: "https://twitter.com", label: "Twitter", Icon: TwitterIcon },
-];
+SOCIAL_ICONS.instagram = InstagramIcon;
+SOCIAL_ICONS.facebook = FacebookIcon;
+SOCIAL_ICONS.x = TwitterIcon;
+
+function OrderIcon({ name, className }: { name?: string; className: string }) {
+  if (name === "bike") return <BikeDeliveryIcon className={className} />;
+  if (name === "none") return null;
+  return <BagIcon className={className} />;
+}
 
 const navItemClass =
   "text-white text-[18px] 2xl:text-[20px] font-normal uppercase tracking-[0.4px] " +
@@ -203,30 +238,61 @@ function PillButton({
   );
 }
 
-function SocialRail({ className = "" }: { className?: string }) {
+function SocialRail({ links, className = "" }: { links: Required<SocialLink>[]; className?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-        <Link
-          key={label}
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={label}
-          className="group flex h-6 w-6 shrink-0 items-center justify-center   text-white transition-colors duration-200 hover:border-[#FF0931] hover:text-[#FF0931]"
-        >
-          <Icon className="h-full w-full transition-transform duration-200 group-hover:scale-110" />
-        </Link>
-      ))}
+      {links.map(({ url, label, platform }) => {
+        const Icon = SOCIAL_ICONS[platform] ?? InstagramIcon;
+        return (
+          <Link
+            key={`${platform}-${url}`}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            className="group flex h-6 w-6 shrink-0 items-center justify-center   text-white transition-colors duration-200 hover:border-[#FF0931] hover:text-[#FF0931]"
+          >
+            <Icon className="h-full w-full transition-transform duration-200 group-hover:scale-110" />
+          </Link>
+        );
+      })}
     </div>
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ content }: { content?: NavbarContent }) {
   const [open, setOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
+  const { toggleCart } = useUI();
+  const { locale, setLocale } = useLocale();
+  const links = (content?.navigation?.links?.length ? content.navigation.links : DEFAULT_LINKS)
+    .filter((link): link is Required<NavLink> => Boolean(link.label?.trim() && link.href?.trim()));
+  const showLanguage = content?.navigation?.showLanguage !== false;
+  const cartLabel = content?.navigation?.cartLabel || "Cart";
+  const menuLabel = content?.navigation?.menuLabel || "Menu";
+  const closeLabel = content?.navigation?.closeLabel || "Close";
+  const actions = content?.actions;
+  const collectLines = [actions?.collectLine1 || "Click", actions?.collectLine2 || "& Collect"];
+  const deliverLines = [actions?.deliverLine1 || "Get It", actions?.deliverLine2 || "Delivered"];
+  const showCollect = actions?.showCollect !== false;
+  const showDeliver = actions?.showDeliver !== false;
+  const socials = (content?.socials?.links?.length ? content.socials.links : DEFAULT_SOCIALS)
+    .filter((link): link is Required<SocialLink> => Boolean(link.url?.trim() && /^https:\/\//i.test(link.url)));
+  const showSocials = content?.socials?.show !== false && socials.length > 0;
+  const logoUrl = content?.logo?.imageUrl?.trim() ?? "";
+  const logoAlt = content?.logo?.alt || "Crispies home";
+  const itemCount = cartCount(useSelector((state: RootState) => state.cart));
+  const { ordering, redirect } = useStoreOrdering();
+  const handleCart = async () => {
+    if (await redirect()) return;
+    toggleCart();
+  };
+  const handleDelivery = async () => {
+    if (await redirect()) return;
+    setDeliveryOpen(true);
+  };
 
   useEffect(() => {
     const el = headerRef.current;
@@ -257,8 +323,12 @@ export default function Navbar() {
         <Link
           href="/"
           className="text-4xl shrink-0 [font-family:var(--font-korolev),Korolev,sans-serif]"
-          aria-label="Crispies home"
+          aria-label={logoAlt}
         >
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={logoAlt} className="h-[58px] w-auto" />
+          ) : (
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="198"
@@ -307,12 +377,13 @@ export default function Navbar() {
               fill="#FF0931"
             />
           </svg>
+          )}
         </Link>
 
         <div className="flex min-w-0 items-center gap-4 2xl:gap-16">
           <div className="flex items-center gap-10">
             {" "}
-            {NAV_LINKS.map((l) => {
+            {links.map((l) => {
               const isActive =
                 pathname === l.href || pathname.startsWith(l.href + "/");
               return (
@@ -329,41 +400,53 @@ export default function Navbar() {
           </div>
 
           <div className=" flex items-center gap-8">
-            <button
+            {showLanguage && <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white">
+              {SUPPORTED_LOCALES.map((code) => (
+                <button key={code} type="button" onClick={() => setLocale(code)} className={`cursor-pointer ${locale === code ? "text-[#FF0931]" : "text-white/50"}`}>{code}</button>
+              ))}
+            </div>}
+            <button type="button" onClick={handleCart} className="cursor-pointer rounded-full border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white">
+              {cartLabel}{itemCount > 0 ? ` ${itemCount}` : ""}
+            </button>
+            {showCollect && <button
               type="button"
-              onClick={() => setDeliveryOpen(true)}
-              aria-haspopup="dialog"
+              onClick={handleDelivery}
+              aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
               className="cursor-pointer"
             >
               <PillButton
                 variant="filled"
-                icon={<BagIcon className="h-4 w-3.5 2xl:h-5 2xl:w-4" />}
-                lines={["Click", "& Collect"]}
+                icon={<OrderIcon name={actions?.collectIcon} className="h-4 w-3.5 2xl:h-5 2xl:w-4" />}
+                lines={collectLines}
                 className="w-[150px] 2xl:w-[160px] justify-center"
               />
-            </button>
-            <button
+            </button>}
+            {showDeliver && <button
               type="button"
-              onClick={() => setDeliveryOpen(true)}
-              aria-haspopup="dialog"
+              onClick={handleDelivery}
+              aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
               className="cursor-pointer"
             >
               <PillButton
                 variant="filled"
-                icon={<BikeDeliveryIcon className="h-4 w-6 2xl:h-5 2xl:w-7" />}
-                lines={["Get It", "Delivered"]}
+                icon={<OrderIcon name={actions?.deliverIcon} className="h-4 w-6 2xl:h-5 2xl:w-7" />}
+                lines={deliverLines}
                 className="w-[150px] 2xl:w-[160px] justify-center"
               />
-            </button>
+            </button>}
           </div>
 
-          <SocialRail className="flex-col gap-1.5" />
+          {showSocials && <SocialRail links={socials} className="flex-col gap-1.5" />}
         </div>
       </nav>
 
       {/* Mobile navbar */}
       <nav className="flex h-14 items-center justify-between px-5 xl:hidden">
-        <Link href="/" aria-label="Crispies home">
+        <Link href="/" aria-label={logoAlt}>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="" className="h-12 w-auto object-contain" />
+          ) : (
           <div className="h-20 w-20  flex items-center justify-center">
             {" "}
             <svg
@@ -414,6 +497,7 @@ export default function Navbar() {
               />
             </svg>
           </div>
+          )}
         </Link>
         <button
           aria-label="Toggle menu"
@@ -421,7 +505,7 @@ export default function Navbar() {
           onClick={() => setOpen((v) => !v)}
           className="px-2.5 py-1.5 text-[12px] font-semibold capitalize tracking-[0.4px] text-white [font-family:var(--font-inter),Inter,sans-serif]"
         >
-          {open ? "Close" : "Menu"}
+          {open ? closeLabel : menuLabel}
         </button>
       </nav>
 
@@ -433,7 +517,7 @@ export default function Navbar() {
           />
           <div className="menu-drop absolute inset-x-0 top-full border-b border-white/10 bg-black xl:hidden">
             <div className="flex flex-col gap-1 px-5 py-5">
-              {NAV_LINKS.map((l, i) => {
+              {links.map((l, i) => {
                 const isActive =
                   pathname === l.href || pathname.startsWith(l.href + "/");
                 return (
@@ -455,56 +539,66 @@ export default function Navbar() {
               {/* Stacked, not a horizontal row — a horizontal row of 3 pill
                   buttons + social rail cannot fit a phone viewport */}
               <div
-                style={{ animationDelay: `${0.05 + NAV_LINKS.length * 0.08}s` }}
+                style={{ animationDelay: `${0.05 + links.length * 0.08}s` }}
                 className="menu-item mt-2 flex flex-col gap-2.5"
               >
                 <button
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    setDeliveryOpen(true);
+                    void handleCart();
                   }}
-                  aria-haspopup="dialog"
-                  className="cursor-pointer"
+                  className="cursor-pointer rounded-full border border-white/20 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white"
                 >
-                  <PillButton
-                    variant="filled"
-                    icon={<BagIcon className="h-4 w-3.5" />}
-                    lines={["Click", "& Collect"]}
-                    className="w-full justify-center"
-                  />
+                  {cartLabel}{itemCount > 0 ? ` ${itemCount}` : ""}
                 </button>
-                <button
+                {showCollect && <button
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    setDeliveryOpen(true);
+                    void handleDelivery();
                   }}
-                  aria-haspopup="dialog"
+                  aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
                   className="cursor-pointer"
                 >
                   <PillButton
                     variant="filled"
-                    icon={<BikeDeliveryIcon className="h-4 w-6" />}
-                    lines={["Get It", "Delivered"]}
+                    icon={<OrderIcon name={actions?.collectIcon} className="h-4 w-3.5" />}
+                    lines={collectLines}
                     className="w-full justify-center"
                   />
-                </button>
+                </button>}
+                {showDeliver && <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    void handleDelivery();
+                  }}
+                  aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
+                  className="cursor-pointer"
+                >
+                  <PillButton
+                    variant="filled"
+                    icon={<OrderIcon name={actions?.deliverIcon} className="h-4 w-6" />}
+                    lines={deliverLines}
+                    className="w-full justify-center"
+                  />
+                </button>}
               </div>
 
-              <div
+              {showSocials && <div
                 style={{
-                  animationDelay: `${0.05 + (NAV_LINKS.length + 1) * 0.08}s`,
+                  animationDelay: `${0.05 + (links.length + 1) * 0.08}s`,
                 }}
                 className="menu-item mt-4 flex justify-center"
               >
-                <SocialRail className="flex-row gap-4" />
-              </div>
+                <SocialRail links={socials} className="flex-row gap-4" />
+              </div>}
             </div>
           </div>
         </>
       )}
-      {deliveryOpen && (
+      {deliveryOpen && ordering.mode === "cart" && (
         <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />
       )}
     </header>

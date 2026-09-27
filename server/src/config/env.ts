@@ -2,12 +2,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-type SupabaseConfig = {
-  URL: string;
-  PUBLISHABLE_KEY: string;
-  SECRET_KEY: string;
-};
-
 type JwtConfig = {
   SECRET: string;
   EXPIRES_IN: string;
@@ -42,6 +36,11 @@ type LogConfig = {
   LEVEL: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 };
 
+type NeonConfig = {
+  DATABASE_URL: string;
+  DIRECT_URL: string;
+};
+
 function required(key: string, fallback?: string): string {
   const val = process.env[key] ?? fallback;
   if (!val) {
@@ -51,12 +50,6 @@ function required(key: string, fallback?: string): string {
 }
 
 export const envConfig = {
-  SUPABASE: {
-    URL: required("SUPABASE_URL"),
-    PUBLISHABLE_KEY: required("SUPABASE_PUBLISHABLE_KEY"),
-    SECRET_KEY: required("SUPABASE_SECRET_KEY"),
-  } satisfies SupabaseConfig,
-
   JWT: {
     SECRET: required("JWT_SECRET"),
     EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
@@ -90,4 +83,9 @@ export const envConfig = {
   LOG: {
     LEVEL: (process.env.LOG_LEVEL as LogConfig["LEVEL"]) || "info",
   } satisfies LogConfig,
+
+  NEON: {
+    DATABASE_URL: required("NEON_DATABASE_URL"),
+    DIRECT_URL: process.env.NEON_DIRECT_URL || required("NEON_DATABASE_URL"),
+  } satisfies NeonConfig,
 };

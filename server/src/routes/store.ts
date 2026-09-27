@@ -12,7 +12,8 @@ router.get("/locations/:id", asyncHandler(StoreController.locationById));
 router.get("/location", asyncHandler(StoreController.myLocation));
 router.patch("/location", validate(setLocationSchema), asyncHandler(StoreController.setLocation));
 router.get("/settings", asyncHandler(StoreController.settings));
-router.get("/homepage", asyncHandler(StoreController.homepage));
+router.get("/homepage", asyncHandler(StoreController.content));
+router.get("/cms/:page", asyncHandler(StoreController.content));
 
 router.get("/jobs", asyncHandler(StoreJobsController.list));
 router.get("/jobs/:id", asyncHandler(StoreJobsController.getById));

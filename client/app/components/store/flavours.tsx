@@ -1,9 +1,9 @@
 "use client";
 import { useRef, useEffect } from "react";
 import type { SVGProps } from "react";
-import Link from "next/link";
 import gsap from "gsap";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 // --- Divider dot-lines ---
 function DividerLineLeft(props: SVGProps<SVGSVGElement>) {
@@ -334,10 +334,41 @@ const SLIDER_IMAGES = [
   "/images/aboutimage.jpg",
 ];
 
-export default function DiscoverFlavours() {
+export default function DiscoverFlavours({
+  title = "Crispies Original Flavours",
+  discoverTitle = "Discover Your Crispy Flavor",
+  flavourLabels,
+  flavourTileImages,
+  scaleTitle = "Flaming Grill Flavour",
+  scaleLabels,
+  scaleImages,
+  galleryImages,
+  ctaLabel = "Order On The Website",
+  ctaUrl = "/menu",
+}: {
+  title?: string;
+  discoverTitle?: string;
+  flavourLabels?: string[];
+  flavourTileImages?: string[];
+  scaleTitle?: string;
+  scaleLabels?: string[];
+  scaleImages?: string[];
+  galleryImages?: string[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+}) {
+  const sliderImages = galleryImages?.filter(Boolean).length ? galleryImages.filter(Boolean) : SLIDER_IMAGES;
+  const flavourTiles = FLAVOUR_TILES.map((tile, index) => ({ ...tile, label: flavourLabels?.[index] || tile.label, image: flavourTileImages?.[index] }));
+  const scaleItems = SCALE_ITEMS.map((item, index) => ({ ...item, label: scaleLabels?.[index] || item.label, image: scaleImages?.[index] }));
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
   const scopeRef = useScrollReveal();
+  const { ordering, redirect } = useStoreOrdering();
+  const orderLabel = ordering.mode === "redirect" ? ordering.ctaLabel : ctaLabel;
+  const handleOrderClick = async () => {
+    if (await redirect()) return;
+    window.location.assign(ctaUrl);
+  };
 
   useEffect(() => {
     if (!trackRef.current) return;
@@ -361,28 +392,27 @@ export default function DiscoverFlavours() {
       <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
         {/* Heading */}
         <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(32px,7vw,60px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
-          discover your{" "}
-          <span className="text-[#FF0931]">crispies flavours</span>
+          {discoverTitle}
         </h2>
 
         {/* Divider: Crispies Original Flavours */}
         <div className="fade-up flex items-center gap-14" data-delay="0.06">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
           <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
-            Crispies Original Flavours
+            {title}
           </h3>
           <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
         </div>
 
         {/* Flavour tiles */}
         <div className="flex flex-wrap items-stretch justify-center md:gap-16">
-          {FLAVOUR_TILES.map(({ label, Icon }, i) => (
+          {flavourTiles.map(({ label, Icon, image }, i) => (
             <div
-              key={label}
-              className="micro-elevate fade-up flex w-[120px] h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white  px-3 py-5 text-center sm:w-[130px]"
+              key={`${label}-${i}`}
+              className="micro-elevate fade-up flex w-[120px] h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white px-3 py-5 text-center sm:w-[130px]"
               data-delay={String(0.08 + i * 0.05)}
             >
-              <Icon className="h-8 w-6 text-[#EE3346]" />
+              {image ? <img src={image} alt="" className="h-8 w-8 object-contain" /> : <Icon className="h-8 w-6 text-[#EE3346]" />}
               <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-medium capitalize leading-tight tracking-[0.54px] text-white sm:text-[15px]">
                 {label}
               </span>
@@ -394,7 +424,7 @@ export default function DiscoverFlavours() {
         <div className="fade-up mt-6 flex items-center gap-24" data-delay="0.12">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
           <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
-            Flaming Grill Flavour
+            {scaleTitle}
           </h3>
           <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
         </div>
@@ -402,15 +432,15 @@ export default function DiscoverFlavours() {
         {/* Heat scale */}
         <div className="fade-up w-full max-w-5xl" data-delay="0.16">
           <div className="flex items-end justify-between">
-            {SCALE_ITEMS.map(({ label, Icon }) => (
+            {scaleItems.map(({ label, Icon, image }, index) => (
               <div
-                key={label}
+                key={`${label}-${index}`}
                 className="flex flex-col items-center gap-2 text-center"
               >
                 <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[11px] font-semibold capitalize tracking-[0.54px] text-white sm:text-[13px]">
                   {label}
                 </span>
-                <Icon className="h-5 w-5 text-white" />
+                {image ? <img src={image} alt="" className="h-5 w-5 object-contain" /> : <Icon className="h-5 w-5 text-white" />}
               </div>
             ))}
           </div>
@@ -435,25 +465,24 @@ export default function DiscoverFlavours() {
                 className="flex h-full items-center gap-4 sm:gap-6"
               >
                 {[
-                  ...SLIDER_IMAGES,
-                  ...SLIDER_IMAGES,
-                  ...SLIDER_IMAGES,
-                  ...SLIDER_IMAGES,
+                  ...sliderImages,
+                  ...sliderImages,
+                  ...sliderImages,
+                  ...sliderImages,
                 ].map((src, i) => (
-                  <div
-                    key={i}
-                    className="h-[200px] w-[200px] flex-shrink-0 overflow-hidden rounded-2xl bg-cover bg-center sm:h-[220px] sm:w-[220px]"
-                    style={{ backgroundImage: `url('${src}')` }}
-                  />
+                  <div key={i} className="relative h-[200px] w-[200px] flex-shrink-0 overflow-hidden rounded-2xl bg-black sm:h-[220px] sm:w-[220px]">
+                    <img src={src} alt="Discover Crispies flavours" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Static Center CTA */}
             <div className="pointer-events-auto absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 p-5 bg-black  ">
-              <Link
-                href="/menu"
-                aria-label="Order on the website"
+              <a
+                href={ordering.mode === "redirect" ? ordering.redirectUrl : ctaUrl}
+                onClick={(event) => { event.preventDefault(); void handleOrderClick(); }}
+                aria-label={orderLabel}
                 className="relative flex h-[220px] w-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-2xl sm:h-[260px] sm:w-[260px] sm:p-5"
               >
                 <span className="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] sm:right-4 sm:top-4 sm:h-10 sm:w-10">
@@ -474,10 +503,10 @@ export default function DiscoverFlavours() {
                 </span>
                 <div className="">
                   <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
-                    Order On
+                    {orderLabel.split(" ").slice(0, Math.ceil(orderLabel.split(" ").length / 2)).join(" ")}
                   </h3>
                   <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
-                    The Website
+                    {orderLabel.split(" ").slice(Math.ceil(orderLabel.split(" ").length / 2)).join(" ")}
                   </h3>
                   <p className="mt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[10px] font-normal capitalize leading-snug text-black sm:text-xs">
                     Takeaway Only Pick Up From 10+ Locations
@@ -488,7 +517,7 @@ export default function DiscoverFlavours() {
                   alt="Order on website"
                   className="absolute bottom-0 left-1/2 h-[80px] w-auto -translate-x-1/2 object-contain sm:h-fit"
                 />
-              </Link>
+              </a>
 
               <div className="pointer-events-none absolute inset-y-0 right-0 translate-x-full z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
               <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 -translate-x-full bg-linear-to-l from-black to-transparent sm:w-32" />

@@ -32,7 +32,7 @@ function mapMenuItem(raw: Record<string, unknown>): AdminMenuItem {
 
 export function useMenu() {
   const [items, setItems] = useState<AdminMenuItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchItems = useCallback(async (categoryId?: string) => {
     setLoading(true);

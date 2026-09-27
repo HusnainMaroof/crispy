@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate, requireTab } from "../middleware/auth.js";
 import authRoutes from "./admin/auth.js";
 import categoryRoutes from "./admin/categories.js";
 import adminMenuRoutes from "./admin/menu.js";
 import dealRoutes from "./admin/deals.js";
 import orderRoutes from "./admin/orders.js";
+import customerRoutes from "./admin/customers.js";
+import staffRoutes from "./admin/staff.js";
+import cmsRoutes from "./admin/cms.js";
 import locationRoutes from "./admin/locations.js";
 import settingsRoutes from "./admin/settings.js";
 import jobRoutes from "./admin/jobs.js";
@@ -24,15 +27,18 @@ router.use("/", actionRoutes);
 
 // Admin routes (auth-protected)
 router.use("/admin/auth", authRoutes);
-router.use("/admin/categories", authenticate, categoryRoutes);
-router.use("/admin/menu", authenticate, adminMenuRoutes);
-router.use("/admin/deals", authenticate, dealRoutes);
-router.use("/admin/orders", authenticate, orderRoutes);
-router.use("/admin/locations", authenticate, locationRoutes);
-router.use("/admin/settings", authenticate, settingsRoutes);
-router.use("/admin/jobs", authenticate, jobRoutes);
-router.use("/admin/job-applications", authenticate, jobApplicationRoutes);
-router.use("/admin/dashboard", authenticate, dashboardRoutes);
-router.use("/admin", authenticate, uploadRoutes);
+router.use("/admin/categories", authenticate, requireTab("categories"), categoryRoutes);
+router.use("/admin/menu", authenticate, requireTab("menu"), adminMenuRoutes);
+router.use("/admin/deals", authenticate, requireTab("deals"), dealRoutes);
+router.use("/admin/orders", authenticate, requireTab("orders"), orderRoutes);
+router.use("/admin/customers", authenticate, requireTab("customers"), customerRoutes);
+router.use("/admin/staff", authenticate, requireTab("staff"), staffRoutes);
+router.use("/admin/cms", authenticate, requireTab("content"), cmsRoutes);
+router.use("/admin/locations", authenticate, requireTab("locations", "branches", "staff", "branch-menu", "orders"), locationRoutes);
+router.use("/admin/settings", authenticate, requireTab("settings"), settingsRoutes);
+router.use("/admin/jobs", authenticate, requireTab("posts"), jobRoutes);
+router.use("/admin/job-applications", authenticate, requireTab("posts"), jobApplicationRoutes);
+router.use("/admin/dashboard", authenticate, requireTab("dashboard"), dashboardRoutes);
+router.use("/admin", authenticate, requireTab("menu", "categories", "deals", "locations", "branches", "content", "posts"), uploadRoutes);
 
 export default router;

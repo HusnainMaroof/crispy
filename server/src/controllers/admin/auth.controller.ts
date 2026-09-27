@@ -1,9 +1,13 @@
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { getAdminClient, getAnonClient } from "../../config/supabase.js";
+import { getPrisma } from "../../config/prisma.js";
 import { envConfig } from "../../config/env.js";
-import { ForbiddenException, NotFoundException, UnauthorizedException } from "../../utils/app-error.js";
+import { UnauthorizedException } from "../../utils/app-error.js";
+import { verifyPassword } from "../../utils/password.js";
+import { serialize } from "../../utils/db.js";
 import { sendSuccess } from "../../utils/response.js";
+import { resolveTabs } from "../../config/admin-tabs.js";
+import type { AdminProfile } from "../../types/models.js";
 
 function signToken(profile: { id: string; email: string; role: string }): string {
   return jwt.sign(
@@ -13,32 +17,38 @@ function signToken(profile: { id: string; email: string; role: string }): string
   );
 }
 
+function publicProfile(profile: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  tabs?: string[];
+  is_active: boolean;
+  created_at: Date;
+}): AdminProfile {
+  return serialize({
+    id: profile.id,
+    email: profile.email,
+    name: profile.name,
+    role: profile.role as AdminProfile["role"],
+    tabs: resolveTabs(profile.role, profile.tabs ?? []),
+    is_active: profile.is_active,
+    created_at: profile.created_at,
+  });
+}
+
 export const AuthController = {
   async login(req: Request, res: Response) {
     const { email, password } = req.body;
+    const profile = await getPrisma().admin_profiles.findUnique({ where: { email } });
 
-    const { data: authData, error: authError } = await getAnonClient().auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError || !authData.user) {
+    const passwordMatches = profile ? await verifyPassword(password, profile.password_hash) : false;
+    if (!profile || !passwordMatches || !profile.is_active) {
       throw new UnauthorizedException("Invalid email or password");
     }
 
-    const { data: profile } = await getAdminClient()
-      .from("admin_profiles")
-      .select("*")
-      .eq("id", authData.user.id)
-      .single();
-
-    if (!profile) {
-      throw new ForbiddenException("Not authorized as admin");
-    }
-
-    const token = signToken(profile);
-
-    sendSuccess(res, { token, user: profile });
+    const user = publicProfile(profile);
+    sendSuccess(res, { token: signToken(user), user });
   },
 
   async refresh(req: Request, res: Response) {
@@ -47,30 +57,27 @@ export const AuthController = {
       throw new UnauthorizedException("Not authenticated");
     }
 
-    const { data: profile } = await getAdminClient()
-      .from("admin_profiles")
-      .select("*")
-      .eq("id", payload.sub)
-      .single();
-
-    if (!profile) {
-      throw new NotFoundException("Profile not found");
+    const profile = await getPrisma().admin_profiles.findUnique({ where: { id: payload.sub } });
+    if (!profile?.is_active) {
+      throw new UnauthorizedException("Invalid email or password");
     }
 
-    const token = signToken(profile);
-    sendSuccess(res, { token });
+    sendSuccess(res, { token: signToken(profile) });
   },
 
   async me(req: Request, res: Response) {
-    const { data: profile } = await getAdminClient()
-      .from("admin_profiles")
-      .select("*")
-      .eq("id", req.admin!.sub)
-      .single();
-
-    if (!profile) {
-      throw new NotFoundException("Profile not found");
+    const profile = await getPrisma().admin_profiles.findUnique({ where: { id: req.admin!.sub } });
+    if (!profile?.is_active) {
+      throw new UnauthorizedException("Invalid email or password");
     }
-    sendSuccess(res, profile);
+    sendSuccess(res, publicProfile(profile));
+  },
+
+  async updateMe(req: Request, res: Response) {
+    const profile = await getPrisma().admin_profiles.update({
+      where: { id: req.admin!.sub },
+      data: { name: req.body.name },
+    });
+    sendSuccess(res, publicProfile(profile));
   },
 };

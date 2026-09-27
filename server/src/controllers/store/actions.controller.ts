@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
-import { createOrder, getOrdersByCustomerId, getOrdersByEmail, getOrderById } from "../../services/order.service.js";
+import { createOrder, getOrdersByCustomerId, getOrdersByEmail, getOrderById, customerCanView } from "../../services/order.service.js";
+import { NotFoundException } from "../../utils/app-error.js";
 import { createContactMessage, createJobApplication } from "../../services/admin.service.js";
 import { sendSuccess } from "../../utils/response.js";
 
@@ -27,11 +28,14 @@ export const ActionsController = {
   async lookupOrder(req: Request, res: Response) {
     const { email } = req.body;
     const orders = await getOrdersByEmail(email);
-    sendSuccess(res, orders);
+    sendSuccess(res, orders.filter((order) => customerCanView(order.customer_id, req.customerId)));
   },
 
   async getOrder(req: Request, res: Response) {
     const result = await getOrderById(req.params.id as string);
+    if (!customerCanView(result.order.customer_id, req.customerId)) {
+      throw new NotFoundException("Order not found");
+    }
     sendSuccess(res, result);
   },
 };

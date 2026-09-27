@@ -23,7 +23,7 @@ function mapCategory(raw: Record<string, unknown>): AdminCategory {
 
 export function useCategories() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);

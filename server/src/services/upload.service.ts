@@ -7,8 +7,16 @@ export interface UploadResult {
 }
 
 export function uploadImage(buffer: Buffer, folder = "uploads"): Promise<UploadResult> {
+  return uploadMedia(buffer, folder, "image");
+}
+
+export function uploadVideo(buffer: Buffer, folder = "uploads"): Promise<UploadResult> {
+  return uploadMedia(buffer, folder, "video");
+}
+
+function uploadMedia(buffer: Buffer, folder: string, resourceType: "image" | "video"): Promise<UploadResult> {
   const options: UploadApiOptions = {
-    resource_type: "image",
+    resource_type: resourceType,
     folder,
     overwrite: false,
     unique_filename: true,

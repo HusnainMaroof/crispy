@@ -1,197 +1,198 @@
-import { getAdminClient } from "../config/supabase.js";
-import {
-  BadRequestException,
-  NotFoundException,
-  InternalServerException,
-} from "../utils/app-error.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { getPrisma } from "../config/prisma.js";
+import { InternalServerException, NotFoundException } from "../utils/app-error.js";
+import { slugifyBranchName } from "../utils/slug.js";
+import { rethrow, serialize } from "../utils/db.js";
 import type { Location, BusinessSettings, JobPost, JobApplication, ContactMessage } from "../types/models.js";
 
-export async function getLocations(): Promise<Location[]> {
-  const { data, error } = await getAdminClient()
-    .from("locations")
-    .select("*")
-    .order("sort_order");
+function db() {
+  return getPrisma();
+}
 
-  if (error) throw new InternalServerException("Failed to fetch locations");
-  return (data ?? []) as Location[];
+export async function getLocations(options?: { activeOnly?: boolean }): Promise<Location[]> {
+  const rows = await db().locations.findMany({
+    where: options?.activeOnly ? { status: "active" } : undefined,
+    orderBy: { sort_order: "asc" },
+  });
+  return serialize(rows);
+}
+
+export async function getLocationById(id: string): Promise<Location> {
+  const row = await db().locations.findUnique({ where: { id } });
+  if (!row) throw new NotFoundException("Location not found");
+  return serialize(row);
 }
 
 export async function updateLocation(id: string, input: Record<string, unknown>): Promise<Location> {
-  const { data, error } = await getAdminClient()
-    .from("locations")
-    .update(input)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  if (!data) throw new NotFoundException("Location not found");
-  return data as Location;
+  try {
+    const row = await db().locations.update({
+      where: { id },
+      data: input as Prisma.locationsUncheckedUpdateInput,
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Location not found");
+  }
 }
 
 export async function createLocation(input: Record<string, unknown>): Promise<Location> {
-  const { data, error } = await getAdminClient()
-    .from("locations")
-    .insert({
-      ...input,
-      id: crypto.randomUUID(),
-      sort_order: 0,
-    } as Record<string, unknown>)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  return data as Location;
+  try {
+    const name = typeof input.name === "string" ? input.name : "";
+    const slug = typeof input.slug === "string" && input.slug.length > 0 ? input.slug : slugifyBranchName(name);
+    const row = await db().locations.create({
+      data: {
+        ...(input as Prisma.locationsUncheckedCreateInput),
+        id: crypto.randomUUID(),
+        slug,
+        sort_order: 0,
+      },
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Location not found");
+  }
 }
 
 export async function deleteLocation(id: string): Promise<void> {
-  const { error } = await getAdminClient().from("locations").delete().eq("id", id);
-  if (error) throw new BadRequestException(error.message);
+  try {
+    await db().locations.delete({ where: { id } });
+  } catch (error) {
+    rethrow(error, "Location not found");
+  }
 }
 
 export async function getSettings(): Promise<BusinessSettings> {
-  const { data, error } = await getAdminClient()
-    .from("business_settings")
-    .select("*")
-    .limit(1)
-    .single();
-
-  if (error) throw new InternalServerException("Failed to fetch settings");
-  return data as BusinessSettings;
+  const row = await db().business_settings.findFirst({ orderBy: { id: "asc" } });
+  if (!row) throw new InternalServerException("Failed to fetch settings");
+  return serialize(row);
 }
 
 export async function updateSettings(input: Record<string, unknown>): Promise<BusinessSettings> {
-  const { data, error } = await getAdminClient()
-    .from("business_settings")
-    .update(input)
-    .eq("id", 1)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  return data as BusinessSettings;
+  try {
+    const row = await db().business_settings.update({
+      where: { id: 1 },
+      data: input as Prisma.business_settingsUncheckedUpdateInput,
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Settings not found");
+  }
 }
 
 export async function getJobPosts(filter?: { status?: string }): Promise<JobPost[]> {
-  let query = getAdminClient().from("job_posts").select("*").order("created_at", { ascending: false });
-
-  if (filter?.status) query = query.eq("status", filter.status);
-
-  const { data, error } = await query;
-  if (error) throw new InternalServerException("Failed to fetch job posts");
-  return (data ?? []) as JobPost[];
+  const rows = await db().job_posts.findMany({
+    where: filter?.status ? { status: filter.status } : undefined,
+    orderBy: { created_at: "desc" },
+  });
+  return serialize(rows);
 }
 
 export async function getJobPostById(id: string): Promise<JobPost> {
-  const { data, error } = await getAdminClient()
-    .from("job_posts")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error || !data) throw new NotFoundException("Job post not found");
-  return data as JobPost;
+  const row = await db().job_posts.findUnique({ where: { id } });
+  if (!row) throw new NotFoundException("Job post not found");
+  return serialize(row);
 }
 
 export async function createJobPost(input: Record<string, unknown>): Promise<JobPost> {
-  const { data, error } = await getAdminClient()
-    .from("job_posts")
-    .insert({ id: crypto.randomUUID(), ...input, applications: 0 } as Record<string, unknown>)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  return data as JobPost;
+  try {
+    const row = await db().job_posts.create({
+      data: {
+        ...(input as Prisma.job_postsUncheckedCreateInput),
+        id: typeof input.id === "string" ? input.id : crypto.randomUUID(),
+        applications: 0,
+      },
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Job post not found");
+  }
 }
 
 export async function updateJobPost(id: string, input: Record<string, unknown>): Promise<JobPost> {
-  const { data, error } = await getAdminClient()
-    .from("job_posts")
-    .update(input)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  if (!data) throw new NotFoundException("Job post not found");
-  return data as JobPost;
+  try {
+    const row = await db().job_posts.update({
+      where: { id },
+      data: input as Prisma.job_postsUncheckedUpdateInput,
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Job post not found");
+  }
 }
 
 export async function deleteJobPost(id: string): Promise<void> {
-  const { error } = await getAdminClient().from("job_posts").delete().eq("id", id);
-  if (error) throw new BadRequestException(error.message);
+  try {
+    await db().job_posts.delete({ where: { id } });
+  } catch (error) {
+    rethrow(error, "Job post not found");
+  }
 }
 
 export async function createContactMessage(input: Record<string, unknown>): Promise<ContactMessage> {
-  const { data, error } = await getAdminClient()
-    .from("contact_messages")
-    .insert({ ...input, read: false } as Record<string, unknown>)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  return data as ContactMessage;
+  try {
+    const row = await db().contact_messages.create({
+      data: { ...(input as Prisma.contact_messagesUncheckedCreateInput), read: false },
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Message not found");
+  }
 }
 
-// ── Job Applications ──────────────────────────────────────────
-
 export async function getJobApplications(filters?: { job_post_id?: string; status?: string }): Promise<JobApplication[]> {
-  let query = getAdminClient()
-    .from("job_applications")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (filters?.job_post_id) query = query.eq("job_post_id", filters.job_post_id);
-  if (filters?.status) query = query.eq("status", filters.status);
-
-  const { data, error } = await query;
-  if (error) throw new InternalServerException("Failed to fetch job applications");
-  return (data ?? []) as JobApplication[];
+  const rows = await db().job_applications.findMany({
+    where: {
+      ...(filters?.job_post_id ? { job_post_id: filters.job_post_id } : {}),
+      ...(filters?.status ? { status: filters.status } : {}),
+    },
+    orderBy: { created_at: "desc" },
+  });
+  return serialize(rows);
 }
 
 export async function getJobApplicationById(id: string): Promise<JobApplication> {
-  const { data, error } = await getAdminClient()
-    .from("job_applications")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error || !data) throw new NotFoundException("Job application not found");
-  return data as JobApplication;
+  const row = await db().job_applications.findUnique({ where: { id } });
+  if (!row) throw new NotFoundException("Job application not found");
+  return serialize(row);
 }
 
 export async function createJobApplication(input: Record<string, unknown>): Promise<JobApplication> {
-  const { data, error } = await getAdminClient()
-    .from("job_applications")
-    .insert({ id: crypto.randomUUID(), ...input } as Record<string, unknown>)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-
-  const jobId = input.job_post_id as string;
-  if (jobId) {
-    const { error: rpcError } = await getAdminClient().rpc("increment_job_applications", { job_id: jobId });
-    if (rpcError) throw new InternalServerException("Failed to update application count");
+  try {
+    const row = await db().job_applications.create({
+      data: {
+        ...(input as Prisma.job_applicationsUncheckedCreateInput),
+        id: typeof input.id === "string" ? input.id : crypto.randomUUID(),
+      },
+    });
+    const jobId = input.job_post_id;
+    if (typeof jobId === "string" && jobId) {
+      await db().job_posts.update({
+        where: { id: jobId },
+        data: { applications: { increment: 1 } },
+      });
+    }
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Job application not found");
   }
-
-  return data as JobApplication;
 }
 
 export async function updateJobApplication(id: string, input: Record<string, unknown>): Promise<JobApplication> {
-  const { data, error } = await getAdminClient()
-    .from("job_applications")
-    .update(input)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw new BadRequestException(error.message);
-  if (!data) throw new NotFoundException("Job application not found");
-  return data as JobApplication;
+  try {
+    const row = await db().job_applications.update({
+      where: { id },
+      data: input as Prisma.job_applicationsUncheckedUpdateInput,
+    });
+    return serialize(row);
+  } catch (error) {
+    rethrow(error, "Job application not found");
+  }
 }
 
 export async function deleteJobApplication(id: string): Promise<void> {
-  const { error } = await getAdminClient().from("job_applications").delete().eq("id", id);
-  if (error) throw new BadRequestException(error.message);
+  try {
+    await db().job_applications.delete({ where: { id } });
+  } catch (error) {
+    rethrow(error, "Job application not found");
+  }
 }

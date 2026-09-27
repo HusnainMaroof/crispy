@@ -1,20 +1,13 @@
 // locations.tsx
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
-import { SVGProps, useState } from "react";
+import { SVGProps, useMemo, useState } from "react";
+import { useStoreLocations } from "@/lib/use-store-locations";
+import { useBranchSelection } from "@/lib/branch-selection";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
-import type { MapLocation } from "./locations-map";
 
-const LocationsMap = dynamic(() => import("./locations-map"), {
-  ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center text-white/40 text-sm">
-      Loading map…
-    </div>
-  ),
-});
+import LocationsMap from "./client-locations-map";
 function LocationPinIcon(props: SVGProps<SVGSVGElement>) {
   // ⚠ Not provided in the spec — placeholder pin icon, swap for the real asset.
   return (
@@ -49,97 +42,6 @@ function LocationPinIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-const locations = [
-  {
-    id: "harrow-road",
-    name: "Harrow Road",
-    address: "412 Harrow Road\nLondon W9 2HU",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.5259,
-    lng: -0.1950,
-  },
-  {
-    id: "tower-hill",
-    name: "Tower Hill",
-    address: "Unit 2, Tower Hill Terrace\nLondon EC3N 4EE",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.5098,
-    lng: -0.0759,
-  },
-  {
-    id: "kilburn",
-    name: "Kilburn",
-    address: "302 Kilburn High Rd\nLondon NW6 2DB",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.5371,
-    lng: -0.1920,
-  },
-  {
-    id: "harrow",
-    name: "Harrow",
-    address: "253 Station Rd\nLondon HA1 2TB",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.5793,
-    lng: -0.3352,
-  },
-  {
-    id: "elephant-and-castle",
-    name: "Elephant & Castle",
-    address: "345 Walworth Rd\nLondon SE17 2NA",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.4864,
-    lng: -0.0986,
-  },
-  {
-    id: "edgware-road",
-    name: "Edgware Road",
-    address: "340 Edgware Rd\nLondon W2 1EA",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.5218,
-    lng: -0.1670,
-  },
-  {
-    id: "stockwell",
-    name: "Stockwell",
-    address: "314 Clapham Rd\nLondon SW9 9AE",
-    status: "open" as const,
-    hours: "11AM – 11 PM",
-    lat: 51.4726,
-    lng: -0.1180,
-  },
-  {
-    id: "wembley-central",
-    name: "Wembley Central",
-    address: "421 High Rd\nLondon HA9 7AB",
-    status: "closed" as const,
-    hours: "Coming Soon",
-    lat: 51.5520,
-    lng: -0.2956,
-  },
-  {
-    id: "ruislip",
-    name: "Ruislip",
-    address: "77 Victoria Road\nLondon HA4 9BH",
-    status: "closed" as const,
-    hours: "Coming Soon",
-    lat: 51.5767,
-    lng: -0.4134,
-  },
-];
-
-const mapLocations: MapLocation[] = locations.map((l) => ({
-  id: l.id,
-  name: l.name,
-  lat: l.lat,
-  lng: l.lng,
-}));
-
 function PinIcon({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -207,9 +109,52 @@ function BuildingIcon({ className = "" }: { className?: string }) {
   );
 }
 
-export default function Locations() {
-  const [selectedId, setSelectedId] = useState<string>(locations[0].id);
+export default function Locations({
+  title = "Find Your Nearest Crispies",
+  displayMode = "cards",
+  ctaLabel = "View All 10+ Locations",
+  ctaUrl = "/locations",
+  cardLimit = 5,
+}: {
+  title?: string;
+  displayMode?: "cards" | "redirect";
+  ctaLabel?: string;
+  ctaUrl?: string;
+  cardLimit?: number;
+}) {
+  const { locations } = useStoreLocations();
+  const mapLocations = useMemo(
+    () =>
+      locations.flatMap((location) =>
+        location.lat != null && location.lng != null
+          ? [{ id: location.id, name: location.name, lat: location.lat, lng: location.lng }]
+          : [],
+      ),
+    [locations],
+  );
+  const [selectedId, setSelectedId] = useState("");
   const scopeRef = useScrollReveal();
+  const { selectBranch } = useBranchSelection();
+  const chooseBranch = (id: string) => {
+    const name = locations.find((location) => location.id === id)?.name ?? "this branch";
+    if (!selectBranch(id, name)) return;
+    setSelectedId(id);
+  };
+
+  const activeSelectedId = selectedId || locations[0]?.id || "";
+
+  const locationLinkIsExternal = /^https:\/\//i.test(ctaUrl);
+  if (displayMode === "redirect") {
+    return (
+      <section ref={scopeRef} className="w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 lg:py-28">
+        <h2 className="fade-up text-center font-semibold uppercase leading-[100%] tracking-[0.54px] text-black" style={{ fontFamily: "var(--font-korolev), Korolev, sans-serif", fontSize: "clamp(36px, 7vw, 80px)" }}>{title}</h2>
+        <div className="mx-auto mt-10 max-w-3xl text-center">
+          <p className="text-sm text-black/55">Find your nearest branch and get directions, opening hours, and contact details.</p>
+          <a href={ctaUrl} target={locationLinkIsExternal ? "_blank" : undefined} rel={locationLinkIsExternal ? "noopener noreferrer" : undefined} className="mt-7 inline-flex items-center justify-center rounded-xl bg-[#FF0931] px-8 py-4 text-lg font-semibold text-white hover:bg-[#E0082C]">{ctaLabel}</a>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -230,8 +175,8 @@ export default function Locations() {
             fontSize: "clamp(36px, 7vw, 80px)",
           }}
         >
-          <span className="text-black">Find Your </span>
-          <span className="text-[#FF0931]">Nearest Crispies</span>
+          <span className="text-black">{title.split(" ").slice(0, 2).join(" ")} </span>
+          <span className="text-[#FF0931]">{title.split(" ").slice(2).join(" ")}</span>
         </h2>
 
         {/* Content */}
@@ -239,8 +184,8 @@ export default function Locations() {
           {/* Left — list + CTA */}
           <div className="flex-1 min-w-0 flex flex-col">
             <ul className="m-0 p-0 list-none loc-list">
-              {locations.slice(0, 5).map((loc, i) => {
-                const isActive = loc.id === selectedId;
+              {locations.slice(0, cardLimit).map((loc, i) => {
+                const isActive = loc.id === activeSelectedId;
                 const numColor = isActive ? "text-[#BDBDBD]" : "text-[#D0D0D0]";
                 const nameColor = isActive ? "text-black" : "text-[#B0B0B0]";
                 const addrColor = isActive
@@ -269,11 +214,11 @@ export default function Locations() {
                     role="button"
                     tabIndex={0}
                     aria-pressed={isActive}
-                    onClick={() => setSelectedId(loc.id)}
+                    onClick={() => chooseBranch(loc.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setSelectedId(loc.id);
+                        chooseBranch(loc.id);
                       }
                     }}
                     className="loc-row fade-up cursor-pointer border-b border-[#EAEAEA] py-4 sm:py-5 md:py-[22px] hover:bg-gray-50 transition-colors duration-200"
@@ -359,7 +304,7 @@ export default function Locations() {
                         aria-label={`Show ${loc.name} on map`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedId(loc.id);
+                          chooseBranch(loc.id);
                         }}
                         className="shrink-0 flex items-center justify-center text-[#FF0931] hover:text-white transition-colors duration-200"
                       >
@@ -392,7 +337,9 @@ export default function Locations() {
 
             {/* View all CTA — links to the locations page */}
             <Link
-              href="/locations"
+              href={ctaUrl}
+              target={locationLinkIsExternal ? "_blank" : undefined}
+              rel={locationLinkIsExternal ? "noopener noreferrer" : undefined}
               className="group fade-up mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
               data-delay="0.22"
             >
@@ -403,7 +350,7 @@ export default function Locations() {
                   fontSize: "clamp(22px, 2.8vw, 32px)",
                 }}
               >
-                View All 10+ Location
+                {ctaLabel}
               </span>
               <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0">
                 <svg
@@ -429,7 +376,7 @@ export default function Locations() {
             data-delay="0.1"
           >
             <div className="micro-elevate relative h-full w-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
-              <LocationsMap locations={mapLocations} selectedId={selectedId} />
+              <LocationsMap locations={mapLocations} selectedId={activeSelectedId} />
 
               {/* Bottom banner — sits above the map tiles */}
               <div className="absolute mx-5 bottom-5 rounded-xl  left-0 right-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3 pointer-events-none">

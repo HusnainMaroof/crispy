@@ -1,16 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
-const locations = [
-  { id: "harrow-road-maida-vale", name: "Harrow Road - Maida Vale" },
-  { id: "tower-hill", name: "Tower Hill" },
-  { id: "kilburn", name: "Kilburn" },
-  { id: "harrow", name: "Harrow" },
-  { id: "elephant-and-castle", name: "Elephant & Castle" },
-  { id: "edgware-road", name: "Edgware Road" },
-  { id: "stockwell", name: "Stockwell" },
-];
+import { useEffect, useRef, useState } from "react";
+import { useStoreLocations } from "@/lib/use-store-locations";
+import { useBranchSelection } from "@/lib/branch-selection";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 const platforms = [
   {
@@ -34,17 +27,30 @@ const platforms = [
 ];
 
 export default function DeliveryPage() {
+  const { locations } = useStoreLocations();
+  const { selectBranch } = useBranchSelection();
+  const { ordering, redirect } = useStoreOrdering();
   const [selected, setSelected] = useState<string | null>(null);
   const [step, setStep] = useState<"branch" | "platform" | "redirect">("branch");
   const [platform, setPlatform] = useState<string | null>(null);
 
   const selectedName = locations.find((l) => l.id === selected)?.name ?? "";
   const selectedPlatform = platforms.find((p) => p.id === platform);
+  const redirectAttempted = useRef(false);
+
+  useEffect(() => {
+    if (ordering.mode === "redirect" && !redirectAttempted.current) {
+      redirectAttempted.current = true;
+      void redirect();
+    }
+  }, [ordering.mode, redirect]);
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center px-4 py-16 md:py-24">
       {/* Step 1: Branch Selection */}
-      {step === "branch" && (
+      {ordering.mode === "redirect" ? (
+        <div className="text-center text-white" role="status">Redirecting to the online ordering page…</div>
+      ) : step === "branch" && (
         <>
           <h1
             className="text-center uppercase leading-normal max-w-[70%]"
@@ -82,7 +88,10 @@ export default function DeliveryPage() {
               return (
                 <button
                   key={loc.id}
-                  onClick={() => setSelected(loc.id)}
+                  onClick={() => {
+                    if (!selectBranch(loc.id, loc.name)) return;
+                    setSelected(loc.id);
+                  }}
                   className="flex items-center justify-between cursor-pointer transition-all duration-200"
                   style={{
                     borderRadius: "16px",

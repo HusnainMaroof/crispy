@@ -7,7 +7,16 @@ export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4", "video/webm", "video/quicktime"];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
+
+export const uploadMedia = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif", "video/mp4", "video/webm", "video/quicktime"];
     cb(null, allowed.includes(file.mimetype));
   },
 });
@@ -15,5 +24,6 @@ export const upload = multer({
 const router = Router();
 
 router.post("/upload", upload.single("file"), asyncHandler(UploadController.upload));
+router.post("/upload-media", uploadMedia.single("file"), asyncHandler(UploadController.upload));
 
 export default router;

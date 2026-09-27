@@ -2,35 +2,39 @@
 
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
-import Image from "next/image";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
 
-const INSTAGRAM_REELS = [
-  "https://www.instagram.com/reel/DXohuMwDTw3/",
-  "https://www.instagram.com/reel/DcgNQ9xNZzU/",
-  "https://www.instagram.com/reel/DcA2VEfs3cf/",
-  "https://www.instagram.com/reel/DbYdlyNNaRR/",
-  "https://www.instagram.com/reel/DauQEe8NqlT/",
-  "https://www.instagram.com/reel/DZzxwhstJp6/",
-  "https://www.instagram.com/reel/DXRFf4nCidl/",
-  "https://www.instagram.com/reel/CjatkkYjtRf/",
-];
+type InstagramContent = {
+  title?: string;
+  username?: string;
+  profileUrl?: string;
+  posts?: string;
+  followers?: string;
+  following?: string;
+  bio?: string;
+  reels?: { url: string; thumbnailUrl: string; likes?: string; views?: string }[];
+  followLabel?: string;
+};
 
-const REEL_IMAGES = [
-  "/images/heroimage.png",
-  "/images/aboutimage.jpg",
-  "/images/frienchies.png",
-  "/images/partnerImages.jpg",
+const DEFAULT_POSTS = [
+  { url: "https://www.instagram.com/reel/DXohuMwDTw3/", thumbnailUrl: "/images/heroimage.png" },
+  { url: "https://www.instagram.com/reel/DcgNQ9xNZzU/", thumbnailUrl: "/images/aboutimage.jpg" },
+  { url: "https://www.instagram.com/reel/DcA2VEfs3cf/", thumbnailUrl: "/images/frienchies.png" },
+  { url: "https://www.instagram.com/reel/DbYdlyNNaRR/", thumbnailUrl: "/images/partnerImages.jpg" },
+  { url: "https://www.instagram.com/reel/DauQEe8NqlT/", thumbnailUrl: "/images/heroimage.png" },
+  { url: "https://www.instagram.com/reel/DZzxwhstJp6/", thumbnailUrl: "/images/aboutimage.jpg" },
+  { url: "https://www.instagram.com/reel/DXRFf4nCidl/", thumbnailUrl: "/images/frienchies.png" },
+  { url: "https://www.instagram.com/reel/CjatkkYjtRf/", thumbnailUrl: "/images/partnerImages.jpg" },
 ];
-
-const SOCIAL_POSTS = INSTAGRAM_REELS.map((url, i) => ({
-  url,
-  image: REEL_IMAGES[i % REEL_IMAGES.length],
-}));
 
 const MARQUEE_COPIES = 3;
 
-export default function Instagram() {
+export default function Instagram({ content, followLabel = "Follow" }: { content?: InstagramContent; followLabel?: string }) {
+  const posts: NonNullable<InstagramContent["reels"]> = content
+    ? (content.reels ?? []).map((post) => ({ ...post, thumbnailUrl: post.thumbnailUrl || "/images/heroimage.png" }))
+    : DEFAULT_POSTS;
+  const profileUrl = content?.profileUrl || "https://www.instagram.com/crispiesuk";
+  const username = content?.username || "crispiesuk";
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
   const scopeRef = useScrollReveal();
@@ -88,6 +92,7 @@ export default function Instagram() {
   return (
     <section ref={scopeRef} className="overflow-hidden w-full bg-[#FF0931] rounded-b-3xl lg:rounded-b-[50px]">
       <div className="px-6 py-16 bg-white rounded-3xl lg:rounded-[50px]">
+        <h2 className="mb-8 text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-3xl font-bold text-black sm:text-4xl">{content?.title || "Instagram"}</h2>
         <div className="fade-up flex items-start justify-center gap-40 mx-auto px-6 py-8 sm:px-10 sm:py-10">
           <div className="flex items-start gap-20">
             <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-full bg-black sm:h-[85px] sm:w-[85px]">
@@ -123,42 +128,39 @@ export default function Instagram() {
 
             <div className="flex flex-col items-start gap-2">
               <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-normal text-black sm:text-[24px]">
-                Crispiesuk
+                {username}
               </h3>
 
               <div className="flex items-center gap-3 text-[13px] text-[#414040]">
                 <span>
-                  <strong className="font-semibold text-black">557</strong>{" "}
+                  <strong className="font-semibold text-black">{content?.posts ?? "557"}</strong>{" "}
                   Posts
                 </span>
                 <span>
-                  <strong className="font-semibold text-black">16.1k</strong>{" "}
+                  <strong className="font-semibold text-black">{content?.followers ?? "16.1k"}</strong>{" "}
                   Followers
                 </span>
                 <span>
-                  <strong className="font-semibold text-black">19</strong>{" "}
+                  <strong className="font-semibold text-black">{content?.following ?? "19"}</strong>{" "}
                   Following
                 </span>
               </div>
 
               <div className="text-left text-[12px] leading-[1.5] text-[#414040]">
                 <p className="font-[family-name:var(--font-korolev),Korolev,sans-serif] font-normal">
-                  Good Mood Food 🍔🍟
+                  {content?.bio ?? "Good Mood Food 🍔🍟"}
                 </p>
-                <p>📍 Tower Hill</p>
-                <p>🍔 100% Angus Beef Burgers</p>
-                <p>🍗 12 Flavor Packed Chicken</p>
               </div>
             </div>
           </div>
 
           <a
-            href="https://www.instagram.com/crispiesuk"
+            href={profileUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 rounded-[5px] bg-[#FF0931] px-5 py-1.5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-semibold text-white hover:bg-[#E0082C]"
           >
-            Follow
+            {followLabel}
           </a>
         </div>
 
@@ -173,7 +175,7 @@ export default function Instagram() {
               ref={trackRef}
               className="flex items-center gap-6 px-4 sm:gap-8 sm:px-6"
             >
-              {[...SOCIAL_POSTS, ...SOCIAL_POSTS, ...SOCIAL_POSTS].map(
+              {[...posts, ...posts, ...posts].map(
                 (post, i) => (
                 <a
                   key={`${post.url}-${i}`}
@@ -182,14 +184,14 @@ export default function Instagram() {
                   rel="noopener noreferrer"
                   className="group relative flex-shrink-0 aspect-[9/16] w-[200px] overflow-hidden rounded-[50px] bg-black sm:w-[280px]"
                 >
-                  <Image
-                    src={post.image}
-                    alt="Social post"
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  <img
+                    src={post.thumbnailUrl}
+                    alt={`Instagram reel by ${username}`}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
 
                   <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40" />
+                  {(post.likes || post.views) && <div className="absolute bottom-4 left-4 flex gap-3 text-xs font-semibold text-white drop-shadow">{post.views && <span>▶ {post.views}</span>}{post.likes && <span>♥ {post.likes}</span>}</div>}
 
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:bg-white sm:h-12 sm:w-12">

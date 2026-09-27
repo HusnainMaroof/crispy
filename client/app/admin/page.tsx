@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import StatCard from "@/app/components/admin/ui/stat-card";
 import PageHeader from "@/app/components/admin/ui/page-header";
+import { CardGridSkeleton, TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useOrders } from "@/lib/admin/use-orders";
 import { useMenu } from "@/lib/admin/use-menu";
 import { api } from "@/lib/api";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-
-gsap.registerPlugin(useGSAP);
 
 type DashboardStats = {
   total_orders: number;
@@ -40,8 +37,6 @@ export default function AdminDashboard() {
   const { orders, loading: ordersLoading, fetchOrders } = useOrders();
   const { items, loading: menuLoading, fetchItems } = useMenu();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     fetchOrders();
     fetchItems();
@@ -51,23 +46,6 @@ export default function AdminDashboard() {
   }, [fetchOrders, fetchItems]);
 
   const loading = ordersLoading || menuLoading;
-
-  useGSAP(() => {
-    gsap.from(".stat-card", {
-      y: 20,
-      autoAlpha: 0,
-      duration: 0.5,
-      stagger: 0.08,
-      ease: "power3.out",
-    });
-    gsap.from(".orders-section", {
-      y: 30,
-      autoAlpha: 0,
-      duration: 0.6,
-      ease: "power3.out",
-      delay: 0.3,
-    });
-  }, { scope: containerRef });
 
   const activeOrders = orders.filter(
     (o) => o.status === "pending" || o.status === "preparing" || o.status === "ready" || o.status === "out-for-delivery"
@@ -123,16 +101,19 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div ref={containerRef}>
+    <div>
       <PageHeader
         title="Dashboard"
         description="Welcome back. Here's what's happening today."
       />
 
-      {loading && (
-        <p className="mb-4 text-sm text-white/50">Loading dashboard...</p>
-      )}
-
+      {loading ? (
+        <div>
+          <CardGridSkeleton count={4} />
+          <div className="mt-8"><TableSkeleton rows={4} /></div>
+        </div>
+      ) : (
+        <div>
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => (
           <div key={stat.title} className="stat-card">
@@ -192,6 +173,8 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 }

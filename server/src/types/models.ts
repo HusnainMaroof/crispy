@@ -39,11 +39,19 @@ export interface Deal {
 export interface Location {
   id: string;
   name: string;
+  slug: string | null;
   address: string;
+  postcode: string | null;
+  city: string | null;
   hours: string;
   phone: string;
   lat: number | null;
   lng: number | null;
+  status: string;
+  delivery_enabled: boolean;
+  collection_enabled: boolean;
+  delivery_fee: number | null;
+  free_delivery_threshold: number | null;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -65,6 +73,7 @@ export interface Order {
   total: number;
   status: "pending" | "preparing" | "ready" | "out-for-delivery" | "delivered" | "cancelled";
   location_id: string | null;
+  customer_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,7 +81,7 @@ export interface Order {
 export interface OrderItem {
   id: number;
   order_id: number;
-  menu_item_id: string;
+  menu_item_id: string | null;
   name: string;
   price: number;
   quantity: number;
@@ -129,6 +138,8 @@ export interface AdminProfile {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "superadmin";
+  role: "admin" | "superadmin" | "branch_manager";
+  tabs: string[];
+  is_active: boolean;
   created_at: string;
 }

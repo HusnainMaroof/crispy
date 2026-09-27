@@ -32,7 +32,7 @@ function mapDeal(raw: Record<string, unknown>): AdminDeal {
 
 export function useDeals() {
   const [deals, setDeals] = useState<AdminDeal[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchDeals = useCallback(async () => {
     setLoading(true);

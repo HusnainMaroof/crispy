@@ -5,6 +5,7 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   code?: string;
+  item?: { kind: "product" | "deal"; id: string };
 }
 
 const TOKEN_KEY = "crispies_admin_token";
@@ -53,6 +54,15 @@ async function tryRefreshToken(): Promise<boolean> {
   return refreshPromise;
 }
 
+async function readBody<T>(res: Response): Promise<ApiResponse<T>> {
+  const raw = await res.text();
+  try {
+    return JSON.parse(raw) as ApiResponse<T>;
+  } catch {
+    throw new Error(`The server returned an unexpected response (${res.status}).`);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit, _isRetry = false): Promise<T> {
   const token = getAuthToken();
   const headers: Record<string, string> = {
@@ -81,8 +91,16 @@ async function request<T>(path: string, init?: RequestInit, _isRetry = false): P
     return request<T>(path, init, true);
   }
 
-  const body: ApiResponse<T> = await res.json();
-  if (!body.success) throw new Error(body.error ?? "Request failed");
+  const body = await readBody<T>(res);
+  if (!body.success) {
+    const failure = new Error(body.error ?? "Request failed") as Error & {
+      code?: string;
+      item?: { kind: "product" | "deal"; id: string };
+    };
+    failure.code = body.code;
+    failure.item = body.item;
+    throw failure;
+  }
   return body.data as T;
 }
 
@@ -102,7 +120,7 @@ export const api = {
     const res = await fetch(`${BASE}/api${path}`, {
       method: "POST", body: formData, credentials: "include", headers,
     });
-    const body: ApiResponse<T> = await res.json();
+    const body = await readBody<T>(res);
     if (!body.success) throw new Error(body.error ?? "Upload failed");
     return body.data as T;
   },

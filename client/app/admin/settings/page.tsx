@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import PageHeader from "@/app/components/admin/ui/page-header";
+import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useSettings } from "@/lib/admin/use-settings";
 
 export default function SettingsPage() {
@@ -43,12 +44,7 @@ export default function SettingsPage() {
       />
 
       <div className="max-w-2xl">
-        {loading && (
-          <p className="mb-4 text-sm text-white/50">Loading settings...</p>
-        )}
-
-        {/* Delivery Settings */}
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+        {loading ? <TableSkeleton rows={3} /> : <div className="rounded-xl border border-white/10 bg-white/5 p-6">
           <h2 className="mb-6 font-display text-xl tracking-wide text-white">
             Delivery Settings
           </h2>
@@ -84,7 +80,6 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-        </div>
 
         {/* Save Button */}
         <div className="mt-6">
@@ -96,6 +91,7 @@ export default function SettingsPage() {
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
+        </div>}
 
         {/* Info */}
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">

@@ -6,8 +6,6 @@ import styles from "./welcome.module.css";
 const PARAGRAPH =
   "Crispies was founded with a mission to serve the best burgers & chicken around. Our aim has always been to serve fresh, handmade food, bursting with flavours from around the globe.";
 
-const WORDS = PARAGRAPH.split(" ");
-
 // The text reveal and the image slide are both driven by the same 0 → 1
 // progress and are timed to land together at the end of the pinned scroll.
 // Each word overlaps the next four so the reveal reads as a wave rather than a
@@ -22,10 +20,7 @@ const FRONT_MAX_BLUR = 8;
 const FRONT_BLUR_PROGRESS = `clamp(0, (var(--p) - ${FRONT_BLUR_START}) / ${FRONT_BLUR_END - FRONT_BLUR_START}, 1)`;
 const FRONT_BLUR = `calc(${FRONT_MAX_BLUR}px * (1 - ${FRONT_BLUR_PROGRESS}))`;
 
-const REVEAL_SPAN = 1;
 const REVEAL_OVERLAP = 4;
-const WORD_STEP = REVEAL_SPAN / (WORDS.length + REVEAL_OVERLAP - 1);
-const WORD_WINDOW = WORD_STEP * REVEAL_OVERLAP;
 
 // The back image stays sharp until the front image has risen about 80% of the
 // way into view, then it blurs and dims into the backdrop behind the sharp
@@ -37,7 +32,10 @@ const BLUR_PROGRESS = `clamp(0, (var(--p) - ${BLUR_START}) * ${BLUR_STEP}, 1)`;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-export default function Welcome() {
+export default function Welcome({ description = PARAGRAPH }: { description?: string }) {
+  const words = (description.trim() || PARAGRAPH).split(/\s+/);
+  const wordStep = 1 / (words.length + REVEAL_OVERLAP - 1);
+  const wordWindow = wordStep * REVEAL_OVERLAP;
   const outerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -120,9 +118,9 @@ export default function Welcome() {
               </span>
             </h2>
             <p className="mt-6 max-w-lg font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(16px,3vw,30px)] font-normal capitalize leading-[1.5] tracking-[0.54px] text-black md:mt-8">
-              {WORDS.map((word, i) => {
-                const start = (i * WORD_STEP).toFixed(4);
-                const span = WORD_WINDOW.toFixed(4);
+              {words.map((word, i) => {
+                const start = (i * wordStep).toFixed(4);
+                const span = wordWindow.toFixed(4);
                 const revealed = `clamp(0, (var(--p) - ${start}) / ${span}, 1)`;
                 return (
                   <span
@@ -134,7 +132,7 @@ export default function Welcome() {
                     }}
                   >
                     {word}
-                    {i < WORDS.length - 1 ? "\u00A0" : ""}
+                    {i < words.length - 1 ? "\u00A0" : ""}
                   </span>
                 );
               })}

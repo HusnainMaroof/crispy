@@ -1,10 +1,17 @@
 import type { Request, Response } from "express";
 import { getCategories, getMenuItems, getDeals, getFullMenu } from "../../services/menu.service.js";
+import { quoteCart } from "../../services/quote.service.js";
 import { sendSuccess } from "../../utils/response.js";
 
 export const MenuController = {
-  async full(_req: Request, res: Response) {
-    const menu = await getFullMenu();
+  async full(req: Request, res: Response) {
+    const queryId = req.query.location_id;
+    const cookieId = req.cookies?.crispy_location_id;
+    const menu = typeof queryId === "string" && queryId
+      ? await getFullMenu({ locationId: queryId, required: true })
+      : typeof cookieId === "string" && cookieId
+        ? await getFullMenu({ locationId: cookieId, required: false })
+        : await getFullMenu();
     sendSuccess(res, menu);
   },
 
@@ -19,8 +26,19 @@ export const MenuController = {
     sendSuccess(res, items);
   },
 
-  async deals(_req: Request, res: Response) {
-    const deals = await getDeals();
+  async quote(req: Request, res: Response) {
+    const quote = await quoteCart(req.body.locationId, req.body.items);
+    sendSuccess(res, quote);
+  },
+
+  async deals(req: Request, res: Response) {
+    const queryId = req.query.location_id;
+    const cookieId = req.cookies?.crispy_location_id;
+    const deals = typeof queryId === "string" && queryId
+      ? await getDeals(true, { locationId: queryId, required: true })
+      : typeof cookieId === "string" && cookieId
+        ? await getDeals(true, { locationId: cookieId, required: false })
+        : await getDeals();
     sendSuccess(res, deals);
   },
 };

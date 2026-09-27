@@ -18,7 +18,8 @@ app.set("trust proxy", 1);
 
 // Security
 app.use(helmet());
-const corsOrigin = CORS.ORIGIN === "*" ? true : CORS.ORIGIN;
+const corsOrigin =
+  CORS.ORIGIN === "*" || SERVER.NODE_ENV === "development" ? true : CORS.ORIGIN;
 app.use(cors({ origin: corsOrigin, credentials: true }));
 
 // Performance
