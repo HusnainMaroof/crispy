@@ -78,7 +78,7 @@ export interface Database {
       order_status: "pending" | "preparing" | "ready" | "out-for-delivery" | "delivered" | "cancelled";
       job_status: "draft" | "active" | "closed";
       application_status: "pending" | "reviewed" | "shortlisted" | "rejected" | "hired";
-      admin_role: "admin" | "superadmin";
+      admin_role: "superadmin" | "branch_manager" | "staff";
     };
   };
 }

@@ -3,13 +3,17 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addItem } from "@/lib/redux/slices/cartSlice";
-import { fetchDeals, fetchFullMenu } from "@/lib/redux/slices/menuSlice";
+import { fetchFullMenu } from "@/lib/redux/slices/menuSlice";
 import { useUI } from "@/lib/context/ui-context";
 import type { AppDispatch, RootState } from "@/lib/redux/store";
 import type { MenuItem } from "@/lib/redux/types";
 import Footer from "@/app/components/store/footer";
 import DownloadApp from "@/app/components/store/download-app";
+import DeliveryOverlay from "@/app/components/store/delivery-overlay";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
+import { localizedName, localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { dietaryTags } from "@/lib/dietary";
 
 type MenuCard = MenuItem & { category: string };
 
@@ -26,7 +30,10 @@ export default function MenuPage() {
   const menu = useSelector((state: RootState) => state.menu);
   const cart = useSelector((state: RootState) => state.cart);
   const { toggleCart } = useUI();
-  const { redirect } = useStoreOrdering();
+  const { resolveOrdering } = useStoreOrdering();
+  const { locale, t } = useLocale();
+  const categoryLabel = (cat: string) =>
+    cat === "All" ? t("menu.dietary.all") : localizedName(locale, cat, menu.categories.find((category) => category.title === cat)?.titleAr);
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [dietary, setDietary] = useState("All");
@@ -37,9 +44,10 @@ export default function MenuPage() {
   const underlineRef = useRef<HTMLDivElement>(null);
 
   const [menuFetched, setMenuFetched] = useState(false);
+  const [collectProduct, setCollectProduct] = useState<MenuCard | null>(null);
 
   useEffect(() => {
-    Promise.all([dispatch(fetchFullMenu()), dispatch(fetchDeals())]).finally(() => setMenuFetched(true));
+    dispatch(fetchFullMenu()).finally(() => setMenuFetched(true));
   }, [dispatch]);
 
   const categoryNames = useMemo(
@@ -83,24 +91,24 @@ export default function MenuPage() {
 
     if (search.trim()) {
       const q = search.toLowerCase();
-      items = items.filter((item) => item.name.toLowerCase().includes(q));
+      items = items.filter(
+        (item) => item.name.toLowerCase().includes(q) || (item.nameAr ?? "").toLowerCase().includes(q),
+      );
     }
 
     if (dietary !== "All") {
-      items = items.filter(
-        (item) =>
-          item.badge?.toLowerCase() === dietary.toLowerCase() ||
-          item.badgeVariant?.toLowerCase() === dietary.toLowerCase(),
+      items = items.filter((item) =>
+        dietaryTags(item.badge, item.badgeVariant).some((tag) => tag.toLowerCase() === dietary.toLowerCase()),
       );
     }
 
     const sorted = [...items];
     switch (sort) {
       case "name-asc":
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        sorted.sort((a, b) => localizedName(locale, a.name, a.nameAr).localeCompare(localizedName(locale, b.name, b.nameAr)));
         break;
       case "name-desc":
-        sorted.sort((a, b) => b.name.localeCompare(a.name));
+        sorted.sort((a, b) => localizedName(locale, b.name, b.nameAr).localeCompare(localizedName(locale, a.name, a.nameAr)));
         break;
       case "price-asc":
         sorted.sort((a, b) => a.priceValue - b.priceValue);
@@ -113,20 +121,15 @@ export default function MenuPage() {
     return sorted;
   }, [effectiveCategory, search, dietary, sort, menuItems]);
 
-  const visibleDeals = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return menu.deals.filter((deal) => !q || deal.name.toLowerCase().includes(q));
-  }, [menu.deals, search]);
-
   const handleAddToCart = async (item: MenuCard) => {
-    if (await redirect()) return;
-    dispatch(addItem({ id: item.id, kind: "product", name: item.name, price: item.priceValue, locationId: cart.locationId }));
-    toggleCart();
-  };
-
-  const handleAddDeal = async (deal: (typeof menu.deals)[number]) => {
-    if (await redirect()) return;
-    dispatch(addItem({ id: deal.id, kind: "deal", name: deal.name, price: deal.priceValue, locationId: cart.locationId }));
+    const resolved = await resolveOrdering();
+    // Redirect system: no cart. The Click & Collect popup takes the order
+    // to the product's own link, the chosen platform, or the external order URL.
+    if (resolved.mode === "redirect") {
+      setCollectProduct(item);
+      return;
+    }
+    dispatch(addItem({ id: item.id, kind: "product", name: localizedName(locale, item.name, item.nameAr), price: item.priceValue, locationId: cart.locationId }));
     toggleCart();
   };
 
@@ -143,20 +146,20 @@ export default function MenuPage() {
           <div className="absolute flex  items-center justify-center gap-4  bg-[#FF0931]  rounded-b-xl md:rounded-b-2xl   left-[35%] -translate-x-1/2  px-4 lg:px-6 py-3  md:py-4 lg:py-5   2xl:px-8 2xl:py-6">
             <h1 className=" leading-[1] tracking-[0.54px] capitalize text-nowrap">
               <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[50px]  2xl:text-[60px] font-black text-white">
-                Our{" "} 
+                {t("menu.hero.1")}{" "}
               </span>
               <span className="font-[family-name:var(--font-korolev),Korolev,sans-serif]   text-[30px]  md:text-[45px] lg:text-[50px]  2xl:text-[60px] font-black text-black">
-                Menu
+                {t("menu.hero.2")}
               </span>
             </h1>
           </div>
         </div>
 
         {/* Category Tabs */}
-        <div className="bg-[#FAFAFA] py-4 px-4 sm:py-6 sm:px-6 md:px-12 xl:px-25">
+        <div className="bg-[#FAFAFA] px-4 py-3 sm:px-6 md:px-12 xl:px-25">
           <div
             ref={tabContainerRef}
-            className="relative flex gap-4 overflow-x-auto w-full justify-between sm:w-[85%] sm:gap-0 2xl:w-[90%]"
+            className="relative flex gap-2 overflow-x-auto"
           >
             {categoryNames.map((cat, i) => (
               <button
@@ -166,19 +169,16 @@ export default function MenuPage() {
                   tabRefs.current[i] = el;
                 }}
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap cursor-pointer pb-3 pt-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium capitalize leading-[1] tracking-[0.54px] transition-colors duration-200 sm:pb-4 sm:pt-5 sm:text-[clamp(18px,2.5vw,30px)] ${
+                className={`cursor-pointer whitespace-nowrap rounded-full px-4 py-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 ${
                   effectiveCategory === cat
-                    ? "text-[#FF0931]"
-                    : "text-black hover:text-[#FF0931]"
+                    ? "bg-[#FF0931] text-white"
+                    : "bg-white text-black hover:text-[#FF0931]"
                 }`}
               >
-                {cat}
+                {categoryLabel(cat)}
               </button>
             ))}
-            <div
-              ref={underlineRef}
-              className="absolute bottom-0 left-0 h-[3px] bg-[#FF0931] transition-[transform,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-            />
+            <div ref={underlineRef} className="hidden" />
           </div>
         </div>
 
@@ -204,11 +204,10 @@ export default function MenuPage() {
               </svg>
               <input
                 type="text"
-                placeholder="Search For Item..."
+                placeholder={t("menu.search")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-[6px] border border-black bg-white pl-12 pr-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] placeholder:font-light placeholder:capitalize placeholder:text-black sm:pl-[70px] sm:text-[23px] sm:pr-5"
-                style={{ height: "clamp(48px, 10vw, 85px)" }}
+                className="h-12 w-full rounded-xl border border-black/15 bg-white pl-12 pr-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] placeholder:text-black/40 sm:pl-14"
               />
             </div>
 
@@ -217,12 +216,11 @@ export default function MenuPage() {
               <select
                 value={dietary}
                 onChange={(e) => setDietary(e.target.value)}
-                className="w-full appearance-none rounded-[6px] border border-black bg-white pl-4 pr-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] sm:pl-5 sm:pr-14 sm:text-[23px]"
-                style={{ height: "clamp(48px, 10vw, 85px)" }}
+                className="h-12 w-full appearance-none rounded-xl border border-black/15 bg-white pl-4 pr-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931]"
               >
                 {DIETARY_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
-                    {opt === "All" ? "Dietary Preference" : opt}
+                    {opt === "All" ? t("menu.dietary.label") : t(`menu.dietary.${opt.toLowerCase()}`)}
                   </option>
                 ))}
               </select>
@@ -248,12 +246,11 @@ export default function MenuPage() {
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value)}
-                className="w-full appearance-none rounded-[6px] border border-black bg-white pl-4 pr-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-light text-black outline-none capitalize tracking-[0.54px] transition-colors focus:border-[#FF0931] sm:pl-5 sm:pr-14 sm:text-[23px]"
-                style={{ height: "clamp(48px, 10vw, 85px)" }}
+                className="h-12 w-full appearance-none rounded-xl border border-black/15 bg-white pl-4 pr-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931]"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {t(`menu.sort.${opt.value}`)}
                   </option>
                 ))}
               </select>
@@ -281,10 +278,10 @@ export default function MenuPage() {
           {(!menuFetched || menu.loading || filteredItems.length === 0) && (
             <div className="py-20 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-[#999]">
               {!menuFetched || menu.loading
-                ? "Loading menu..."
+                ? t("menu.loading")
                 : menu.error
-                  ? "Menu could not be loaded."
-                  : "No items found. Try a different search or category."}
+                  ? t("menu.error")
+                  : t("menu.empty")}
             </div>
           )}
 
@@ -300,7 +297,7 @@ export default function MenuPage() {
                     {item.image ? (
                       <img
                         src={item.image}
-                        alt={item.name}
+                        alt={localizedName(locale, item.name, item.nameAr)}
                         className=" w-full h-[264px] object-cover transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"
                       />
@@ -325,9 +322,28 @@ export default function MenuPage() {
 
                   {/* Content */}
                   <div className="flex-col   px-3 sm:px-4 py-5">
-                    <h3 className="m-0 truncate font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-medium leading-[1.2] text-black sm:text-[20px] capitalize">
-                      {item.name}
+                    <h3 className="m-0 truncate font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-medium leading-[1.2] text-black sm:text-[20px]">
+                      {localizedName(locale, item.name, item.nameAr)}
                     </h3>
+                    {(item.description || item.descriptionAr) && (
+                      <p className="mt-1 line-clamp-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[12px] leading-snug text-black/55 sm:text-[13px]">
+                        {localizedName(locale, item.description, item.descriptionAr)}
+                      </p>
+                    )}
+                    {(item.badge ?? "").trim() && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {dietaryTags(item.badge, item.badgeVariant).map((tag) => (
+                          <span key={tag} className="rounded-full bg-[#F7F8F8] px-2 py-0.5 text-[11px] text-black/70">
+                            {t(`menu.dietary.${tag.toLowerCase()}`)}
+                          </span>
+                        ))}
+                        {(item.badge ?? "").split(",").map((tag) => tag.trim()).filter((tag) => tag && !["halal", "vegan", "vegetarian"].includes(tag.toLowerCase())).map((tag) => (
+                          <span key={tag} className="rounded-full bg-[#F7F8F8] px-2 py-0.5 text-[11px] text-black/70">
+                            {localizedText(locale, tag)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="min-w-0 flex justify-between items-center gap-2 pt-2">
                       <p className="mt-1 m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-black leading-[1] tracking-[0.54px] text-black sm:text-[25px] capitalize">
                         {item.price}
@@ -336,7 +352,7 @@ export default function MenuPage() {
                         type="button"
                         onClick={() => void handleAddToCart(item)}
                         className="flex cursor-pointer h-[59px] w-[59px] shrink-0 items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8] transition-colors hover:bg-[#FF0931] hover:border-[#FF0931] group/btn"
-                        aria-label={`Add ${item.name} to cart`}
+                        aria-label={t("menu.addToCart", { name: localizedName(locale, item.name, item.nameAr) })}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -370,33 +386,22 @@ export default function MenuPage() {
           )}
         </div>
 
-        {visibleDeals.length > 0 && (
-          <div className="pb-10 px-6 sm:px-10 md:px-12 xl:px-25">
-            <h2 className="mb-4 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[28px] uppercase text-black">Deals</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
-              {visibleDeals.map((deal) => (
-                <div key={deal.id} className="group overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
-                  <img src={deal.image} alt={deal.name} className="h-[264px] w-full object-cover" loading="lazy" />
-                  <div className="flex items-center justify-between gap-2 px-3 py-5 sm:px-4">
-                    <div>
-                      <h3 className="m-0 truncate font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-medium text-black sm:text-[20px]">{deal.name}</h3>
-                      <p className="m-0 mt-1 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-black sm:text-[25px]">{deal.price}</p>
-                    </div>
-                    <button type="button" onClick={() => void handleAddDeal(deal)} className="flex h-[59px] w-[59px] cursor-pointer items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8]" aria-label={`Add ${deal.name} to cart`}>
-                      <span className="text-2xl leading-none">+</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Download App Banner */}
         <div className="px-6 pb-10 sm:px-10 md:px-12 xl:px-25">
           <DownloadApp />
         </div>
       </section>
+
+      {collectProduct && (
+        <DeliveryOverlay
+          onClose={() => setCollectProduct(null)}
+          product={{
+            name: localizedName(locale, collectProduct.name, collectProduct.nameAr),
+            image: collectProduct.image,
+            redirectUrl: collectProduct.redirectUrl,
+          }}
+        />
+      )}
 
       <Footer />
     </>

@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { api, setAuthToken, clearAuthToken, getAuthToken } from "@/lib/api";
+import { api } from "@/lib/api";
 
 type AdminUser = {
   id: string;
   email: string;
   name: string;
   role: string;
+  tabs: string[];
+  home?: string;
 };
 
 export function useAuth() {
@@ -17,11 +19,10 @@ export function useAuth() {
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
-      const data = await api.post<{ token: string; user: AdminUser }>(
+      const data = await api.post<{ user: AdminUser }>(
         "/admin/auth/login",
         { email, password }
       );
-      setAuthToken(data.token);
       setUser(data.user);
       return data.user;
     } finally {
@@ -29,23 +30,10 @@ export function useAuth() {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    clearAuthToken();
+  const logout = useCallback(async () => {
+    await api.logout();
     setUser(null);
   }, []);
 
-  const checkSession = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) return null;
-    try {
-      const data = await api.get<AdminUser>("/admin/auth/me");
-      setUser(data);
-      return data;
-    } catch {
-      clearAuthToken();
-      return null;
-    }
-  }, []);
-
-  return { user, loading, login, logout, checkSession };
+  return { user, loading, login, logout };
 }

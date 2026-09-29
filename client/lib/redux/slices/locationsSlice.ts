@@ -22,6 +22,7 @@ export const fetchLocations = createAsyncThunk("locations/fetchLocations", async
     address: l.address as string,
     hours: l.hours as string,
     phone: l.phone as string,
+    status: (l.status as string) ?? "active",
     lat: (l.lat as number) ?? null,
     lng: (l.lng as number) ?? null,
     sort_order: (l.sort_order as number) ?? 0,

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { getLocations, getLocationById, getSettings } from "../../services/store.service.js";
 import { getPublicCmsPage } from "../../services/cms.service.js";
-import { localeFromAcceptLanguage } from "../../config/locales.js";
+import { resolveLocale } from "../../config/locales.js";
 import { NotFoundException } from "../../utils/app-error.js";
 import { sendSuccess } from "../../utils/response.js";
 import { envConfig } from "../../config/env.js";
@@ -16,7 +16,7 @@ const COOKIE_OPTIONS = {
 
 export const StoreController = {
   async locations(_req: Request, res: Response) {
-    const locations = await getLocations({ activeOnly: true });
+    const locations = await getLocations();
     sendSuccess(res, locations);
   },
 
@@ -56,7 +56,8 @@ export const StoreController = {
   },
 
   async content(req: Request, res: Response) {
-    const requested = req.query.locale ?? req.cookies?.crispy_locale ?? localeFromAcceptLanguage(req.headers["accept-language"]);
+    const query = req.query.locale;
+    const requested = resolveLocale(typeof query === "string" ? query : req.cookies?.crispy_locale);
     sendSuccess(res, await getPublicCmsPage((req.params.page as string | undefined) ?? "home", requested));
   },
 };

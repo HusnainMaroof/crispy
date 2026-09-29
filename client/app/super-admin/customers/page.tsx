@@ -1,0 +1,30 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OrderingHeader from "@/app/components/admin/ui/ordering-header";
+import { ListToolbar, ListMessage, Pagination, secondaryButton } from "@/app/components/admin/ui/list-toolbar";
+import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
+import { usePanel } from "@/lib/admin/use-panel";
+import { api } from "@/lib/api";
+type CustomerRow = { id: string; name: string | null; email: string | null; phone: string | null; created_at: string; order_count: number; latest_order: { id: number; created_at: string; status: string; location_name: string | null } | null };
+export default function CustomersPage() {
+  const panel = usePanel();
+  const [customers, setCustomers] = useState<CustomerRow[]>([]); const [query, setQuery] = useState(""); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [page, setPage] = useState(1); const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setLoading(true); setError("");
+      api.get<CustomerRow[]>(query.trim() ? `/admin/customers?q=${encodeURIComponent(query.trim())}` : "/admin/customers").then((rows) => { if (!cancelled) setCustomers(rows); }).catch((err: Error) => { if (!cancelled) { setError(err.message); setCustomers([]); } }).finally(() => { if (!cancelled) setLoading(false); });
+    }, 200);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, retry]);
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(customers.length / 20)));
+  return <div><OrderingHeader active="customers" /><ListToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} placeholder="Search name, email, or phone" />
+    {error && <div role="alert" className="mb-5 flex items-center gap-3 text-sm text-red-400">{error}<button className={secondaryButton} onClick={() => setRetry((value) => value + 1)}>Retry</button></div>}
+    {loading ? <TableSkeleton /> : customers.length === 0 ? <ListMessage title="No customers found" detail="Customers appear after placing an order. Try another name, email address, or phone number." /> : <>
+      <div className="overflow-x-auto rounded-xl border border-white/10"><table className="w-full min-w-[680px] text-left text-sm"><thead className="border-b border-white/10 bg-white/[0.025] text-xs uppercase tracking-wider text-white/50"><tr>{["Customer", "Contact", "Orders", "Latest branch", "Customer since"].map((label) => <th key={label} scope="col" className="px-5 py-4 font-medium">{label}</th>)}</tr></thead>
+        <tbody className="divide-y divide-white/10">{customers.slice((currentPage - 1) * 20, currentPage * 20).map((customer) => <tr key={customer.id} className="transition-colors hover:bg-white/[0.03]"><td className="px-5 py-4"><Link href={panel.href(`customers/${customer.id}`)} className="font-medium text-white hover:underline">{customer.name || "Guest"}</Link></td><td className="px-5 py-4 text-white/70">{customer.email || "No email"}<p className="mt-1 text-xs text-white/50">{customer.phone || "No phone"}</p></td><td className="px-5 py-4 tabular-nums text-white">{customer.order_count}</td><td className="px-5 py-4 text-white/60">{customer.latest_order?.location_name ?? "—"}</td><td className="px-5 py-4 text-white/60">{new Date(customer.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</td></tr>)}</tbody>
+      </table></div><Pagination page={currentPage} total={customers.length} onChange={setPage} />
+    </>}
+  </div>;
+}

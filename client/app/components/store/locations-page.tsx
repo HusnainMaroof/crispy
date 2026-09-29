@@ -3,6 +3,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStoreLocations } from "@/lib/use-store-locations";
+import { localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { useBranchSelection } from "@/lib/branch-selection";
 import { resolveNearestBranch } from "@/lib/location-search";
 import { useLenis } from "@/app/components/providers/smooth-scroll";
@@ -258,26 +260,10 @@ function DeliveryAvailableIcon() {
 }
 
 const FEATURES = [
-  {
-    icon: <MultipleLocationsIcon />,
-    title: "Multiple Locations",
-    desc: "Across London, closer to you.",
-  },
-  {
-    icon: <OpenEverydayIcon />,
-    title: "Open Everyday",
-    desc: "Serving you fresh 7 days a week.",
-  },
-  {
-    icon: <DineInTakeawayIcon />,
-    title: "Dine-In Or Takeaway",
-    desc: "Enjoy in-store or take it away.",
-  },
-  {
-    icon: <DeliveryAvailableIcon />,
-    title: "Delivery Available",
-    desc: "Can't come to us? We'll come to you.",
-  },
+  { icon: <MultipleLocationsIcon />, title: "locations.multiple", desc: "locations.multipleDesc" },
+  { icon: <OpenEverydayIcon />, title: "locations.everyday", desc: "locations.everydayDesc" },
+  { icon: <DineInTakeawayIcon />, title: "locations.dineIn", desc: "locations.dineInDesc" },
+  { icon: <DeliveryAvailableIcon />, title: "locations.delivery", desc: "locations.deliveryDesc" },
 ];
 
 function ArrowIcon({
@@ -303,6 +289,7 @@ function ArrowIcon({
 }
 
 export default function Locations() {
+  const { locale, t } = useLocale();
   const { locations } = useStoreLocations();
   const mapLocations = useMemo(
     () =>
@@ -357,7 +344,7 @@ export default function Locations() {
 
   const { selectBranch } = useBranchSelection();
   const chooseBranch = (id: string) => {
-    const name = locations.find((location) => location.id === id)?.name ?? "this branch";
+    const name = localizedText(locale, locations.find((location) => location.id === id)?.name ?? "this branch");
     if (!selectBranch(id, name)) return;
     setSelectedId(id);
   };
@@ -374,7 +361,7 @@ export default function Locations() {
     e.preventDefault();
     const query = search.trim();
     if (!query) {
-      setSearchMessage({ type: "error", text: "Enter an area or postcode to search." });
+      setSearchMessage({ type: "error", text: t("locations.searchRequired") });
       return;
     }
 
@@ -395,19 +382,19 @@ export default function Locations() {
 
       const distanceText =
         result.distanceMiles != null
-          ? ` (${result.distanceMiles.toFixed(1)} mi away)`
+          ? t("locations.milesAway", { miles: result.distanceMiles.toFixed(1) })
           : "";
 
       const prefix =
         result.via === "suggest"
-          ? "Did you mean this location? "
+          ? t("locations.suggest")
           : result.via === "name"
-            ? "Matching branch: "
-            : `Nearest Crispies to ${result.searchedLabel}: `;
+            ? t("locations.match")
+            : t("locations.nearestTo", { label: result.searchedLabel });
 
       setSearchMessage({
         type: "success",
-        text: `${result.branch.name} — ${result.branch.address}${distanceText}`,
+        text: `${localizedText(locale, result.branch.name)} — ${localizedText(locale, result.branch.address)}${distanceText}`,
         branchId: result.branch.id,
         prefix,
       });
@@ -515,14 +502,14 @@ export default function Locations() {
                   className="font-[family-name:var(--font-korolev),Korolev,sans-serif] font-black text-black"
                   style={{ fontSize: "clamp(48px, 11vw, 150px)" }}
                 >
-                  Find your{" "}
+                  {t("locations.find")}{" "}
                 </span>
                 <br className="" />
                 <span
                   className="font-[family-name:var(--font-korolev),Korolev,sans-serif] font-black text-[#FF0931]"
                   style={{ fontSize: "clamp(48px, 11vw, 150px)" }}
                 >
-                  nearest Crispies
+                  {t("locations.nearest")}
                 </span>
               </h1>
             </div>
@@ -557,10 +544,10 @@ export default function Locations() {
                   </div>
                   <div className="min-w-0">
                     <h4 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-black capitalize leading-[100%] text-black">
-                      {feat.title}
+                      {t(feat.title)}
                     </h4>
                     <p className=" max-w-[180px]  pl-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[20px] font-normal leading-normal text-[#6B6B6B]">
-                      {feat.desc}
+                      {t(feat.desc)}
                     </p>
                   </div>
                 </div>
@@ -634,7 +621,7 @@ export default function Locations() {
                   />
                 </svg>
                 <label htmlFor="location-search" className="sr-only">
-                  Search by area or UK postcode
+                  {t("locations.searchLabel")}
                 </label>
                 <input
                   id="location-search"
@@ -642,7 +629,7 @@ export default function Locations() {
                   autoComplete="postal-code"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Enter Your Area Or Postcode"
+                  placeholder={t("locations.searchPlaceholder")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -655,7 +642,7 @@ export default function Locations() {
                 type="submit"
                 disabled={searching}
                 className="flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#FF0931] text-white transition-transform hover:scale-105 disabled:cursor-wait disabled:opacity-70"
-                aria-label="Search location"
+                aria-label={t("locations.searchAction")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -763,7 +750,7 @@ export default function Locations() {
                         href={`https://www.google.com/maps/search/?api=1&query=${loc.lat != null && loc.lng != null ? `${loc.lat},${loc.lng}` : encodeURIComponent(loc.address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={`Open ${loc.name} in Google Maps`}
+                        aria-label={`Open ${localizedText(locale, loc.name)} in Google Maps`}
                         onClick={(e) => e.stopPropagation()}
                         className="absolute right-5 shrink-0 sm:right-6"
                       >
@@ -786,7 +773,7 @@ export default function Locations() {
                                 isActive ? "text-black" : "text-[#B3B3B3]"
                               }`}
                             >
-                              {loc.name}
+                              {localizedText(locale, loc.name)}
                             </span>
                             <span
                               className={`inline-flex items-center gap-2  rounded-full px-[12px] py-[4px] text-[14px] font-medium text-white sm:text-[14px] ${
@@ -798,7 +785,7 @@ export default function Locations() {
                                   isActive ? "bg-[#7CFF8A]" : "bg-white/70"
                                 }`}
                               />
-                              {loc.status === "open" ? "Open Now" : "Closed"}
+                              {loc.status === "open" ? t("locations.openNow") : t("locations.closed")}
                             </span>
                           </div>
 
@@ -807,7 +794,7 @@ export default function Locations() {
                               isActive ? "text-[#999]" : "text-[#D2D2D2]"
                             }`}
                           >
-                            {loc.address}
+                            {localizedText(locale, loc.address)}
                           </p>
 
                           <p
@@ -815,7 +802,7 @@ export default function Locations() {
                               isActive ? "text-black" : "text-[#D2D2D2]"
                             }`}
                           >
-                            {loc.hours}
+                            {localizedText(locale, loc.hours)}
                           </p>
                         </div>
                       </div>

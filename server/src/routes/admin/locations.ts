@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireTab, requireRole } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { locationSchema, locationUpdateSchema, branchMenuWriteSchema, branchDealWriteSchema } from "../../validators/order.schema.js";
 import { asyncHandler } from "../../utils/async-handler.js";
@@ -8,12 +9,12 @@ const router = Router();
 
 router.get("/", asyncHandler(LocationsController.list));
 router.get("/:id/menu", asyncHandler(LocationsController.menu));
-router.put("/:id/menu", validate(branchMenuWriteSchema), asyncHandler(LocationsController.saveMenu));
+router.put("/:id/menu", requireRole("superadmin", "branch_manager"), requireTab("menu", "branch-menu"), validate(branchMenuWriteSchema), asyncHandler(LocationsController.saveMenu));
 router.get("/:id/deals", asyncHandler(LocationsController.deals));
-router.put("/:id/deals", validate(branchDealWriteSchema), asyncHandler(LocationsController.saveDeals));
+router.put("/:id/deals", requireRole("superadmin", "branch_manager"), requireTab("menu", "branch-menu"), validate(branchDealWriteSchema), asyncHandler(LocationsController.saveDeals));
 router.get("/:id", asyncHandler(LocationsController.getById));
-router.post("/", validate(locationSchema), asyncHandler(LocationsController.create));
-router.patch("/:id", validate(locationUpdateSchema), asyncHandler(LocationsController.update));
-router.delete("/:id", asyncHandler(LocationsController.remove));
+router.post("/", requireRole("superadmin"), requireTab("locations", "branches"), validate(locationSchema), asyncHandler(LocationsController.create));
+router.patch("/:id", requireRole("superadmin"), requireTab("locations", "branches"), validate(locationUpdateSchema), asyncHandler(LocationsController.update));
+router.delete("/:id", requireRole("superadmin"), requireTab("locations", "branches"), asyncHandler(LocationsController.remove));
 
 export default router;

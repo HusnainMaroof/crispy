@@ -4,6 +4,8 @@ import type { SVGProps } from "react";
 import gsap from "gsap";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
+import { localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 // --- Divider dot-lines ---
 function DividerLineLeft(props: SVGProps<SVGSVGElement>) {
@@ -343,6 +345,7 @@ export default function DiscoverFlavours({
   scaleLabels,
   scaleImages,
   galleryImages,
+  centerImage = "/images/orderOnimage.png",
   ctaLabel = "Order On The Website",
   ctaUrl = "/menu",
 }: {
@@ -354,17 +357,19 @@ export default function DiscoverFlavours({
   scaleLabels?: string[];
   scaleImages?: string[];
   galleryImages?: string[];
+  centerImage?: string;
   ctaLabel?: string;
   ctaUrl?: string;
 }) {
+  const { locale } = useLocale();
   const sliderImages = galleryImages?.filter(Boolean).length ? galleryImages.filter(Boolean) : SLIDER_IMAGES;
-  const flavourTiles = FLAVOUR_TILES.map((tile, index) => ({ ...tile, label: flavourLabels?.[index] || tile.label, image: flavourTileImages?.[index] }));
-  const scaleItems = SCALE_ITEMS.map((item, index) => ({ ...item, label: scaleLabels?.[index] || item.label, image: scaleImages?.[index] }));
+  const flavourTiles = FLAVOUR_TILES.map((tile, index) => ({ ...tile, label: localizedText(locale, flavourLabels?.[index] || tile.label), image: flavourTileImages?.[index] }));
+  const scaleItems = SCALE_ITEMS.map((item, index) => ({ ...item, label: localizedText(locale, scaleLabels?.[index] || item.label), image: scaleImages?.[index] }));
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
   const scopeRef = useScrollReveal();
   const { ordering, redirect } = useStoreOrdering();
-  const orderLabel = ordering.mode === "redirect" ? ordering.ctaLabel : ctaLabel;
+  const orderLabel = localizedText(locale, ordering.mode === "redirect" ? ordering.ctaLabel : ctaLabel);
   const handleOrderClick = async () => {
     if (await redirect()) return;
     window.location.assign(ctaUrl);
@@ -392,14 +397,14 @@ export default function DiscoverFlavours({
       <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
         {/* Heading */}
         <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(32px,7vw,60px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
-          {discoverTitle}
+          {localizedText(locale, discoverTitle)}
         </h2>
 
         {/* Divider: Crispies Original Flavours */}
         <div className="fade-up flex items-center gap-14" data-delay="0.06">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
           <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
-            {title}
+            {localizedText(locale, title)}
           </h3>
           <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
         </div>
@@ -424,7 +429,7 @@ export default function DiscoverFlavours({
         <div className="fade-up mt-6 flex items-center gap-24" data-delay="0.12">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
           <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
-            {scaleTitle}
+            {localizedText(locale, scaleTitle)}
           </h3>
           <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
         </div>
@@ -513,7 +518,7 @@ export default function DiscoverFlavours({
                   </p>
                 </div>
                 <img
-                  src="/images/orderOnimage.png"
+                  src={centerImage.trim() || "/images/orderOnimage.png"}
                   alt="Order on website"
                   className="absolute bottom-0 left-1/2 h-[80px] w-auto -translate-x-1/2 object-contain sm:h-fit"
                 />

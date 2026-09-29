@@ -12,6 +12,7 @@ export const createOrderSchema = z.object({
   payment_method: z.enum(["card", "cash"]),
   location_id: z.string().min(1),
   checkout_key: z.string().uuid(),
+  locale: z.enum(["en", "ar"]).optional(),
   items: z.array(z.object({
     kind: z.enum(["product", "deal"]),
     id: z.string().min(1),
@@ -69,16 +70,21 @@ export const setLocationSchema = z.object({
 });
 
 export const branchMenuWriteSchema = z.object({
+  replace: z.boolean().optional(),
   items: z.array(z.object({
     menu_item_id: z.string().min(1),
     price: z.number().positive().nullable().optional(),
     available: z.boolean().optional(),
     sort_order: z.number().int().min(0).nullable().optional(),
-  })).min(1),
+  })),
+}).refine((value) => value.replace === true || value.items.length > 0, {
+  message: "Add at least one menu item",
+  path: ["items"],
 });
 
 export const quoteSchema = z.object({
   locationId: z.string().min(1),
+  locale: z.enum(["en", "ar"]).optional(),
   items: z.array(z.object({
     kind: z.enum(["product", "deal"]),
     id: z.string().min(1),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, isSessionExpiredError } from "@/lib/api";
 
 export type AdminOrder = {
   id: string;
@@ -65,6 +65,8 @@ export function useOrders() {
       const query = params.toString() ? `?${params.toString()}` : "";
       const data = await api.get<Record<string, unknown>[]>(`/admin/orders${query}`);
       setOrders(data.map(mapOrder));
+    } catch (error) {
+      if (!isSessionExpiredError(error)) throw error;
     } finally {
       setLoading(false);
     }

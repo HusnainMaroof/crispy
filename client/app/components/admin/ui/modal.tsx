@@ -1,71 +1,36 @@
 "use client";
+import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 
-import { useEffect, useRef } from "react";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-
-gsap.registerPlugin(useGSAP);
-
-type GsapTimeline = ReturnType<typeof gsap.timeline>;
-
-interface ModalProps {
-  children: React.ReactNode;
-  onClose: () => void;
-  title: string;
-}
-
-export default function Modal({ children, onClose, title }: ModalProps) {
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const openTl = useRef<GsapTimeline | null>(null);
-
+export default function Modal({ children, onClose, title, busy = false }: { children: React.ReactNode; onClose: () => void; title: string; busy?: boolean }) {
+  const id = useId();
+  const content = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  const busyRef = useRef(busy);
+  useEffect(() => { close.current = onClose; busyRef.current = busy; }, [onClose, busy]);
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const previous = document.activeElement as HTMLElement | null;
+    lockBodyScroll();
+    (content.current?.querySelector<HTMLElement>("input:not([disabled])") ?? content.current?.querySelector<HTMLElement>("button:not([disabled])"))?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement)?.closest("[data-radix-popper-content-wrapper]")) return;
+      if (event.key === "Escape" && !event.defaultPrevented && !busyRef.current) { event.preventDefault(); close.current(); }
+      if (event.key !== "Tab") return;
+      const elements = Array.from(content.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]') ?? []).filter((element) => element.getClientRects().length > 0);
+      const first = elements[0]; const last = elements[elements.length - 1];
+      if (!first) { event.preventDefault(); content.current?.focus(); }
+      else if (event.shiftKey && (document.activeElement === first || !content.current?.contains(document.activeElement))) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !content.current?.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
     };
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
-
-  useGSAP(() => {
-    openTl.current = gsap.timeline();
-    openTl.current
-      .from(backdropRef.current, { autoAlpha: 0, duration: 0.25, ease: "power2.out" })
-      .from(
-        contentRef.current,
-        { y: 20, autoAlpha: 0, scale: 0.96, duration: 0.3, ease: "back.out(1.7)" },
-        "-=0.15",
-      );
-  }, { scope: backdropRef });
-
-  const handleClose = () => {
-    const tl = gsap.timeline({ onComplete: onClose });
-    tl.to(contentRef.current, { y: 10, autoAlpha: 0, scale: 0.97, duration: 0.2, ease: "power2.in" });
-    tl.to(backdropRef.current, { autoAlpha: 0, duration: 0.15, ease: "power2.in" }, "-=0.1");
-  };
-
-  return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 cursor-pointer"
-      onClick={(e) => {
-        if (e.target === backdropRef.current) handleClose();
-      }}
-    >
-      <div ref={contentRef} className="w-full max-w-lg rounded-xl border border-white/10 bg-black p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="font-display text-xl tracking-wide text-white">{title}</h2>
-          <button
-            onClick={handleClose}
-            className="cursor-pointer rounded-lg p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        {children}
-      </div>
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("keydown", handleKey); unlockBodyScroll(); previous?.focus(); };
+  }, []);
+  return createPortal(<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onClick={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
+    <div ref={content} role="dialog" aria-modal="true" aria-labelledby={id} aria-busy={busy} tabIndex={-1} className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b0b0b] text-white shadow-2xl">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-6 py-5"><h2 id={id} className="font-display text-2xl tracking-wide">{title}</h2><button type="button" aria-label="Close dialog" disabled={busy} onClick={onClose} className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-brand-red disabled:opacity-30"><X className="h-5 w-5" /></button></div>
+      <div className="overflow-y-auto overscroll-contain p-6">{children}</div>
     </div>
-  );
+  </div>, document.body);
 }

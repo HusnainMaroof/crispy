@@ -19,6 +19,9 @@ interface DropdownProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
+  id?: string;
+  'aria-label'?: string;
 }
 
 export default function Dropdown({
@@ -27,10 +30,13 @@ export default function Dropdown({
   onChange,
   placeholder = "Select...",
   className,
+  disabled,
+  id,
+  'aria-label': ariaLabel,
 }: DropdownProps) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={className}>
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger id={id} aria-label={ariaLabel} className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

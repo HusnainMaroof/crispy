@@ -1,28 +1,24 @@
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
-
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
   code?: string;
+  errors?: Record<string, string[] | undefined>;
   item?: { kind: "product" | "deal"; id: string };
 }
 
-const TOKEN_KEY = "crispies_admin_token";
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
-export function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+export class SessionExpiredError extends Error {
+  constructor() {
+    super("Session expired. Please log in again.");
+    this.name = "SessionExpiredError";
+  }
 }
 
-export function setAuthToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearAuthToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+export function isSessionExpiredError(error: unknown): error is SessionExpiredError {
+  return error instanceof SessionExpiredError;
 }
 
 async function tryRefreshToken(): Promise<boolean> {
@@ -30,20 +26,13 @@ async function tryRefreshToken(): Promise<boolean> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const token = getAuthToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res = await fetch(`${BASE}/api/admin/auth/refresh`, {
+      const res = await fetch("/api/admin/auth/refresh", {
         method: "POST",
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
       });
-      const body: ApiResponse<{ token: string }> = await res.json();
-      if (body.success && body.data?.token) {
-        setAuthToken(body.data.token);
-        return true;
-      }
-      return false;
+      const body: ApiResponse = await res.json();
+      return res.ok && body.success;
     } catch {
       return false;
     } finally {
@@ -64,26 +53,30 @@ async function readBody<T>(res: Response): Promise<ApiResponse<T>> {
 }
 
 async function request<T>(path: string, init?: RequestInit, _isRetry = false): Promise<T> {
-  const token = getAuthToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...((init?.headers as Record<string, string>) ?? {}),
   };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}/api${path}`, {
+  const res = await fetch(`/api${path}`, {
     credentials: "include",
     headers,
     ...init,
   });
 
-  if (res.status === 401 && !_isRetry) {
+  if (
+    res.status === 401 &&
+    !_isRetry &&
+    path !== "/admin/auth/login" &&
+    path !== "/admin/auth/refresh" &&
+    path !== "/admin/auth/logout"
+  ) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
       return request<T>(path, init, true);
     }
-    clearAuthToken();
-    throw new Error("Session expired. Please log in again.");
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("admin-session-expired"));
+    throw new SessionExpiredError();
   }
 
   if (res.status === 429 && !_isRetry) {
@@ -93,7 +86,10 @@ async function request<T>(path: string, init?: RequestInit, _isRetry = false): P
 
   const body = await readBody<T>(res);
   if (!body.success) {
-    const failure = new Error(body.error ?? "Request failed") as Error & {
+    const details = body.errors
+      ? Object.entries(body.errors).flatMap(([field, messages]) => (messages ?? []).map((message) => `${field}: ${message}`)).join(" ")
+      : "";
+    const failure = new Error(details ? `${body.error ?? "Request failed"}. ${details}` : (body.error ?? "Request failed")) as Error & {
       code?: string;
       item?: { kind: "product" | "deal"; id: string };
     };
@@ -113,12 +109,17 @@ export const api = {
   patch: <T>(path: string, data: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(data) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  logout: async (): Promise<void> => {
+    const res = await fetch("/api/admin/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Could not end the admin session.");
+  },
   upload: async <T>(path: string, formData: FormData): Promise<T> => {
-    const token = getAuthToken();
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    const res = await fetch(`${BASE}/api${path}`, {
-      method: "POST", body: formData, credentials: "include", headers,
+    const res = await fetch(`/api${path}`, {
+      method: "POST", body: formData, credentials: "include",
     });
     const body = await readBody<T>(res);
     if (!body.success) throw new Error(body.error ?? "Upload failed");

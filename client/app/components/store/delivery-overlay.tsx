@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useStoreLocations } from "@/lib/use-store-locations";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
 import { useBranchSelection } from "@/lib/branch-selection";
+import { localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 const platforms = [
   {
     id: "uber-eats",
     name: "Uber Eats",
-    desc: "Fast and reliable delivery straight to your door with real-time tracking.",
+    desc: "delivery.uber",
     url: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -34,7 +36,7 @@ const platforms = [
   {
     id: "deliveroo",
     name: "Deliveroo",
-    desc: "Order Crispies through Deliveroo for exclusive rewards and premium delivery.",
+    desc: "delivery.deliveroo",
     url: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -55,7 +57,7 @@ const platforms = [
   {
     id: "just-eat",
     name: "Just Eat",
-    desc: "Savor the flavor with Just Eat's seamless ordering process.",
+    desc: "delivery.justEat",
     url: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -75,9 +77,23 @@ const platforms = [
   },
 ];
 
-export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
+/** Which CMS link each platform card redirects to. */
+const PLATFORM_URL_FIELDS: Record<string, "uberEatsUrl" | "deliverooUrl" | "justEatUrl"> = {
+  "uber-eats": "uberEatsUrl",
+  deliveroo: "deliverooUrl",
+  "just-eat": "justEatUrl",
+};
+
+export default function DeliveryOverlay({
+  onClose,
+  product,
+}: {
+  onClose: () => void;
+  product?: { name: string; image?: string; redirectUrl?: string };
+}) {
+  const { locale, t } = useLocale();
   const { locations } = useStoreLocations();
-  const { redirect } = useStoreOrdering();
+  const { redirect, resolveOrdering } = useStoreOrdering();
   const { selectBranch } = useBranchSelection();
   const [selected, setSelected] = useState<string | null>("");
   const [step, setStep] = useState<"branch" | "platform" | "redirect">(
@@ -104,7 +120,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Choose a branch to order delivery"
+      aria-label={t("delivery.choose")}
       className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto p-4 sm:p-6"
     >
       <div
@@ -117,7 +133,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("delivery.close")}
           className="overlay-fade-in fixed right-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
@@ -134,6 +150,21 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
             <path d="m6 6 12 12" />
           </svg>
         </button>
+
+        {product && (
+          <div className="overlay-fade-in mx-auto mb-4 flex w-full max-w-[85%] items-center gap-3 rounded-2xl border border-[#242424] bg-[#161616] px-4 py-3 sm:mb-5 sm:max-w-[75%] md:max-w-[70%]">
+            {product.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.image} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14" />
+            ) : (
+              <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2b2b2b] sm:h-14 sm:w-14" />
+            )}
+            <span className="min-w-0">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8f8f] sm:text-[11px]">Ordering</span>
+              <span className="block truncate text-[15px] font-semibold text-white sm:text-[17px]">{product.name}</span>
+            </span>
+          </div>
+        )}
 
         {step === "branch" && (
           <>
@@ -156,7 +187,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
                     key={loc.id}
                     type="button"
                     onClick={() => {
-                    if (!selectBranch(loc.id, loc.name)) return;
+                    if (!selectBranch(loc.id, localizedText(locale, loc.name))) return;
                     setSelected(loc.id);
                   }}
                     aria-pressed={isSelected}
@@ -168,7 +199,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
                   >
                     <span className="flex flex-col items-start gap-1.5 sm:gap-2">
                       <span className="text-[13px] font-semibold leading-snug text-white sm:text-[14px] md:text-[15px] lg:text-[20px]">
-                        {loc.name}
+                        {localizedText(locale, loc.name)}
                       </span>
                       <span className="inline-flex items-center justify-center gap-2 rounded-full bg-[#085B1F] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[10px]">
                         <span className="size-[4px] rounded-full bg-[#22c55e] sm:size-[8px]" />
@@ -244,7 +275,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => setStep("branch")}
-              aria-label="Back to branch selection"
+              aria-label={t("delivery.back")}
               className="overlay-fade-in absolute left-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931] sm:left-4 sm:top-4 sm:size-9"
             >
               <svg
@@ -302,7 +333,7 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
                       {p.name}
                     </span>
                     <span className="mt-2 text-[13px] leading-relaxed text-[#9a9a9a] sm:text-[14px] md:text-[15px] lg:text-[16px] max-w-[180px] lg:max-w-[200px]">
-                      {p.desc}
+                      {t(p.desc)}
                     </span>
 
                     <span className="mt-5 flex h-[20px] items-center justify-center sm:mt-6 sm:h-[22px]">
@@ -342,11 +373,24 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
               type="button"
               disabled={!platform}
               onClick={() => {
-                if (platform) {
-                  void redirect().then((didRedirect) => {
-                    if (!didRedirect) setStep("redirect");
-                  });
-                }
+                if (!platform) return;
+                void (async () => {
+                  // Destination order: the product's own redirect link, then the
+                  // chosen platform's link, then the fallback external order URL.
+                  const resolved = await resolveOrdering();
+                  const field = PLATFORM_URL_FIELDS[platform];
+                  const platformUrl = field ? resolved[field] : "";
+                  const target = [product?.redirectUrl, platformUrl, resolved.redirectUrl].find(
+                    (value) => Boolean(value) && /^https:\/\//i.test(value ?? ""),
+                  );
+                  if (target) {
+                    setStep("redirect");
+                    window.location.assign(target);
+                    return;
+                  }
+                  const didRedirect = await redirect();
+                  if (!didRedirect) setStep("redirect");
+                })();
               }}
               className={`overlay-fade-up stagger-4 mx-auto mt-8 flex w-full max-w-[90%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-10 md:max-w-[80%] md:py-4 md:text-[14px] lg:max-w-[70%] ${
                 platform
@@ -381,15 +425,14 @@ export default function DeliveryOverlay({ onClose }: { onClose: () => void }) {
 
             {/* Heading */}
             <h2 className="overlay-fade-up stagger-1 text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.1] text-white sm:text-[36px] md:text-[48px] lg:text-[56px]">
-              TAKING YOU
+              {t("delivery.taking").split("\n")[0]}
               <br />
-              TO YOUR ORDER...
+              {t("delivery.taking").split("\n")[1]}
             </h2>
 
             {/* Subtext */}
             <p className="overlay-fade-up stagger-2 mt-3 text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:mt-4 md:text-[16px] lg:text-[18px] max-w-[90%] sm:max-w-[80%] md:max-w-md">
-              You&apos;ll be redirected to your selected delivery platform in a
-              moment. <br className="hidden sm:block" /> Get ready for premium good mood food.
+              {t("delivery.redirect")}
             </p>
 
             {/* Info pills */}

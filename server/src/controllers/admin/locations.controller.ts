@@ -2,13 +2,16 @@ import type { Request, Response } from "express";
 import { getLocations, createLocation, updateLocation } from "../../services/admin.service.js";
 import { getLocationById } from "../../services/store.service.js";
 import { assertLocationAccess, getAccessibleLocationIds } from "../../services/branch-access.service.js";
+import { isBranchScoped } from "../../config/admin-roles.js";
 import { countStaffByLocation } from "../../services/staff.service.js";
 import { ForbiddenException } from "../../utils/app-error.js";
 import { getBranchMenu, upsertBranchMenuItems, getBranchDeals, upsertBranchDeals } from "../../services/branch-menu.service.js";
 import { sendSuccess } from "../../utils/response.js";
 
 function assertBranchAdmin(role: string | undefined) {
-  if (role === "branch_manager") throw new ForbiddenException("Branch managers cannot manage branches");
+  if (role && isBranchScoped(role)) {
+    throw new ForbiddenException("Only a super admin can manage branches");
+  }
 }
 
 export const LocationsController = {
@@ -56,7 +59,7 @@ export const LocationsController = {
   async saveMenu(req: Request, res: Response) {
     const locationId = req.params.id as string;
     await assertLocationAccess(req.admin!, locationId);
-    sendSuccess(res, await upsertBranchMenuItems(locationId, req.body.items));
+    sendSuccess(res, await upsertBranchMenuItems(locationId, req.body.items, { replace: req.body.replace === true }));
   },
 
   async deals(req: Request, res: Response) {

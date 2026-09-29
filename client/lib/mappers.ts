@@ -5,12 +5,15 @@ export function mapMenuItem(raw: Record<string, unknown>): MenuItem {
   return {
     id: raw.id as string,
     name: raw.name as string,
+    nameAr: (raw.name_ar as string) ?? undefined,
     description: raw.description as string,
+    descriptionAr: (raw.description_ar as string) ?? undefined,
     price: `£${price.toFixed(2)}`,
     priceValue: price,
     image: raw.image as string,
     badge: (raw.badge as string) ?? undefined,
     badgeVariant: (raw.badge_variant as "default" | "vegan") ?? undefined,
+    redirectUrl: (raw.redirect_url as string) ?? undefined,
   };
 }
 
@@ -20,6 +23,7 @@ export function mapMenuCategory(raw: Record<string, unknown>): MenuCategory {
     id: raw.id as string,
     number: raw.number as string,
     title: raw.title as string,
+    titleAr: (raw.title_ar as string) ?? undefined,
     image: raw.image as string,
     items: items.map(mapMenuItem),
   };
@@ -32,6 +36,7 @@ export function mapLocation(raw: Record<string, unknown>): Location {
     address: raw.address as string,
     hours: raw.hours as string,
     phone: raw.phone as string,
+    status: (raw.status as string) ?? "active",
     lat: (raw.lat as number) ?? null,
     lng: (raw.lng as number) ?? null,
     sort_order: (raw.sort_order as number) ?? 0,

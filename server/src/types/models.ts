@@ -2,6 +2,7 @@ export interface MenuCategory {
   id: string;
   number: string;
   title: string;
+  title_ar: string;
   image: string;
   sort_order: number;
   created_at: string;
@@ -12,7 +13,10 @@ export interface MenuItem {
   id: string;
   category_id: string;
   name: string;
+  name_ar: string;
   description: string;
+  description_ar: string;
+  redirect_url: string;
   price: number;
   image: string;
   badge: string | null;
@@ -26,7 +30,9 @@ export interface MenuItem {
 export interface Deal {
   id: string;
   name: string;
+  name_ar: string;
   description: string;
+  description_ar: string;
   price: number;
   image: string;
   badge: string | null;
@@ -138,7 +144,8 @@ export interface AdminProfile {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "superadmin" | "branch_manager";
+  role: "superadmin" | "branch_manager" | "staff";
+  position?: string | null;
   tabs: string[];
   is_active: boolean;
   created_at: string;

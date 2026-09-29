@@ -1,18 +1,23 @@
 export type MenuItem = {
   id: string;
   name: string;
+  nameAr?: string;
   description: string;
+  descriptionAr?: string;
   price: string;
   priceValue: number;
   image: string;
   badge?: string;
   badgeVariant?: "default" | "vegan";
+  /** External ordering link for the redirect system. Empty means none. */
+  redirectUrl?: string;
 };
 
 export type MenuCategory = {
   id: string;
   number: string;
   title: string;
+  titleAr?: string;
   image: string;
   items: MenuItem[];
 };
@@ -25,6 +30,7 @@ export type Location = {
   address: string;
   hours: string;
   phone: string;
+  status?: string;
   lat: number | null;
   lng: number | null;
   sort_order: number;

@@ -1,18 +1,21 @@
 import { getPrisma } from "../config/prisma.js";
+import { normalizeRole, type AdminRole } from "../config/admin-roles.js";
 import { ForbiddenException } from "../utils/app-error.js";
 import type { AuthPayload } from "../types/responses.js";
 
-export type StaffRole = "superadmin" | "admin" | "branch_manager";
+export type StaffRole = AdminRole;
+
+export { isBranchScoped } from "../config/admin-roles.js";
 
 /** `null` means every location. An array is the only locations that role may use. */
 export function accessibleLocationIds(role: string, assignedLocationIds: string[]): string[] | null {
-  if (role === "superadmin" || role === "admin") return null;
-  if (role === "branch_manager") return assignedLocationIds;
-  return [];
+  if (normalizeRole(role) === "superadmin") return null;
+  return assignedLocationIds;
 }
 
 export async function getAccessibleLocationIds(admin: Pick<AuthPayload, "sub" | "role">): Promise<string[] | null> {
-  if (admin.role === "superadmin" || admin.role === "admin") return null;
+  const role = normalizeRole(admin.role);
+  if (role === "superadmin") return null;
 
   const rows = await getPrisma().admin_branch_access.findMany({
     where: { admin_id: admin.sub },

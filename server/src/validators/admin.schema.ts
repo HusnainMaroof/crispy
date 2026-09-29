@@ -49,7 +49,8 @@ export const jobApplicationStatusSchema = z.object({
   status: z.enum(["pending", "reviewed", "shortlisted", "rejected", "hired"]),
 });
 
-export const staffRoleSchema = z.enum(["superadmin", "admin", "branch_manager"]);
+// Only the three current panel roles can be assigned.
+export const staffRoleSchema = z.enum(["superadmin", "branch_manager", "staff"]);
 
 const staffTabSchema = z.enum([
   "dashboard", "menu", "categories", "orders", "customers", "staff", "branches",
@@ -57,14 +58,17 @@ const staffTabSchema = z.enum([
 ]);
 
 export const createStaffSchema = z.object({
+  position: z.string().trim().min(1).max(100).nullable().optional(),
   name: z.string().min(1).max(200),
   email: z.string().email(),
   password: z.string().min(8).max(128),
-  tabs: z.array(staffTabSchema).min(1),
+  role: staffRoleSchema.optional(),
+  tabs: z.array(staffTabSchema).min(1).optional(),
   branchIds: z.array(z.string().min(1)).max(20).default([]),
 });
 
 export const updateStaffSchema = z.object({
+  position: z.string().trim().min(1).max(100).nullable().optional(),
   name: z.string().min(1).max(200).optional(),
   email: z.string().email().optional(),
   password: z.string().min(8).max(128).optional(),

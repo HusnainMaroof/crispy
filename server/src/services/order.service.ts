@@ -2,7 +2,7 @@ import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
 import { sendEmail, sendAdminEmail } from "./email.service.js";
 import { BadRequestException, ConflictException, ForbiddenException, InternalServerException, NotFoundException } from "../utils/app-error.js";
-import { assertLocationAccess } from "./branch-access.service.js";
+import { assertLocationAccess, isBranchScoped } from "./branch-access.service.js";
 import type { AuthPayload } from "../types/responses.js";
 import { rethrow, serialize } from "../utils/db.js";
 import type { Order, OrderItem } from "../types/models.js";
@@ -28,6 +28,7 @@ interface CreateOrderInput {
   location_id: string;
   customer_id?: string | null;
   checkout_key: string;
+  locale?: string;
   items: { kind: "product" | "deal"; id: string; quantity: number }[];
 }
 
@@ -49,7 +50,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order & { it
     return serialize({ ...order, items: order_items });
   }
 
-  const quote = await quoteCart(input.location_id, input.items);
+  const quote = await quoteCart(input.location_id, input.items, input.locale);
   const deliveryFee = new Prisma.Decimal(0);
   const subtotal = new Prisma.Decimal(quote.subtotal);
   const total = subtotal.add(deliveryFee);
@@ -220,7 +221,9 @@ export function assertStatusTransition(fulfilment: string, from: string, to: str
 
 export async function assertOrderAccess(admin: Pick<AuthPayload, "sub" | "role">, locationId: string | null): Promise<void> {
   if (!locationId) {
-    if (admin.role === "branch_manager") throw new ForbiddenException("You do not have access to this branch");
+    if (isBranchScoped(admin.role)) {
+      throw new ForbiddenException("You do not have access to this branch");
+    }
     return;
   }
   await assertLocationAccess(admin, locationId);
@@ -261,18 +264,19 @@ export async function updateOrderStatus(id: string | number, status: Order["stat
   return saved;
 }
 
-export async function getDashboardStats() {
+export async function getDashboardStats(locationIds?: string[] | null) {
   const startOfToday = new Date();
   startOfToday.setUTCHours(0, 0, 0, 0);
+  const branch = locationIds ? { location_id: { in: locationIds } } : {};
 
   try {
     const [totalOrders, activeOrders, revenue, todayRevenue] = await db().$transaction([
-      db().orders.count(),
-      db().orders.count({ where: { status: { notIn: ["delivered", "cancelled"] } } }),
-      db().orders.aggregate({ _sum: { total: true } }),
+      db().orders.count({ where: branch }),
+      db().orders.count({ where: { ...branch, status: { notIn: ["delivered", "cancelled"] } } }),
+      db().orders.aggregate({ _sum: { total: true }, where: branch }),
       db().orders.aggregate({
         _sum: { total: true },
-        where: { created_at: { gte: startOfToday } },
+        where: { ...branch, created_at: { gte: startOfToday } },
       }),
     ]);
 

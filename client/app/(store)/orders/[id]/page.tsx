@@ -38,8 +38,8 @@ export default function CustomerOrderPage() {
         {error && <p className="mt-6 text-sm text-[#FF0931]">{error}</p>}
         {view && (
           <>
-            <p className="mt-4 text-sm text-white/60">Order #{view.order.id} is {t(`status.${view.order.status}`)}.</p>
-            <p className="mt-2 text-sm capitalize">{view.order.fulfilment}</p>
+            <p className="mt-4 text-sm text-white/60">{t("order.statusLine", { id: view.order.id, status: t(`status.${view.order.status}`) })}</p>
+            <p className="mt-2 text-sm">{t(`checkout.${view.order.fulfilment}`)}</p>
             <ul className="mt-6 space-y-2 text-sm">
               {view.items.map((item) => (
                 <li key={item.name} className="flex justify-between">

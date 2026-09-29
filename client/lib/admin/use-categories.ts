@@ -7,6 +7,7 @@ export type AdminCategory = {
   id: string;
   number: string;
   title: string;
+  titleAr?: string;
   image: string;
   itemCount: number;
 };
@@ -16,6 +17,7 @@ function mapCategory(raw: Record<string, unknown>): AdminCategory {
     id: raw.id as string,
     number: raw.number as string,
     title: raw.title as string,
+    titleAr: (raw.title_ar as string) ?? undefined,
     image: raw.image as string,
     itemCount: ((raw.items as unknown[]) ?? []).length,
   };
@@ -40,6 +42,7 @@ export function useCategories() {
       const data = await api.post<Record<string, unknown>>("/admin/categories", {
         number: category.number,
         title: category.title,
+        title_ar: category.titleAr ?? "",
         image: category.image,
         sort_order: 0,
       });
@@ -53,6 +56,7 @@ export function useCategories() {
       const body: Record<string, unknown> = {};
       if (updates.number !== undefined) body.number = updates.number;
       if (updates.title !== undefined) body.title = updates.title;
+      if (updates.titleAr !== undefined) body.title_ar = updates.titleAr;
       if (updates.image !== undefined) body.image = updates.image;
       const data = await api.put<Record<string, unknown>>(`/admin/categories/${id}`, body);
       const updated = mapCategory(data);

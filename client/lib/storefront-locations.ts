@@ -16,7 +16,7 @@ export type StoreLocationCard = {
 
 export function toStoreLocationCard(location: Location): StoreLocationCard {
   const hours = location.hours?.trim() ?? "";
-  const closed = hours.length === 0 || /coming soon/i.test(hours);
+  const closed = location.status === "inactive" || hours.length === 0 || /coming soon/i.test(hours);
   const match = location.address.toUpperCase().match(EMBEDDED_POSTCODE);
   return {
     id: location.id,

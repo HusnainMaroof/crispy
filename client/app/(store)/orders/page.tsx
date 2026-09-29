@@ -36,7 +36,7 @@ export default function MyOrdersPage() {
       setProfile({ name: saved.name ?? "", email: saved.email ?? "", phone: saved.phone ?? "" });
       setMessage(t("orders.saved"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not save");
+      setMessage(err instanceof Error ? err.message : t("error.generic"));
     }
   }
 

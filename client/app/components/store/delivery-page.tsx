@@ -4,29 +4,32 @@ import { useEffect, useRef, useState } from "react";
 import { useStoreLocations } from "@/lib/use-store-locations";
 import { useBranchSelection } from "@/lib/branch-selection";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
+import { localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 const platforms = [
   {
     id: "uber-eats",
     name: "Uber Eats",
-    desc: "Fast and reliable delivery straight to your door with real-time tracking.",
+    desc: "delivery.uber",
     logoBg: "#06BB67",
   },
   {
     id: "deliveroo",
     name: "Deliveroo",
-    desc: "Order Crispies through Deliveroo for exclusive rewards and premium delivery.",
+    desc: "delivery.deliveroo",
     logoBg: "#00CCBC",
   },
   {
     id: "just-eat",
     name: "Just Eat",
-    desc: "Savor the flavor with Just Eat's seamless ordering process.",
+    desc: "delivery.justEat",
     logoBg: "#FF8000",
   },
 ];
 
 export default function DeliveryPage() {
+  const { locale, t } = useLocale();
   const { locations } = useStoreLocations();
   const { selectBranch } = useBranchSelection();
   const { ordering, redirect } = useStoreOrdering();
@@ -49,7 +52,7 @@ export default function DeliveryPage() {
     <main className="min-h-screen bg-black flex flex-col items-center px-4 py-16 md:py-24">
       {/* Step 1: Branch Selection */}
       {ordering.mode === "redirect" ? (
-        <div className="text-center text-white" role="status">Redirecting to the online ordering page…</div>
+        <div className="text-center text-white" role="status">{t("delivery.redirecting")}</div>
       ) : step === "branch" && (
         <>
           <h1
@@ -89,7 +92,7 @@ export default function DeliveryPage() {
                 <button
                   key={loc.id}
                   onClick={() => {
-                    if (!selectBranch(loc.id, loc.name)) return;
+                    if (!selectBranch(loc.id, localizedText(locale, loc.name))) return;
                     setSelected(loc.id);
                   }}
                   className="flex items-center justify-between cursor-pointer transition-all duration-200"
@@ -110,7 +113,7 @@ export default function DeliveryPage() {
                         lineHeight: "normal",
                       }}
                     >
-                      {loc.name}
+                      {localizedText(locale, loc.name)}
                     </span>
                     <span
                       className="inline-flex items-center gap-1.5"
@@ -196,7 +199,7 @@ export default function DeliveryPage() {
               cursor: selected ? "pointer" : "not-allowed",
             }}
           >
-            Continue to platforms
+            {t("delivery.continue")}
           </button>
         </>
       )}
@@ -294,7 +297,7 @@ export default function DeliveryPage() {
                       maxWidth: "180px",
                     }}
                   >
-                    {p.desc}
+                    {t(p.desc)}
                   </span>
 
                   <div className="mt-6 flex items-center justify-center">
@@ -395,7 +398,7 @@ export default function DeliveryPage() {
               lineHeight: "1.6",
             }}
           >
-            You&apos;ll be redirected to your selected delivery platform in a moment.
+            {t("delivery.redirectSoon")}
             Get ready for premium good mood food.
           </p>
 

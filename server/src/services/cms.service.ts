@@ -1,6 +1,6 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
-import { DEFAULT_LOCALE, isSupportedLocale, resolveLocale, SUPPORTED_LOCALES, type AppLocale } from "../config/locales.js";
+import { DEFAULT_LOCALE, resolveLocale, strictLocale, SUPPORTED_LOCALES, type AppLocale } from "../config/locales.js";
 import {
   CMS_PAGES,
   findCmsPage,
@@ -42,8 +42,9 @@ function requirePage(id: string): CmsPage {
 }
 
 function requireLocale(value: unknown): AppLocale {
-  if (!isSupportedLocale(value)) throw new BadRequestException("Unsupported locale");
-  return value;
+  const locale = strictLocale(value);
+  if (!locale) throw new BadRequestException("Unsupported locale");
+  return locale;
 }
 
 function asObject(value: Prisma.JsonValue | undefined): Record<string, unknown> {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/lib/i18n/locale-context";
 import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
@@ -14,66 +15,98 @@ const INTER = "font-[family-name:var(--font-inter),Inter,sans-serif]";
 const WHY_CHOOSE_ITEMS = [
   {
     title: "Proven Concept",
+    titleAr: "مفهوم مثبت",
     description:
       "Crispies has already established a strong presence in the food industry with our unique blend of flavours and high-quality ingredients. Our menu items, ranging from crispy chicken tenders to flavourful wraps and salads, have garnered a loyal customer base.",
+    descriptionAr: "أسست كريسبيز حضوراً قوياً في قطاع الطعام بمزيجها الفريد من النكهات والمكونات عالية الجودة. أصنافنا، من قطع الدجاج المقرمشة إلى الراب والسلطات، صنعت قاعدة عملاء أوفياء.",
   },
   {
     title: "Supportive Team",
+    titleAr: "فريق داعم",
     description:
       "When you join the Crispies family, you'll receive comprehensive support every step of the way. From site selection and restaurant design to training and marketing assistance, our team is committed to helping you succeed.",
+    descriptionAr: "عند انضمامك لعائلة كريسبيز تحصل على دعم كامل في كل خطوة. من اختيار الموقع وتصميم المطعم إلى التدريب والتسويق، فريقنا ملتزم بنجاحك.",
   },
   {
     title: "Operational Excellence",
+    titleAr: "تميّز تشغيلي",
     description:
       "We provide our franchisees with access to our time-tested operational systems and processes, ensuring smooth day-to-day operations and consistent customer satisfaction.",
+    descriptionAr: "نمنح أصحاب الامتياز أنظمتنا وعملياتنا المجرّبة، لضمان تشغيل يومي سلس ورضا ثابت للعملاء.",
   },
   {
     title: "Marketing Power",
+    titleAr: "قوة تسويقية",
     description:
       "Benefit from our national marketing campaigns and promotional materials designed to drive foot traffic to your Crispies location. We'll also support you in developing local marketing strategies to attract customers in your area.",
+    descriptionAr: "استفد من حملاتنا التسويقية الوطنية والمواد الترويجية التي تجذب الزوار إلى فرعك. وندعمك أيضاً في بناء تسويق محلي لعملائك.",
   },
   {
     title: "Flexible Models",
+    titleAr: "نماذج مرنة",
     description:
       "Whether you're interested in opening a standalone restaurant, a food truck, or a kiosk in a high-traffic location, Crispies offers flexible franchise models to suit your preferences and budget.",
+    descriptionAr: "سواء أردت مطعماً مستقلاً أو عربة طعام أو كيوسكاً في موقع مزدحم، تقدم كريسبيز نماذج امتياز مرنة تناسب تفضيلك وميزانيتك.",
   },
   {
     title: "Community Engagement",
+    titleAr: "التواصل مع المجتمع",
     description:
       "At Crispies, we believe in giving back to the communities we serve. As a franchisee, you'll have the opportunity to engage with local schools, charities, and events, strengthening your brand presence while making a positive impact.",
+    descriptionAr: "في كريسبيز نؤمن برد الجميل للمجتمعات التي نخدمها. كصاحب امتياز يمكنك المشاركة مع المدارس والجمعيات والفعاليات المحلية، وتعزيز حضورك مع أثر إيجابي.",
   },
 ];
 
 const GET_STARTED_ITEMS = [
   {
     title: "Submit Your Inquiry",
+    titleAr: "أرسل استفسارك",
     description:
       "Fill out our franchise inquiry form to express your interest in joining the Crispies family. Tell us a bit about yourself and why you're excited about the opportunity.",
+    descriptionAr: "املأ نموذج استفسار الامتياز للتعبير عن رغبتك في الانضمام لعائلة كريسبيز. أخبرنا عنك ولماذا تهمك هذه الفرصة.",
   },
   {
     title: "Initial Consultation",
+    titleAr: "استشارة أولى",
     description:
       "Once we receive your inquiry, a member of our franchise development team will reach out to schedule an initial consultation. This is your chance to ask questions and learn more about the franchise process.",
+    descriptionAr: "بعد استلام استفسارك، يتواصل معك أحد فريق تطوير الامتياز لتحديد استشارة أولى. هذه فرصتك للأسئلة ومعرفة خطوات الامتياز.",
   },
   {
     title: "FDD",
+    titleAr: "وثيقة الإفصاح",
     description:
       "Upon approval of your application, you'll receive our Franchise Disclosure Document (FDD) for review. This document contains important information about the franchise agreement, financial obligations, and support provided by Crispies.",
+    descriptionAr: "بعد الموافقة على طلبك ستصلك وثيقة إفصاح الامتياز للمراجعة. تتضمن معلومات مهمة عن الاتفاقية والالتزامات المالية والدعم الذي تقدمه كريسبيز.",
   },
   {
     title: "Training",
+    titleAr: "التدريب",
     description:
       "With the help of our experienced team, you'll select the perfect location for your Crispies restaurant. You'll also undergo comprehensive training to ensure you're equipped with the knowledge and skills to run a successful operation.",
+    descriptionAr: "بمساعدة فريقنا الخبير تختار الموقع المناسب لمطعم كريسبيز. وتخضع أيضاً لتدريب شامل يجهّزك لتشغيل ناجح.",
   },
   {
     title: "Grand Opening",
+    titleAr: "الافتتاح الكبير",
     description:
       "Finally, it's time to celebrate! We'll work closely with you to plan and execute a memorable grand opening event, generating excitement and attracting eager customers to your new Crispies location.",
+    descriptionAr: "حان وقت الاحتفال. نعمل معك على تخطيط وتنفيذ حفل افتتاح مميز يجذب العملاء إلى فرع كريسبيز الجديد.",
   },
 ];
 
+function localizedItems<T extends { title: string; titleAr: string; description: string; descriptionAr: string }>(items: T[], locale: string) {
+  return items.map((item) => locale === "ar"
+    ? { title: item.titleAr, description: item.descriptionAr }
+    : { title: item.title, description: item.description });
+}
+
 export default function PartnerPage() {
   const [applicationOpen, setApplicationOpen] = useState(false);
+  const { locale, t } = useLocale();
+  const whyItems = localizedItems(WHY_CHOOSE_ITEMS, locale);
+  const startItems = localizedItems(GET_STARTED_ITEMS, locale);
+  const become = t("franchise.become").split("\n");
 
   return (
     <>
@@ -93,7 +126,7 @@ export default function PartnerPage() {
                 lineHeight: "100%",
               }}
             >
-              Grow With <span className="text-[#FF0931]">Crispies</span>
+              {t("franchise.grow")} <span className="text-[#FF0931]">Crispies</span>
             </h1>
             <p
               className={`m-0   ${INTER} capitalize text-black text-[14px] sm:text-[16px] md:text-[14px]  xl:text-[24px] `}
@@ -104,12 +137,11 @@ export default function PartnerPage() {
                 letterSpacing: "0.54px",
               }}
             >
-              join a fast-growing brand with bold flavours, loyal <br /> customers and
-              a proven recipe for success.
+              {t("franchise.intro")}
             </p>
        </div>
        <button className="bg-[#FF0931] text-white py-16 px-16 text-4xl rounded-2xl hover:bg-[#ff0000] transition-colors duration-300 flex items-center gap-6">
-      Download Franchise Brochure 
+      {t("franchise.brochure")} 
 <Download  className="w-16 h-16 sm:w-16 sm:h-16  text-white "/>
        </button>
           </div>
@@ -128,11 +160,11 @@ export default function PartnerPage() {
                 lineHeight: "100%",
               }}
             >
-              <span className="block text-white">Why Choose</span>
+              <span className="block text-white">{t("franchise.why")}</span>
               <span className="block text-[#FF0931]">Crispies ?</span>
             </h2>
           }
-          items={WHY_CHOOSE_ITEMS}
+          items={whyItems}
         />
       </section>
       {/* 3. How To Get Started */}
@@ -147,9 +179,9 @@ export default function PartnerPage() {
                   lineHeight: "100%",
                 }}
               >
-                <span className="lg:block text-black"> How To Get</span>
+                <span className="lg:block text-black"> {t("franchise.started")}</span>
                 <span className="lg:block text-white pl-3 lg:pl-0">
-                  Started?
+                  {t("franchise.startedAccent")}
                 </span>
               </h2>
 
@@ -161,7 +193,7 @@ export default function PartnerPage() {
               </div>
             </div>
           }
-          items={GET_STARTED_ITEMS}
+          items={startItems}
         />
       </section>
 
@@ -182,8 +214,8 @@ export default function PartnerPage() {
                   letterSpacing: "0.54px",
                 }}
               >
-                Become
-                <br />A Partner
+                {become[0]}
+                <br />{become[1]}
               </h2>
 
               <button
@@ -194,7 +226,7 @@ export default function PartnerPage() {
                 <span
                   className={`${INTER}  lg:text-[30px] font-semibold text-nowrap`}
                 >
-                  Contact Us
+                  {t("franchise.contact")}
                 </span>
                 <div className="flex items-center justify-center w-[10px] lg:w-auto">
                   {" "}

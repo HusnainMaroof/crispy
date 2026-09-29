@@ -109,7 +109,7 @@ export default async function RootLayout({
   const jar = await cookies();
   const locale = resolveLocale(jar.get("crispy_locale")?.value);
   return (
-    <html lang={locale} className={`${korolev.variable} ${jakarta.variable} ${inter.variable} ${poppins.variable}`}>
+    <html lang={locale} dir="ltr" className={`${korolev.variable} ${jakarta.variable} ${inter.variable} ${poppins.variable}`}>
       <body>
         <Providers locale={locale}>{children}</Providers>
       </body>

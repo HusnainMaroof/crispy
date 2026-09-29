@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireRole, requireTab } from "../middleware/auth.js";
 import multer from "multer";
 import { asyncHandler } from "../utils/async-handler.js";
 import { UploadController } from "../controllers/admin/upload.controller.js";
@@ -23,7 +24,7 @@ export const uploadMedia = multer({
 
 const router = Router();
 
-router.post("/upload", upload.single("file"), asyncHandler(UploadController.upload));
-router.post("/upload-media", uploadMedia.single("file"), asyncHandler(UploadController.upload));
+router.post("/upload", requireRole("superadmin"), upload.single("file"), asyncHandler(UploadController.upload));
+router.post("/upload-media", requireRole("superadmin"), requireTab("content"), uploadMedia.single("file"), asyncHandler(UploadController.upload));
 
 export default router;

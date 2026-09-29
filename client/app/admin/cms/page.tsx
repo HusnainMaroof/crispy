@@ -1,5 +1,0 @@
-import { redirect } from "next/navigation";
-
-export default function CmsIndexPage() {
-  redirect("/admin/cms/home");
-}

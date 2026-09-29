@@ -5,6 +5,8 @@ import styles from "./welcome.module.css";
 
 const PARAGRAPH =
   "Crispies was founded with a mission to serve the best burgers & chicken around. Our aim has always been to serve fresh, handmade food, bursting with flavours from around the globe.";
+const BACK_IMAGE = "/images/welcomeSectionimageOne.jpg.avif";
+const FRONT_IMAGE = "/images/welcomeSectionimageTwo.jpg.avif";
 
 // The text reveal and the image slide are both driven by the same 0 → 1
 // progress and are timed to land together at the end of the pinned scroll.
@@ -32,7 +34,21 @@ const BLUR_PROGRESS = `clamp(0, (var(--p) - ${BLUR_START}) * ${BLUR_STEP}, 1)`;
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-export default function Welcome({ description = PARAGRAPH }: { description?: string }) {
+export default function Welcome({
+  headline = "Welcome to",
+  accent = "Crispies",
+  description = PARAGRAPH,
+  backImage = BACK_IMAGE,
+  frontImage = FRONT_IMAGE,
+}: {
+  headline?: string;
+  accent?: string;
+  description?: string;
+  backImage?: string;
+  frontImage?: string;
+}) {
+  const back = backImage.trim() || BACK_IMAGE;
+  const front = frontImage.trim() || FRONT_IMAGE;
   const words = (description.trim() || PARAGRAPH).split(/\s+/);
   const wordStep = 1 / (words.length + REVEAL_OVERLAP - 1);
   const wordWindow = wordStep * REVEAL_OVERLAP;
@@ -112,10 +128,8 @@ export default function Welcome({ description = PARAGRAPH }: { description?: str
 
           <div className="flex-1 text-center md:text-left">
             <h2 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(40px,10vw,150px)] font-black capitalize leading-[1] tracking-[0.54px] text-black">
-              WELCOME{" "}
-              <span className="text-nowrap">
-                TO <span className="text-[#FF0931]">CRISPIES</span>
-              </span>
+              {headline}{" "}
+              {accent && <span className="text-nowrap text-[#FF0931]">{accent}</span>}
             </h2>
             <p className="mt-6 max-w-lg font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(16px,3vw,30px)] font-normal capitalize leading-[1.5] tracking-[0.54px] text-black md:mt-8">
               {words.map((word, i) => {
@@ -151,8 +165,7 @@ export default function Welcome({ description = PARAGRAPH }: { description?: str
               <div
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
-                  background:
-                    "url('/images/welcomeSectionimageOne.jpg.avif') lightgray 10% / cover no-repeat",
+                  background: `url('${back}') lightgray 10% / cover no-repeat`,
 
                   filter: `blur(calc(8px * ${BLUR_PROGRESS}))`,
                   opacity: `calc(1 - 0.5 * ${BLUR_PROGRESS})`,
@@ -162,8 +175,7 @@ export default function Welcome({ description = PARAGRAPH }: { description?: str
               <div
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{
-                  background:
-                    "url('/images/welcomeSectionimageTwo.jpg.avif') lightgray top center / cover no-repeat",
+                  background: `url('${front}') lightgray top center / cover no-repeat`,
 
                   transform:
                     "translateY(calc(120vh - (120vh - 10%) * var(--p))) rotate(calc(4deg - 12deg * var(--p)))",

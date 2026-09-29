@@ -9,6 +9,7 @@ export type AdminLocation = {
   address: string;
   hours: string;
   phone: string;
+  status: "active" | "inactive";
 };
 
 function mapLocation(raw: Record<string, unknown>): AdminLocation {
@@ -18,6 +19,7 @@ function mapLocation(raw: Record<string, unknown>): AdminLocation {
     address: raw.address as string,
     hours: raw.hours as string,
     phone: raw.phone as string,
+    status: raw.status === "inactive" ? "inactive" : "active",
   };
 }
 
@@ -42,6 +44,7 @@ export function useLocations() {
       if (updates.address !== undefined) body.address = updates.address;
       if (updates.hours !== undefined) body.hours = updates.hours;
       if (updates.phone !== undefined) body.phone = updates.phone;
+      if (updates.status !== undefined) body.status = updates.status;
       const data = await api.patch<Record<string, unknown>>(`/admin/locations/${id}`, body);
       const updated = mapLocation(data);
       setLocations((prev) => prev.map((loc) => (loc.id === id ? updated : loc)));

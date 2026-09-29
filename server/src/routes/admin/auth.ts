@@ -8,6 +8,7 @@ import { AuthController } from "../../controllers/admin/auth.controller.js";
 const router = Router();
 
 router.post("/login", validate(loginSchema), asyncHandler(AuthController.login));
+router.post("/logout", asyncHandler(AuthController.logout));
 router.post("/refresh", authenticate, asyncHandler(AuthController.refresh));
 router.get("/me", authenticate, asyncHandler(AuthController.me));
 router.patch("/me", authenticate, validate(ownProfileSchema), asyncHandler(AuthController.updateMe));

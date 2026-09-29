@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { usePathname } from "next/navigation";
 import { tabForPath } from "@/lib/admin/tabs";
+import { splitPanel } from "@/lib/admin/paths";
 import { useAdminSession } from "@/lib/admin/session";
 import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
 import Sidebar from "./sidebar";
@@ -14,8 +15,14 @@ export default function AdminShell({ children, ready }: { children: React.ReactN
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  const needed = tabForPath(pathname);
-  const blocked = ready && needed !== null && !tabs.includes(needed);
+  const { rest } = splitPanel(pathname);
+  const needed = tabForPath(rest);
+  const allowedHere = rest.startsWith("/menu")
+    ? ["menu", "branch-menu"].some((id) => tabs.includes(id))
+    : rest.startsWith("/locations") || rest.startsWith("/branches")
+      ? ["locations", "branches"].some((id) => tabs.includes(id))
+      : needed !== null && tabs.includes(needed);
+  const blocked = ready && needed !== null && !allowedHere;
 
   const handleToggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
@@ -35,7 +42,7 @@ export default function AdminShell({ children, ready }: { children: React.ReactN
         onClose={handleCloseSidebar}
         onToggleCollapse={handleToggleCollapse}
         allowed={ready ? tabs : null}
-        cmsItems={cmsPages.map((page) => ({ href: `/admin/cms/${page.id}`, label: page.label }))}
+        cmsItems={cmsPages.map((page) => ({ href: `${splitPanel(pathname).prefix}/cms/${page.id}`, label: page.label }))}
       />
       <div className={`transition-[padding] duration-300 ${collapsed ? "lg:pl-20" : "lg:pl-64"}`}>
         <Topbar onToggleSidebar={handleToggleSidebar} />

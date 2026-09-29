@@ -24,11 +24,16 @@ export type Quote = {
   total: number;
 };
 
+/** Arabic-speaking customers see the Arabic name when the catalogue has one. */
+function localizedName(locale: string | undefined, name: string, nameAr: string): string {
+  return locale === "ar" && nameAr.trim() ? nameAr.trim() : name;
+}
+
 function money(value: Prisma.Decimal): number {
   return value.toDecimalPlaces(2).toNumber();
 }
 
-export async function quoteCart(locationId: string, lines: QuoteRequestLine[]): Promise<Quote> {
+export async function quoteCart(locationId: string, lines: QuoteRequestLine[], locale?: string): Promise<Quote> {
   const db = getPrisma();
   const location = await db.locations.findUnique({ where: { id: locationId } });
   if (!location || location.status !== "active") {
@@ -40,8 +45,8 @@ export async function quoteCart(locationId: string, lines: QuoteRequestLine[]): 
 
   for (const line of lines) {
     const unit = line.kind === "product"
-      ? await productPrice(location.id, line)
-      : await dealPrice(location.id, line);
+      ? await productPrice(location.id, line, locale)
+      : await dealPrice(location.id, line, locale);
     const lineTotal = unit.amount.mul(line.quantity);
     subtotal = subtotal.add(lineTotal);
     items.push({
@@ -58,7 +63,7 @@ export async function quoteCart(locationId: string, lines: QuoteRequestLine[]): 
   return { locationId: location.id, items, subtotal: total, total };
 }
 
-async function productPrice(locationId: string, line: QuoteRequestLine): Promise<{ name: string; amount: Prisma.Decimal }> {
+async function productPrice(locationId: string, line: QuoteRequestLine, locale?: string): Promise<{ name: string; amount: Prisma.Decimal }> {
   const db = getPrisma();
   const product = await db.menu_items.findUnique({ where: { id: line.id } });
   if (!product) throw new NotFoundException("Menu item not found");
@@ -69,10 +74,10 @@ async function productPrice(locationId: string, line: QuoteRequestLine): Promise
   if (!product.active || !branch || !branch.available) {
     throw new ItemUnavailableException(`${product.name} is not available at this branch`, { kind: "product", id: product.id });
   }
-  return { name: product.name, amount: new Prisma.Decimal(branch.price ?? product.price) };
+  return { name: localizedName(locale, product.name, product.name_ar), amount: new Prisma.Decimal(branch.price ?? product.price) };
 }
 
-async function dealPrice(locationId: string, line: QuoteRequestLine): Promise<{ name: string; amount: Prisma.Decimal }> {
+async function dealPrice(locationId: string, line: QuoteRequestLine, locale?: string): Promise<{ name: string; amount: Prisma.Decimal }> {
   const db = getPrisma();
   const deal = await db.deals.findUnique({ where: { id: line.id } });
   if (!deal) throw new NotFoundException("Deal not found");
@@ -83,5 +88,5 @@ async function dealPrice(locationId: string, line: QuoteRequestLine): Promise<{ 
   if (!deal.active || !branch || !branch.available) {
     throw new ItemUnavailableException(`${deal.name} is not available at this branch`, { kind: "deal", id: deal.id });
   }
-  return { name: deal.name, amount: new Prisma.Decimal(branch.price ?? deal.price) };
+  return { name: localizedName(locale, deal.name, deal.name_ar), amount: new Prisma.Decimal(branch.price ?? deal.price) };
 }

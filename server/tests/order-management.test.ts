@@ -92,13 +92,13 @@ describe("order management", { concurrency: 1 }, () => {
     assert.equal(detail.items[0].quantity, 1);
   });
 
-  it("lets an admin and the assigned manager read the order, and rejects another branch", async () => {
+  it("lets the super admin and the assigned manager read the order, and rejects another branch", async () => {
     const harrow = await branch("harrow-road");
     const tower = await branch("tower-hill");
     const order = await place("harrow-road");
     const local = await manager(harrow.id);
     const other = await manager(tower.id);
-    const admin = { sub: "admin", role: "admin" as const };
+    const admin = { sub: "admin", role: "superadmin" as const };
 
     await assertOrderAccess(admin, order.location_id);
     await assertOrderAccess(local, order.location_id);
@@ -139,7 +139,7 @@ describe("order management", { concurrency: 1 }, () => {
   });
 
   it("walks a collection order to delivered and a delivery order through dispatch", async () => {
-    const admin = { sub: "admin", role: "admin" as const };
+    const admin = { sub: "admin", role: "superadmin" as const };
     const collection = await place("edgware-road", "collection");
     await updateOrderStatus(collection.id, "preparing", admin);
     await updateOrderStatus(collection.id, "ready", admin);
@@ -157,7 +157,7 @@ describe("order management", { concurrency: 1 }, () => {
   });
 
   it("cancels only before an order leaves the branch", async () => {
-    const admin = { sub: "admin", role: "admin" as const };
+    const admin = { sub: "admin", role: "superadmin" as const };
     const early = await place("harrow");
     await updateOrderStatus(early.id, "cancelled", admin);
     assert.equal((await getOrderById(early.id)).order.status, "cancelled");
@@ -203,7 +203,7 @@ describe("order management", { concurrency: 1 }, () => {
 
   it("rejects a second status write once the first one has landed", async () => {
     const order = await place("elephant-and-castle");
-    const admin = { sub: "admin", role: "admin" as const };
+    const admin = { sub: "admin", role: "superadmin" as const };
     const results = await Promise.allSettled([
       updateOrderStatus(order.id, "preparing", admin),
       updateOrderStatus(order.id, "preparing", admin),

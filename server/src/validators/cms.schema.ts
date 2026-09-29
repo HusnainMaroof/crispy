@@ -1,7 +1,12 @@
 import { z } from "zod";
 import type { CmsField, CmsListItem, CmsSection } from "../config/cms-registry.js";
 
-export const localeSchema = z.enum(["en", "ur"]);
+export const localeSchema = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const primary = value.trim().toLowerCase().split("-")[0];
+  if (primary === "ur") return "ar";
+  return primary === "en" || primary === "ar" ? primary : value;
+}, z.enum(["en", "ar"]));
 
 const STOREFRONT_PATH = /^\/((menu|locations|franchise-inquiries|delivery|orders|checkout)(\/[a-zA-Z0-9-]+)?)?$/;
 
@@ -42,6 +47,7 @@ function fieldSchema(field: CmsField | CmsListItem): z.ZodTypeAny {
     case "number": return z.number().int().min(field.min).max(field.max);
     case "select": return z.enum(field.options.map((option) => option.value) as [string, ...string[]]);
     case "toggle": return z.boolean();
+    case "branches": return z.array(z.string().min(1).max(80)).max(field.max);
     case "list": return z.array(fieldSchema(field.item)).max(field.max);
     case "object": return z.object(Object.fromEntries(
       Object.entries(field.fields).map(([name, child]) => [name, fieldSchema(child).optional()]),

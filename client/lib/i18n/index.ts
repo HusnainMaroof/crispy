@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ["en", "ur"] as const;
+export const SUPPORTED_LOCALES = ["en", "ar"] as const;
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: AppLocale = "en";
 export const LOCALE_COOKIE = "crispy_locale";
@@ -7,9 +7,142 @@ export function isSupportedLocale(value: unknown): value is AppLocale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
+/** English unless the value is exactly Arabic. The old Urdu cookie stays English. */
 export function resolveLocale(value: unknown): AppLocale {
-  return isSupportedLocale(value) ? value : DEFAULT_LOCALE;
+  if (typeof value !== "string") return DEFAULT_LOCALE;
+  const primary = value.trim().toLowerCase().split("-")[0] ?? "";
+  return isSupportedLocale(primary) ? primary : DEFAULT_LOCALE;
 }
+
+/** Store layout stays left-to-right. Arabic changes the words, not the page direction. */
+export function localeDir(_value: unknown): "ltr" {
+  return "ltr";
+}
+
+/** Known catalogue and branch phrases, used when a row has no Arabic column yet. */
+const PHRASES: Record<string, string> = {
+  "Box Meals": "وجبات الصناديق",
+  "Gourmet Burgers": "برجر جورميه",
+  Burgers: "البرجر",
+  Wraps: "الراب",
+  Wings: "الأجنحة",
+  Grill: "الشواء",
+  Platters: "الصحون",
+  Kids: "الأطفال",
+  Chickens: "الدجاج",
+  Sides: "الإضافات",
+  Desserts: "الحلويات",
+  Drinks: "المشروبات",
+  "Chicken Box": "صندوق دجاج",
+  "Crispy Chicken Box": "صندوق دجاج مقرمش",
+  "Wings Box": "صندوق أجنحة",
+  "Burger Box": "صندوق برجر",
+  "Classic Beef Burger": "برجر لحم كلاسيكي",
+  "Crispy Chicken Burger": "برجر دجاج مقرمش",
+  "Spicy Chicken Burger": "برجر دجاج حار",
+  "BBQ Chicken Burger": "برجر دجاج باربكيو",
+  "Double Beef Burger": "برجر لحم دبل",
+  "Crispy Chicken Wrap": "راب دجاج مقرمش",
+  "Spicy Chicken Wrap": "راب دجاج حار",
+  "BBQ Chicken Wrap": "راب دجاج باربكيو",
+  "Grilled Chicken Wrap": "راب دجاج مشوي",
+  "6pc Classic Wings": "6 أجنحة كلاسيكية",
+  "10pc Classic Wings": "10 أجنحة كلاسيكية",
+  "6pc Spicy Wings": "6 أجنحة حارة",
+  "10pc Spicy Wings": "10 أجنحة حارة",
+  "Grilled Chicken": "دجاج مشوي",
+  "Chicken Steak": "ستيك دجاج",
+  "Grilled Chicken Strips": "شرائح دجاج مشوي",
+  "Chicken Platter": "طبق دجاج",
+  "Mixed Grill Platter": "طبق مشاوي مشكلة",
+  "Family Feast Platter": "طبق وليمة العائلة",
+  "Kids Chicken Burger": "برجر دجاج للأطفال",
+  "Kids Nuggets": "ناجتس الأطفال",
+  "Kids Chicken Strips": "شرائح دجاج للأطفال",
+  "Regular Fries": "بطاطس عادية",
+  "Large Fries": "بطاطس كبيرة",
+  "Loaded Fries": "بطاطس محملة",
+  "Onion Rings": "حلقات البصل",
+  "Mozzarella Sticks": "أصابع الموزاريلا",
+  "Chocolate Brownie": "براوني الشوكولاتة",
+  "Chocolate Cake": "كيك الشوكولاتة",
+  Cheesecake: "تشيز كيك",
+  "Coca-Cola": "كوكا كولا",
+  Pepsi: "بيبسي",
+  "Mango Drink": "مشروب المانجو",
+  "Still Water": "ماء",
+  "Burger Meal Deal": "عرض وجبة البرجر",
+  "Family Wings Deal": "عرض أجنحة العائلة",
+  "Chicken Box Deal": "عرض صندوق الدجاج",
+  "Lunch Deal": "عرض الغداء",
+  "Wings & Sides Deal": "عرض الأجنحة والإضافات",
+  "Weekend Meal Deal": "عرض وجبة نهاية الأسبوع",
+  "Zesty Lemon": "ليمون منعش",
+  "Korean BBQ": "باربكيو كوري",
+  "Smokey BBQ": "باربكيو مدخن",
+  "Hawaiian Sweet Chilli": "فلفل حلو هاواي",
+  "Fiery Buffalo": "بافلو حار",
+  Garlic: "ثوم",
+  Lemon: "ليمون",
+  Mild: "خفيف",
+  Hot: "حار",
+  Extra: "إضافي",
+  "BBQ & Jerk Sauce": "صلصة باربكيو وجيرك",
+  "Crispies Original Flavours": "نكهات كريسبيز الأصلية",
+  "Discover Your Crispy Flavor": "اكتشف نكهتك المقرمشة",
+  "Flaming Grill Flavour": "نكهة الشواء الناري",
+  "Order On The Website": "اطلب من الموقع",
+  "Find Your Nearest Crispies": "اعثر على أقرب كريسبيز",
+  "View All 10+ Locations": "عرض كل الفروع",
+  Halal: "حلال",
+  Vegan: "نباتي صرف",
+  Vegetarian: "نباتي",
+  Popular: "الأكثر طلباً",
+  Lunch: "غداء",
+  Student: "طالب",
+  "Coming Soon": "قريباً",
+  London: "لندن",
+  "Harrow Road": "طريق هارو",
+  "Tower Hill": "تاور هيل",
+  Kilburn: "كيلبرن",
+  Harrow: "هارو",
+  "Elephant & Castle": "إليفانت آند كاسل",
+  "Edgware Road": "طريق إدجوير",
+  Stockwell: "ستوكويل",
+  "Wembley Central": "ويمبلي سنترال",
+  Ruislip: "رويزليب",
+};
+
+/** Arabic-speaking customers see the Arabic catalogue name when there is one. */
+export function localizedName(locale: unknown, name: string, nameAr?: string): string {
+  if (resolveLocale(locale) !== "ar") return name;
+  if (nameAr?.trim()) return nameAr.trim();
+  return localizedText(locale, name);
+}
+
+/** Translates a stored English phrase, including hours and addresses, when Arabic is selected. */
+export function localizedText(locale: unknown, value?: string | null): string {
+  if (!value) return "";
+  if (resolveLocale(locale) !== "ar") return value;
+  if (PHRASES[value]) return PHRASES[value];
+  const translated = value
+    .replace(/Coming Soon/g, PHRASES["Coming Soon"])
+    .replace(/Elephant & Castle/g, PHRASES["Elephant & Castle"])
+    .replace(/Harrow Road/g, PHRASES["Harrow Road"])
+    .replace(/Edgware Road/g, PHRASES["Edgware Road"])
+    .replace(/Wembley Central/g, PHRASES["Wembley Central"])
+    .replace(/Tower Hill/g, PHRASES["Tower Hill"])
+    .replace(/\bLondon\b/g, PHRASES.London)
+    .replace(/\bKilburn\b/g, PHRASES.Kilburn)
+    .replace(/\bHarrow\b/g, PHRASES.Harrow)
+    .replace(/\bStockwell\b/g, PHRASES.Stockwell)
+    .replace(/\bRuislip\b/g, PHRASES.Ruislip)
+    .replace(/ AM/g, " ص")
+    .replace(/ PM/g, " م");
+  return PHRASES[translated] ?? translated;
+}
+
+export type TranslateParams = Record<string, string | number>;
 
 const messages: Record<AppLocale, Record<string, string>> = {
   en: {
@@ -18,6 +151,13 @@ const messages: Record<AppLocale, Record<string, string>> = {
     "nav.franchise": "Franchise inquiry",
     "nav.cart": "Cart",
     "nav.close": "Close",
+    "nav.toggleMenu": "Toggle menu",
+    "nav.pill.cart.1": "Your",
+    "nav.pill.cart.2": "Cart",
+    "nav.pill.collect.1": "Click",
+    "nav.pill.collect.2": "& Collect",
+    "nav.pill.delivery.1": "Get It",
+    "nav.pill.delivery.2": "Delivered",
     "cart.title": "Cart",
     "cart.checkout": "Checkout",
     "cart.empty": "Your cart is empty",
@@ -25,12 +165,56 @@ const messages: Record<AppLocale, Record<string, string>> = {
     "cart.waiting": "Awaiting server price",
     "cart.clear": "Clear cart",
     "cart.remove": "Remove",
+    "cart.notice": "Display prices only. The server confirms the price when you order.",
+    "cart.count": "{count} items",
+    "cart.kind.product": "product",
+    "cart.kind.deal": "deal",
+    "cart.branchFirst": "Choose a branch before the price can be confirmed.",
+    "branch.switch.title": "Switch branch?",
+    "branch.switch.body": "Your cart belongs to {current}. Switching to {next} will clear your cart. Prices shown here are for display only.",
+    "branch.switch.keep": "Keep current branch",
+    "branch.switch.confirm": "Clear cart and switch",
+    "branch.current": "the current branch",
+    "menu.hero.1": "Our",
+    "menu.hero.2": "Menu",
+    "menu.search": "Search For Item...",
+    "menu.dietary.label": "Dietary Preference",
+    "menu.dietary.all": "All",
+    "menu.dietary.halal": "Halal",
+    "menu.dietary.vegan": "Vegan",
+    "menu.dietary.vegetarian": "Vegetarian",
+    "menu.sort.name-asc": "Name A-Z",
+    "menu.sort.name-desc": "Name Z-A",
+    "menu.sort.price-asc": "Price Low-High",
+    "menu.sort.price-desc": "Price High-Low",
+    "menu.loading": "Loading menu...",
+    "menu.error": "Menu could not be loaded.",
+    "menu.empty": "No items found. Try a different search or category.",
+    "menu.addToCart": "Add {name} to cart",
     "checkout.title": "Checkout",
     "checkout.placed": "Order placed",
     "checkout.total": "Total",
     "checkout.waiting": "Waiting for server total",
     "checkout.save": "Place order",
+    "checkout.placing": "Placing order...",
     "checkout.view": "View order status",
+    "checkout.name": "Name",
+    "checkout.email": "Email",
+    "checkout.phone": "Phone",
+    "checkout.fulfilment": "Fulfilment",
+    "checkout.collection": "Collection",
+    "checkout.delivery": "Delivery",
+    "checkout.address": "Address",
+    "checkout.postcode": "Postcode",
+    "checkout.city": "City",
+    "checkout.payment": "Payment",
+    "checkout.cash": "Cash",
+    "checkout.card": "Card",
+    "checkout.notes": "Notes",
+    "checkout.branch": "Branch {name}",
+    "checkout.branchFallback": "Selected branch",
+    "checkout.quoteNote": "Totals below come from the server.",
+    "order.statusLine": "Order #{id} is {status}.",
     "orders.title": "Your orders",
     "orders.one": "Your order",
     "orders.save": "Save details",
@@ -45,22 +229,211 @@ const messages: Record<AppLocale, Record<string, string>> = {
     "status.out-for-delivery": "Out for delivery",
     "status.delivered": "Delivered",
     "status.cancelled": "Cancelled",
+    "locations.find": "Find your",
+    "locations.nearest": "nearest Crispies",
+    "locations.multiple": "Multiple Locations",
+    "locations.multipleDesc": "Across London, closer to you.",
+    "locations.everyday": "Open Everyday",
+    "locations.everydayDesc": "Serving you fresh 7 days a week.",
+    "locations.dineIn": "Dine-In Or Takeaway",
+    "locations.dineInDesc": "Enjoy in-store or take it away.",
+    "locations.delivery": "Delivery Available",
+    "locations.deliveryDesc": "Can't come to us? We'll come to you.",
+    "locations.searchPlaceholder": "Enter Your Area Or Postcode",
+    "locations.searchLabel": "Search by area or UK postcode",
+    "locations.searchAction": "Search location",
+    "locations.searchRequired": "Enter an area or postcode to search.",
+    "locations.suggest": "Did you mean this location? ",
+    "locations.match": "Matching branch: ",
+    "locations.nearestTo": "Nearest Crispies to {label}: ",
+    "locations.milesAway": " ({miles} mi away)",
+    "delivery.choose": "Choose a branch to order delivery",
+    "delivery.back": "Back to branch selection",
+    "delivery.close": "Close",
+    "delivery.continue": "Continue to platforms",
+    "delivery.taking": "Taking you\nto your order...",
+    "delivery.redirect": "You'll be redirected to your selected delivery platform in a moment. Get ready for premium good mood food.",
+    "delivery.redirecting": "Redirecting to the online ordering page…",
+    "delivery.redirectSoon": "You'll be redirected to your selected delivery platform in a moment.",
+    "delivery.uber": "Fast and reliable delivery straight to your door with real-time tracking.",
+    "delivery.deliveroo": "Order Crispies through Deliveroo for exclusive rewards and premium delivery.",
+    "delivery.justEat": "Savor the flavor with Just Eat's seamless ordering process.",
+    "franchise.grow": "Grow With",
+    "franchise.intro": "Join a fast-growing brand with bold flavours, loyal customers and a proven recipe for success.",
+    "franchise.brochure": "Download Franchise Brochure",
+    "franchise.why": "Why Choose",
+    "franchise.started": "How To Get",
+    "franchise.startedAccent": "Started?",
+    "franchise.become": "Become\nA Partner",
+    "franchise.contact": "Contact Us",
+    "locations.openNow": "Open Now",
+    "locations.closed": "Closed",
+    "footer.quickLinks": "Quick Links",
+    "footer.menu": "Menu",
+    "footer.locations": "Locations",
+    "footer.career": "Career",
+    "footer.franchise": "Franchise Inquiries",
+    "footer.contact": "Get In Touch",
+    "footer.follow": "Follow\nUs On Socials",
+    "footer.rights": "© 2026 Crispiesuk. All Rights Reserved.",
     "error.required": "Required field",
     "error.order": "Order not found",
     "error.generic": "Something went wrong",
   },
-  ur: {},
+  ar: {
+    "nav.menu": "القائمة",
+    "nav.locations": "الفروع",
+    "nav.franchise": "استفسار الامتياز",
+    "nav.cart": "السلة",
+    "nav.close": "إغلاق",
+    "nav.toggleMenu": "فتح القائمة",
+    "nav.pill.cart.1": "سلتك",
+    "nav.pill.cart.2": "",
+    "nav.pill.collect.1": "احجز",
+    "nav.pill.collect.2": "واستلم",
+    "nav.pill.delivery.1": "توصيل",
+    "nav.pill.delivery.2": "لبابك",
+    "cart.title": "السلة",
+    "cart.checkout": "إتمام الطلب",
+    "cart.empty": "سلتك فارغة",
+    "cart.subtotal": "المجموع الفرعي",
+    "cart.waiting": "بانتظار تأكيد السعر من الخادم",
+    "cart.clear": "إفراغ السلة",
+    "cart.remove": "إزالة",
+    "cart.notice": "الأسعار المعروضة للاستعراض فقط. يتم تأكيد السعر من الخادم عند الطلب.",
+    "cart.count": "{count} أصناف",
+    "cart.kind.product": "صنف",
+    "cart.kind.deal": "عرض",
+    "cart.branchFirst": "اختر الفرع قبل تأكيد السعر.",
+    "branch.switch.title": "تغيير الفرع؟",
+    "branch.switch.body": "سلتك تابعة لـ {current}. التحويل إلى {next} سيؤدي إلى إفراغ سلتك. الأسعار المعروضة للاستعراض فقط.",
+    "branch.switch.keep": "الاحتفاظ بالفرع الحالي",
+    "branch.switch.confirm": "إفراغ السلة والتحويل",
+    "branch.current": "الفرع الحالي",
+    "menu.hero.1": "قائمة",
+    "menu.hero.2": "طعامنا",
+    "menu.search": "ابحث عن صنف...",
+    "menu.dietary.label": "التفضيلات الغذائية",
+    "menu.dietary.all": "الكل",
+    "menu.dietary.halal": "حلال",
+    "menu.dietary.vegan": "نباتي صرف",
+    "menu.dietary.vegetarian": "نباتي",
+    "menu.sort.name-asc": "الاسم (أ - ي)",
+    "menu.sort.name-desc": "الاسم (ي - أ)",
+    "menu.sort.price-asc": "السعر (من الأقل)",
+    "menu.sort.price-desc": "السعر (من الأعلى)",
+    "menu.loading": "جارٍ تحميل القائمة...",
+    "menu.error": "تعذر تحميل القائمة.",
+    "menu.empty": "لا توجد أصناف. جرّب بحثاً أو تصنيفاً آخر.",
+    "menu.addToCart": "أضف {name} إلى السلة",
+    "checkout.title": "إتمام الطلب",
+    "checkout.placed": "تم استلام طلبك",
+    "checkout.total": "الإجمالي",
+    "checkout.waiting": "بانتظار إجمالي الخادم",
+    "checkout.save": "إتمام الطلب",
+    "checkout.placing": "جارٍ إرسال الطلب...",
+    "checkout.view": "عرض حالة الطلب",
+    "checkout.name": "الاسم",
+    "checkout.email": "البريد الإلكتروني",
+    "checkout.phone": "الهاتف",
+    "checkout.fulfilment": "طريقة الاستلام",
+    "checkout.collection": "استلام من الفرع",
+    "checkout.delivery": "توصيل",
+    "checkout.address": "العنوان",
+    "checkout.postcode": "الرمز البريدي",
+    "checkout.city": "المدينة",
+    "checkout.payment": "طريقة الدفع",
+    "checkout.cash": "نقداً",
+    "checkout.card": "بطاقة",
+    "checkout.notes": "ملاحظات",
+    "checkout.branch": "الفرع: {name}",
+    "checkout.branchFallback": "الفرع المحدد",
+    "checkout.quoteNote": "الإجماليات أدناه تأتي من الخادم.",
+    "order.statusLine": "الطلب رقم #{id} حالته {status}.",
+    "orders.title": "طلباتك",
+    "orders.one": "طلبك",
+    "orders.save": "حفظ البيانات",
+    "orders.saved": "تم الحفظ",
+    "orders.all": "كل طلباتك",
+    "orders.name": "الاسم",
+    "orders.email": "البريد الإلكتروني",
+    "orders.phone": "الهاتف",
+    "status.pending": "قيد الانتظار",
+    "status.preparing": "قيد التحضير",
+    "status.ready": "جاهز",
+    "status.out-for-delivery": "في الطريق إليك",
+    "status.delivered": "تم التوصيل",
+    "status.cancelled": "ملغي",
+    "locations.find": "اعثر على",
+    "locations.nearest": "أقرب كريسبيز",
+    "locations.multiple": "فروع متعددة",
+    "locations.multipleDesc": "في كل لندن، أقرب إليك.",
+    "locations.everyday": "مفتوح كل يوم",
+    "locations.everydayDesc": "نقدم لك طعاماً طازجاً طوال الأسبوع.",
+    "locations.dineIn": "تناول هنا أو سفري",
+    "locations.dineInDesc": "استمتع في الفرع أو خذ طلبك معك.",
+    "locations.delivery": "التوصيل متاح",
+    "locations.deliveryDesc": "لا تستطيع الحضور؟ نحن نأتي إليك.",
+    "locations.searchPlaceholder": "أدخل منطقتك أو الرمز البريدي",
+    "locations.searchLabel": "ابحث بالمنطقة أو الرمز البريدي",
+    "locations.searchAction": "ابحث عن فرع",
+    "locations.searchRequired": "أدخل منطقة أو رمزاً بريدياً للبحث.",
+    "locations.suggest": "هل تقصد هذا الفرع؟ ",
+    "locations.match": "الفرع المطابق: ",
+    "locations.nearestTo": "أقرب كريسبيز إلى {label}: ",
+    "locations.milesAway": " (يبعد {miles} ميل)",
+    "delivery.choose": "اختر فرعاً لطلب التوصيل",
+    "delivery.back": "العودة لاختيار الفرع",
+    "delivery.close": "إغلاق",
+    "delivery.continue": "المتابعة إلى المنصات",
+    "delivery.taking": "ننقلك\nإلى طلبك...",
+    "delivery.redirect": "سيتم تحويلك إلى منصة التوصيل التي اخترتها بعد لحظات. استعد لطعام المزاج الجيد.",
+    "delivery.redirecting": "جارٍ التحويل إلى صفحة الطلب…",
+    "delivery.redirectSoon": "سيتم تحويلك إلى منصة التوصيل التي اخترتها بعد لحظات.",
+    "delivery.uber": "توصيل سريع وموثوق إلى بابك مع تتبع مباشر.",
+    "delivery.deliveroo": "اطلب كريسبيز عبر ديليفرو مع مكافآت حصرية وتوصيل مميز.",
+    "delivery.justEat": "استمتع بالنكهة مع طلب سلس عبر جاست إيت.",
+    "franchise.grow": "انمُ مع",
+    "franchise.intro": "انضم إلى علامة سريعة النمو بنكهات جريئة وعملاء أوفياء ووصفة نجاح مجرّبة.",
+    "franchise.brochure": "حمّل كتيّب الامتياز",
+    "franchise.why": "لماذا تختار",
+    "franchise.started": "كيف تبدأ",
+    "franchise.startedAccent": "البداية؟",
+    "franchise.become": "كن\nشريكاً",
+    "franchise.contact": "تواصل معنا",
+    "locations.openNow": "مفتوح الآن",
+    "locations.closed": "مغلق",
+    "footer.quickLinks": "روابط سريعة",
+    "footer.menu": "القائمة",
+    "footer.locations": "الفروع",
+    "footer.career": "الوظائف",
+    "footer.franchise": "استفسارات الامتياز",
+    "footer.contact": "تواصل معنا",
+    "footer.follow": "تابعنا\nعلى وسائل التواصل",
+    "footer.rights": "© 2026 كريسبيز. جميع الحقوق محفوظة.",
+    "error.required": "حقل مطلوب",
+    "error.order": "لم يتم العثور على الطلب",
+    "error.generic": "حدث خطأ ما",
+  },
 };
 
-export function translate(locale: unknown, key: string): string {
+function fill(template: string, params?: TranslateParams): string {
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match,
+  );
+}
+
+export function translate(locale: unknown, key: string, params?: TranslateParams): string {
   const selected = resolveLocale(locale);
-  return messages[selected][key] || messages.en[key] || key;
+  const template = messages[selected][key] || messages.en[key] || key;
+  return fill(template, params);
 }
 
 const CURRENCY = "GBP";
 
 function intlLocale(locale: unknown): string {
-  return resolveLocale(locale) === "ur" ? "ur" : "en-GB";
+  return resolveLocale(locale) === "ar" ? "ar" : "en-GB";
 }
 
 export function formatCurrency(amount: number, _locale: unknown = DEFAULT_LOCALE): string {

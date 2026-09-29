@@ -4,8 +4,10 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearAuthToken } from "@/lib/api";
-import { NAV_SECTIONS, adminTab, type AdminTabId } from "@/lib/admin/tabs";
+import { api } from "@/lib/api";
+import { useAdminSession } from "@/lib/admin/session";
+import { NAV_SECTIONS, adminTab, tabHref, type AdminTabId } from "@/lib/admin/tabs";
+import { splitPanel } from "@/lib/admin/paths";
 import { SidebarSkeleton } from "@/app/components/admin/ui/skeleton";
 
 const ICONS: Record<string, (props: { className?: string }) => ReactNode> = {
@@ -24,7 +26,7 @@ const SINGLE_TABS: AdminTabId[] = ["dashboard", "posts", "staff"];
 type CmsItem = { href: string; label: string };
 
 const bottomNavItems = [
-  { id: "settings", href: "/admin/settings", label: "Settings", icon: SettingsIcon },
+  { id: "settings", segment: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
 interface SidebarProps {
@@ -39,7 +41,10 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, allowed, cmsItems }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { prefix } = splitPanel(pathname);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const { clearSession, user } = useAdminSession();
+  const logoHref = allowed?.includes("dashboard") ? prefix : (user?.home ?? prefix);
 
   useEffect(() => {
     onClose();
@@ -56,9 +61,14 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
     };
   }, [isOpen]);
 
-  const handleLogout = () => {
-    clearAuthToken();
-    router.push("/admin/login");
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+      clearSession();
+      router.replace("/super-admin/login");
+    } catch {
+      // Keep the protected session active if the server could not clear its cookie.
+    }
   };
 
   return (
@@ -80,12 +90,12 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
           {!collapsed && (
-            <Link href="/admin" className="font-display text-2xl tracking-wider text-white cursor-pointer">
+            <Link href={logoHref} className="font-display text-2xl tracking-wider text-white cursor-pointer">
               CRISP<span className="text-brand-red">IES</span>
             </Link>
           )}
           {collapsed && (
-            <Link href="/admin" className="mx-auto font-display text-lg tracking-wider text-white cursor-pointer">
+            <Link href={logoHref} className="mx-auto font-display text-lg tracking-wider text-white cursor-pointer">
               <span className="text-brand-red">C</span>
             </Link>
           )}
@@ -117,12 +127,47 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
           {allowed === null && <SidebarSkeleton />}
           {allowed !== null && <>
           {SINGLE_TABS.filter((id) => id === "dashboard" && allowed?.includes(id)).map((id) => (
-            <NavLink key={id} href={adminTab(id).href} label={adminTab(id).label} icon={ICONS.dashboard} active={pathname === "/admin"} collapsed={collapsed} />
+            <NavLink key={id} href={prefix} label={adminTab(id).label} icon={ICONS.dashboard} active={splitPanel(pathname).rest === "/"} collapsed={collapsed} />
           ))}
           {NAV_SECTIONS.map((section) => {
+            if (section.id === "ordering") {
+              const first = ["orders", "customers"].find((id) => allowed.includes(id));
+              if (!first) return null;
+              return <NavLink key="ordering" href={`${prefix}/${first}`} label="Ordering" icon={ICONS.ordering} active={["/orders", "/customers"].some((path) => splitPanel(pathname).rest.startsWith(path))} collapsed={collapsed} />;
+            }
+            if (section.id === "menu") {
+              const canOpenMenu = ["menu", "categories", "branch-menu"].some((id) => allowed?.includes(id));
+              if (!canOpenMenu) return null;
+              const menuTab = (["menu", "categories", "branch-menu"] as AdminTabId[]).find((id) => allowed.includes(id))!;
+              return (
+                <NavLink
+                  key={section.id}
+                  href={tabHref(prefix, menuTab)}
+                  label="Menu"
+                  icon={ICONS.menu}
+                  active={["/menu", "/categories", "/branch-menu"].some((path) => splitPanel(pathname).rest === path || splitPanel(pathname).rest.startsWith(`${path}/`))}
+                  collapsed={collapsed}
+                />
+              );
+            }
+            if (section.id === "branches") {
+              const canOpenBranches = ["locations", "branches"].some((id) => allowed?.includes(id));
+              if (!canOpenBranches) return null;
+              const branchTab = allowed.includes("locations") ? "locations" : "branches";
+              return (
+                <NavLink
+                  key={section.id}
+                  href={tabHref(prefix, branchTab)}
+                  label="Branches"
+                  icon={ICONS.branches}
+                  active={["/locations", "/branches"].some((path) => splitPanel(pathname).rest === path || splitPanel(pathname).rest.startsWith(`${path}/`))}
+                  collapsed={collapsed}
+                />
+              );
+            }
             const children = section.id === "content"
               ? (allowed?.includes("content") ? cmsItems : [])
-              : section.tabIds.filter((id) => allowed?.includes(id)).map((id) => ({ href: adminTab(id).href, label: adminTab(id).label }));
+              : section.tabIds.filter((id) => allowed?.includes(id)).map((id) => ({ href: tabHref(prefix, id), label: adminTab(id).label })).filter((item, index, list) => list.findIndex((entry) => entry.href === item.href) === index);
             if (children.length === 0) return null;
             const active = children.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
             const expanded = collapsed ? false : (openGroups[section.id] ?? active);
@@ -152,7 +197,7 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
                 {expanded && (
                   <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-2">
                     {children.map((item) => {
-                      const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${item.href}/`));
+                      const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                       return (
                         <Link
                           key={item.href}
@@ -176,10 +221,10 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
             return (
               <NavLink
                 key={id}
-                href={tab.href}
+                href={tabHref(prefix, id)}
                 label={tab.label}
                 icon={ICONS[id]}
-                active={pathname === tab.href || pathname.startsWith(`${tab.href}/`)}
+                active={pathname === tabHref(prefix, id) || pathname.startsWith(`${tabHref(prefix, id)}/`)}
                 collapsed={collapsed}
               />
             );
@@ -190,11 +235,12 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
         {/* Bottom Section */}
         <div className="border-t border-white/10 p-2 space-y-1">
           {bottomNavItems.filter((item) => allowed?.includes(item.id)).map((item) => {
-            const isActive = pathname.startsWith(item.href);
+            const href = `${prefix}/${item.segment}`;
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.id}
+                href={href}
                 title={collapsed ? item.label : undefined}
                 className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                   collapsed ? "justify-center" : ""

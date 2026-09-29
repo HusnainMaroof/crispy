@@ -1,10 +1,18 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, clearAuthToken, getAuthToken } from "@/lib/api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { api, isSessionExpiredError } from "@/lib/api";
 import { visibleTabIds } from "@/lib/admin/tabs";
 
-type AdminUser = { id: string; email: string; name: string; role: string; tabs: string[] };
+type AdminUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  tabs: string[];
+  home?: string;
+  branches?: { id: string; name: string; slug: string }[];
+};
 type Status = "checking" | "guest" | "ready";
 
 type SessionValue = {
@@ -12,6 +20,9 @@ type SessionValue = {
   user: AdminUser | null;
   tabs: string[];
   cmsPages: { id: string; label: string }[];
+  refreshSession: (showChecking?: boolean) => Promise<AdminUser | null>;
+  acceptSession: (user: AdminUser) => AdminUser;
+  clearSession: () => void;
 };
 
 const SessionContext = createContext<SessionValue>({
@@ -19,44 +30,90 @@ const SessionContext = createContext<SessionValue>({
   user: null,
   tabs: [],
   cmsPages: [],
+  refreshSession: async () => null,
+  acceptSession: (user) => user,
+  clearSession: () => {},
 });
 
 export function AdminSessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>("checking");
   const [user, setUser] = useState<AdminUser | null>(null);
   const [cmsPages, setCmsPages] = useState<{ id: string; label: string }[]>([]);
+  const sessionRequestId = useRef(0);
+
+  const refreshSession = useCallback(async (showChecking = false) => {
+    const requestId = ++sessionRequestId.current;
+    if (showChecking) setStatus("checking");
+    try {
+      const me = await api.get<AdminUser>("/admin/auth/me");
+      const tabs = visibleTabIds(me.role, me.tabs ?? []);
+      const pages = tabs.includes("content")
+        ? await api.get<{ id: string; label: string }[]>("/admin/cms/pages").catch(() => [])
+        : [];
+      if (requestId !== sessionRequestId.current) return null;
+      const nextUser = { ...me, tabs };
+      setUser(nextUser);
+      setCmsPages(pages);
+      setStatus("ready");
+      return nextUser;
+    } catch (error) {
+      if (requestId !== sessionRequestId.current) return null;
+      if (!isSessionExpiredError(error)) {
+        setStatus((current) => current === "checking" ? "guest" : current);
+        return null;
+      }
+      setUser(null);
+      setCmsPages([]);
+      setStatus("guest");
+      return null;
+    }
+  }, []);
+
+  const acceptSession = useCallback((profile: AdminUser) => {
+    sessionRequestId.current += 1;
+    const nextUser = { ...profile, tabs: visibleTabIds(profile.role, profile.tabs ?? []) };
+    setUser(nextUser);
+    setStatus("ready");
+    setCmsPages([]);
+    if (nextUser.tabs.includes("content")) {
+      const requestId = sessionRequestId.current;
+      void api.get<{ id: string; label: string }[]>("/admin/cms/pages")
+        .then((pages) => {
+          if (requestId === sessionRequestId.current) setCmsPages(pages);
+        })
+        .catch(() => {});
+    }
+    return nextUser;
+  }, []);
+
+  const clearSession = useCallback(() => {
+    sessionRequestId.current += 1;
+    setUser(null);
+    setCmsPages([]);
+    setStatus("guest");
+  }, []);
 
   useEffect(() => {
-    let active = true;
-    if (!getAuthToken()) {
-      setStatus("guest");
-      return;
-    }
-    api.get<AdminUser>("/admin/auth/me")
-      .then(async (me) => {
-        const tabs = visibleTabIds(me.role, me.tabs ?? []);
-        const pages = tabs.includes("content")
-          ? await api.get<{ id: string; label: string }[]>("/admin/cms/pages").catch(() => [])
-          : [];
-        if (!active) return;
-        setUser({ ...me, tabs });
-        setCmsPages(pages);
-        setStatus("ready");
-      })
-      .catch(() => {
-        if (!active) return;
-        clearAuthToken();
-        setStatus("guest");
-      });
-    return () => { active = false; };
-  }, []);
+    const timer = window.setTimeout(() => {
+      void refreshSession(true);
+    }, 0);
+    const handleExpired = () => clearSession();
+    window.addEventListener("admin-session-expired", handleExpired);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("admin-session-expired", handleExpired);
+    };
+  }, [refreshSession, clearSession]);
 
   const value = useMemo<SessionValue>(() => ({
     status,
     user,
     tabs: user?.tabs ?? [],
     cmsPages,
-  }), [status, user, cmsPages]);
+    refreshSession,
+    acceptSession,
+    clearSession,
+  }), [status, user, cmsPages, refreshSession, acceptSession, clearSession]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -12,6 +12,35 @@ async function requireLocation(locationId: string) {
   if (!location) throw new NotFoundException("Location not found");
 }
 
+export async function setItemBranches(menuItemId: string, locationIds: string[]) {
+  const unique = [...new Set(locationIds)];
+  if (unique.length > 0) {
+    const found = await db().locations.findMany({ where: { id: { in: unique } }, select: { id: true } });
+    if (found.length !== unique.length) throw new NotFoundException("Location not found");
+  }
+
+  await db().$transaction([
+    db().branch_menu_items.deleteMany({
+      where: {
+        menu_item_id: menuItemId,
+        ...(unique.length > 0 ? { location_id: { notIn: unique } } : {}),
+      },
+    }),
+    ...unique.map((locationId) =>
+      db().branch_menu_items.upsert({
+        where: { location_id_menu_item_id: { location_id: locationId, menu_item_id: menuItemId } },
+        create: {
+          location_id: locationId,
+          menu_item_id: menuItemId,
+          available: true,
+          price: null,
+        },
+        update: { available: true },
+      }),
+    ),
+  ]);
+}
+
 export async function getBranchMenu(locationId: string) {
   await requireLocation(locationId);
   const rows = await db().branch_menu_items.findMany({
@@ -39,9 +68,19 @@ export async function getBranchMenu(locationId: string) {
 export async function upsertBranchMenuItems(
   locationId: string,
   items: { menu_item_id: string; price?: number | null; available?: boolean; sort_order?: number | null }[],
+  options?: { replace?: boolean },
 ) {
   await requireLocation(locationId);
   try {
+    if (options?.replace) {
+      await db().branch_menu_items.deleteMany({
+        where: {
+          location_id: locationId,
+          ...(items.length > 0 ? { menu_item_id: { notIn: items.map((item) => item.menu_item_id) } } : {}),
+        },
+      });
+    }
+    if (items.length === 0) return [];
     const saved = await db().$transaction(
       items.map((item) =>
         db().branch_menu_items.upsert({

@@ -57,12 +57,15 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     const target = apiBase || "http://localhost:4000";
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${target}/api/:path*`,
-      },
-    ];
+    return {
+      fallback: [
+        {
+          // After the admin route handler, so it can forward the session cookie.
+          source: "/api/:path*",
+          destination: `${target}/api/:path*`,
+        },
+      ],
+    };
   },
 };
 

@@ -9,6 +9,7 @@ import { authenticate } from "../src/middleware/auth.js";
 import { AuthController } from "../src/controllers/admin/auth.controller.js";
 import { getAccessibleLocationIds, assertLocationAccess } from "../src/services/branch-access.service.js";
 import { createStaff, listStaff, replaceStaffBranches, setStaffActive, updateStaff } from "../src/services/staff.service.js";
+import { resolveTabs } from "../src/config/admin-tabs.js";
 import { updateLocation } from "../src/services/admin.service.js";
 import { createOrder } from "../src/services/order.service.js";
 import { getCustomerForStaff } from "../src/services/customer.service.js";
@@ -20,14 +21,23 @@ const locationIds: string[] = [];
 const orderIds: bigint[] = [];
 const customerIds: string[] = [];
 
-const admin = { sub: "stage12-admin", role: "admin" as const };
 const superadmin = { sub: "stage12-super", role: "superadmin" as const };
 
 function response() {
   return {
     body: undefined as unknown,
+    cookieValue: undefined as { name: string; value: string; options: Record<string, unknown> } | undefined,
+    clearedCookie: undefined as { name: string; options: Record<string, unknown> } | undefined,
     status() { return this; },
     json(body: unknown) { this.body = body; return this; },
+    cookie(name: string, value: string, options: Record<string, unknown>) {
+      this.cookieValue = { name, value, options };
+      return this;
+    },
+    clearCookie(name: string, options: Record<string, unknown>) {
+      this.clearedCookie = { name, options };
+      return this;
+    },
   };
 }
 
@@ -37,9 +47,9 @@ async function branch(slug: string) {
   return row;
 }
 
-async function hire(role: "admin" | "branch_manager" | "superadmin", branchIds: string[] = [], active = true) {
+async function hire(role: "branch_manager" | "superadmin", branchIds: string[] = [], active = true) {
   const email = `${crypto.randomUUID()}@stage12.test`;
-  const person = await createStaff(role === "superadmin" ? superadmin : admin, {
+  const person = await createStaff(superadmin, {
     name: "Stage Twelve",
     email,
     password: "correct-horse",
@@ -53,13 +63,34 @@ async function hire(role: "admin" | "branch_manager" | "superadmin", branchIds: 
 
 describe("staff and branches", { concurrency: 1 }, () => {
   it("lets active staff sign in and rejects a bad password or unknown email the same way", async () => {
-    const person = await hire("admin");
+    const person = await hire("branch_manager", [(await branch("harrow-road")).id]);
     const ok = response();
     await AuthController.login({ body: { email: person.email, password: person.password } } as Request, ok as unknown as Response);
-    const body = ok.body as { data: { user: Record<string, unknown>; token: string } };
+    const body = ok.body as { data: { user: Record<string, unknown> } };
     assert.equal(body.data.user.email, person.email);
     assert.equal("password_hash" in body.data.user, false);
+    assert.equal("token" in body.data, false);
     assert.equal(JSON.stringify(body).includes("password"), false);
+    assert.equal(ok.cookieValue?.name, "crispy_admin_session");
+    assert.equal(ok.cookieValue?.options.httpOnly, true);
+    assert.equal(ok.cookieValue?.options.sameSite, "lax");
+
+    let authStatus = 0;
+    const authRes = {
+      status(code: number) { authStatus = code; return this; },
+      json() { return this; },
+    };
+    await authenticate(
+      { headers: {}, cookies: { crispy_admin_session: ok.cookieValue?.value } } as Request,
+      authRes as unknown as Response,
+      () => { authStatus = 200; },
+    );
+    assert.equal(authStatus, 200);
+
+    const logout = response();
+    await AuthController.logout({} as Request, logout as unknown as Response);
+    assert.equal(logout.clearedCookie?.name, "crispy_admin_session");
+    assert.equal(logout.clearedCookie?.options.httpOnly, true);
 
     await assert.rejects(
       () => AuthController.login({ body: { email: person.email, password: "wrong-password" } } as Request, response() as unknown as Response),
@@ -73,7 +104,7 @@ describe("staff and branches", { concurrency: 1 }, () => {
 
   it("rejects login and an existing token after deactivation", async () => {
     const person = await hire("branch_manager", [(await branch("harrow-road")).id]);
-    await setStaffActive(admin, person.id, false);
+    await setStaffActive(superadmin, person.id, false);
     await assert.rejects(
       () => AuthController.login({ body: { email: person.email, password: person.password } } as Request, response() as unknown as Response),
       (error: unknown) => error instanceof UnauthorizedException && error.message === "Invalid email or password",
@@ -93,38 +124,118 @@ describe("staff and branches", { concurrency: 1 }, () => {
     assert.equal(status, 401);
   });
 
-  it("lets admin and superadmin manage staff and rejects a manager", async () => {
+  it("lets the super admin manage managers and keeps managers within their branch", async () => {
     const harrow = await branch("harrow-road");
+    const tower = await branch("tower-hill");
     const manager = await hire("branch_manager", [harrow.id]);
+    const managerActor = { sub: manager.id, role: "branch_manager" as const };
     const created = await createStaff(superadmin, {
-      name: "Another Admin",
+      name: "Another Manager",
       email: `${crypto.randomUUID()}@stage12.test`,
       password: "correct-horse",
-      role: "admin",
-      branchIds: [],
+      role: "branch_manager",
+      branchIds: [tower.id],
     });
     staffIds.push(created.id);
-    assert.equal((await listStaff(admin)).some((row) => row.id === created.id), true);
-    assert.equal(JSON.stringify(await listStaff(admin)).includes("password_hash"), false);
-    await assert.rejects(() => listStaff({ sub: manager.id, role: "branch_manager" }), ForbiddenException);
+
+    const ownerView = await listStaff(superadmin);
+    assert.equal(ownerView.some((row) => row.id === manager.id), true);
+    assert.equal(ownerView.some((row) => row.id === created.id), true);
+    assert.equal(JSON.stringify(ownerView).includes("password_hash"), false);
+    await assert.rejects(() => updateStaff(managerActor, created.id, { name: "Nope" }), ForbiddenException);
     await assert.rejects(
-      () => createStaff({ sub: manager.id, role: "branch_manager" }, {
+      () => createStaff(managerActor, {
         name: "Escalated",
         email: `${crypto.randomUUID()}@stage12.test`,
         password: "correct-horse",
-        role: "superadmin",
-        branchIds: [],
+        role: "branch_manager",
+        branchIds: [harrow.id],
       }),
       ForbiddenException,
     );
     await assert.rejects(
-      () => updateStaff(admin, created.id, { role: "superadmin" }),
+      () => updateStaff(managerActor, created.id, { role: "superadmin" }),
       ForbiddenException,
     );
+
+    // The owner can add branch managers.
+    const made = await createStaff(superadmin, {
+      name: "Made By Owner",
+      email: `${crypto.randomUUID()}@stage12.test`,
+      password: "correct-horse",
+      role: "branch_manager",
+      branchIds: [harrow.id],
+    });
+    staffIds.push(made.id);
+
+    // A branch manager adds team members to their own branch only…
+    const teamMember = await createStaff(managerActor, {
+      name: "Shop Team",
+      email: `${crypto.randomUUID()}@stage12.test`,
+      password: "correct-horse",
+      role: "staff",
+      branchIds: [harrow.id],
+    });
+    staffIds.push(teamMember.id);
+    assert.equal((await listStaff(managerActor)).some((row) => row.id === teamMember.id), true);
+    // …never a super admin or another manager…
+    for (const role of ["superadmin", "branch_manager"] as const) {
+      await assert.rejects(
+        () => createStaff(managerActor, {
+          name: "Escalated",
+          email: `${crypto.randomUUID()}@stage12.test`,
+          password: "correct-horse",
+          role,
+          branchIds: [harrow.id],
+        }),
+        ForbiddenException,
+      );
+    }
+    // …and only inside their own branches.
     await assert.rejects(
-      () => replaceStaffBranches({ sub: manager.id, role: "branch_manager" }, manager.id, [harrow.id]),
+      () => createStaff(managerActor, {
+        name: "Other Branch",
+        email: `${crypto.randomUUID()}@stage12.test`,
+        password: "correct-horse",
+        role: "staff",
+        branchIds: [tower.id],
+      }),
       ForbiddenException,
     );
+    await assert.rejects(() => updateStaff(managerActor, manager.id, { name: "Self Edit" }), ForbiddenException);
+    await assert.rejects(() => replaceStaffBranches(managerActor, manager.id, [harrow.id]), ForbiddenException);
+
+    // A team member cannot manage anyone at all.
+    const memberActor = { sub: teamMember.id, role: "staff" as const };
+    await assert.rejects(() => listStaff(memberActor), ForbiddenException);
+    await assert.rejects(
+      () => createStaff(memberActor, {
+        name: "Escalated",
+        email: `${crypto.randomUUID()}@stage12.test`,
+        password: "correct-horse",
+        role: "branch_manager",
+        branchIds: [],
+      }),
+      ForbiddenException,
+    );
+  });
+
+  it("never hands the Team area to a team member", async () => {
+    const harrow = await branch("harrow-road");
+    assert.equal(resolveTabs("staff", ["dashboard", "staff"]).includes("staff"), false);
+    assert.equal(resolveTabs("branch_manager", []).includes("staff"), true);
+    const teamMember = await createStaff(superadmin, {
+      name: "No Team Tab",
+      email: `${crypto.randomUUID()}@stage12.test`,
+      password: "correct-horse",
+      role: "staff",
+      tabs: ["dashboard", "orders", "staff"],
+      branchIds: [harrow.id],
+    });
+    staffIds.push(teamMember.id);
+    assert.equal(teamMember.tabs.includes("staff"), false);
+    const updated = await updateStaff(superadmin, teamMember.id, { tabs: ["dashboard", "staff"] });
+    assert.equal(updated.tabs.includes("staff"), false);
   });
 
   it("grants and removes branch access without trusting a requested branch", async () => {
@@ -141,18 +252,18 @@ describe("staff and branches", { concurrency: 1 }, () => {
     await assertLocationAccess(actor, harrow.id);
     await assert.rejects(() => assertLocationAccess(actor, kilburn.id), ForbiddenException);
 
-    await replaceStaffBranches(admin, manager.id, [harrow.id]);
+    await replaceStaffBranches(superadmin, manager.id, [harrow.id]);
     allowed = await getAccessibleLocationIds(actor);
     assert.deepEqual(allowed, [harrow.id]);
     await assert.rejects(() => assertLocationAccess(actor, tower.id), ForbiddenException);
 
-    await replaceStaffBranches(admin, manager.id, [harrow.id, kilburn.id]);
+    await replaceStaffBranches(superadmin, manager.id, [harrow.id, kilburn.id]);
     allowed = await getAccessibleLocationIds(actor);
     assert.ok(allowed?.includes(kilburn.id));
     assert.equal(allowed?.includes(tower.id), false);
 
     await assert.rejects(
-      () => replaceStaffBranches(admin, manager.id, ["not-a-real-branch"]),
+      () => replaceStaffBranches(superadmin, manager.id, ["not-a-real-branch"]),
       BadRequestException,
     );
   });

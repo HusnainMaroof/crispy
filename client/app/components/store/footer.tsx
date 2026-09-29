@@ -2,13 +2,14 @@
 "use client";
 
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
+import { useLocale } from "@/lib/i18n/locale-context";
 
-const quickLinks = [
-  { label: "Menu", href: "/menu" },
-  { label: "Locations", href: "/locations" },
-  { label: "Career", href: "/career" },
-  { label: "Franchise Inquiries", href: "/franchise-inquiries" },
-];
+const QUICK_LINKS = [
+  { key: "footer.menu", href: "/menu" },
+  { key: "footer.locations", href: "/locations" },
+  { key: "footer.career", href: "/career" },
+  { key: "footer.franchise", href: "/franchise-inquiries" },
+] as const;
 
 function FacebookIcon({ className = "" }: { className?: string }) {
   return (
@@ -78,6 +79,8 @@ const socials = [
 
 export default function Footer() {
   const scopeRef = useScrollReveal();
+  const { t } = useLocale();
+  const followLines = t("footer.follow").split("\n");
 
   return (
     <footer ref={scopeRef} className="relative w-full bg-black">
@@ -118,11 +121,11 @@ export default function Footer() {
                 fontSize: "clamp(18px, 2vw, 22px)",
               }}
             >
-              Quick Links
+              {t("footer.quickLinks")}
             </h3>
             <ul className="m-0 mt-5 sm:mt-6 p-0 list-none flex flex-col gap-3.5 sm:gap-4">
-              {quickLinks.map((link) => (
-                <li key={link.label}>
+              {QUICK_LINKS.map((link) => (
+                <li key={link.key}>
                   <a
                     href={link.href}
                     className="inline-block text-white/80 font-normal leading-none transition-all duration-300 hover:text-white hover:translate-x-1"
@@ -131,7 +134,7 @@ export default function Footer() {
                       fontSize: "clamp(14px, 1.4vw, 16px)",
                     }}
                   >
-                    {link.label}
+                    {t(link.key)}
                   </a>
                 </li>
               ))}
@@ -151,7 +154,7 @@ export default function Footer() {
                 fontSize: "clamp(18px, 2vw, 22px)",
               }}
             >
-              Get In Touch
+              {t("footer.contact")}
             </h3>
             <ul className="m-0 mt-5 sm:mt-6 p-0 list-none flex flex-col gap-4 sm:gap-5">
               <li>
@@ -194,9 +197,9 @@ export default function Footer() {
                 fontSize: "clamp(18px, 2vw, 22px)",
               }}
             >
-              Follow
+              {followLines[0]}
               <br />
-              Us On Socials
+              {followLines[1]}
             </h3>
             <div className="mt-5 sm:mt-6 flex items-center gap-3">
               {socials.map((s) => {
@@ -239,7 +242,7 @@ export default function Footer() {
               fontSize: "clamp(12px, 1.2vw, 14px)",
             }}
           >
-            © 2026 Crispiesuk. All Rights Reserved.
+            {t("footer.rights")}
           </p>
         </div>
       </div>

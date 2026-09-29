@@ -6,6 +6,8 @@ import { SVGProps, useMemo, useState } from "react";
 import { useStoreLocations } from "@/lib/use-store-locations";
 import { useBranchSelection } from "@/lib/branch-selection";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
+import { localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 import LocationsMap from "./client-locations-map";
 function LocationPinIcon(props: SVGProps<SVGSVGElement>) {
@@ -111,18 +113,26 @@ function BuildingIcon({ className = "" }: { className?: string }) {
 
 export default function Locations({
   title = "Find Your Nearest Crispies",
-  displayMode = "cards",
   ctaLabel = "View All 10+ Locations",
   ctaUrl = "/locations",
-  cardLimit = 5,
+  locationIds = [],
 }: {
   title?: string;
-  displayMode?: "cards" | "redirect";
   ctaLabel?: string;
   ctaUrl?: string;
-  cardLimit?: number;
+  locationIds?: string[];
 }) {
-  const { locations } = useStoreLocations();
+  const { locale, t } = useLocale();
+  const { locations: allLocations } = useStoreLocations();
+  const locations = useMemo(() => {
+    const chosen = locationIds.map((id) => id.trim()).filter(Boolean);
+    if (chosen.length === 0) return allLocations;
+    const byId = new Map(allLocations.map((location) => [location.id, location]));
+    return chosen.flatMap((id) => {
+      const location = byId.get(id);
+      return location ? [location] : [];
+    });
+  }, [allLocations, locationIds]);
   const mapLocations = useMemo(
     () =>
       locations.flatMap((location) =>
@@ -136,7 +146,7 @@ export default function Locations({
   const scopeRef = useScrollReveal();
   const { selectBranch } = useBranchSelection();
   const chooseBranch = (id: string) => {
-    const name = locations.find((location) => location.id === id)?.name ?? "this branch";
+    const name = localizedText(locale, locations.find((location) => location.id === id)?.name ?? "this branch");
     if (!selectBranch(id, name)) return;
     setSelectedId(id);
   };
@@ -144,17 +154,6 @@ export default function Locations({
   const activeSelectedId = selectedId || locations[0]?.id || "";
 
   const locationLinkIsExternal = /^https:\/\//i.test(ctaUrl);
-  if (displayMode === "redirect") {
-    return (
-      <section ref={scopeRef} className="w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 lg:py-28">
-        <h2 className="fade-up text-center font-semibold uppercase leading-[100%] tracking-[0.54px] text-black" style={{ fontFamily: "var(--font-korolev), Korolev, sans-serif", fontSize: "clamp(36px, 7vw, 80px)" }}>{title}</h2>
-        <div className="mx-auto mt-10 max-w-3xl text-center">
-          <p className="text-sm text-black/55">Find your nearest branch and get directions, opening hours, and contact details.</p>
-          <a href={ctaUrl} target={locationLinkIsExternal ? "_blank" : undefined} rel={locationLinkIsExternal ? "noopener noreferrer" : undefined} className="mt-7 inline-flex items-center justify-center rounded-xl bg-[#FF0931] px-8 py-4 text-lg font-semibold text-white hover:bg-[#E0082C]">{ctaLabel}</a>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section
@@ -175,8 +174,8 @@ export default function Locations({
             fontSize: "clamp(36px, 7vw, 80px)",
           }}
         >
-          <span className="text-black">{title.split(" ").slice(0, 2).join(" ")} </span>
-          <span className="text-[#FF0931]">{title.split(" ").slice(2).join(" ")}</span>
+          <span className="text-black">{localizedText(locale, title).split(" ").slice(0, 2).join(" ")} </span>
+          <span className="text-[#FF0931]">{localizedText(locale, title).split(" ").slice(2).join(" ")}</span>
         </h2>
 
         {/* Content */}
@@ -184,7 +183,7 @@ export default function Locations({
           {/* Left — list + CTA */}
           <div className="flex-1 min-w-0 flex flex-col">
             <ul className="m-0 p-0 list-none loc-list">
-              {locations.slice(0, cardLimit).map((loc, i) => {
+              {locations.map((loc, i) => {
                 const isActive = loc.id === activeSelectedId;
                 const numColor = isActive ? "text-[#BDBDBD]" : "text-[#D0D0D0]";
                 const nameColor = isActive ? "text-black" : "text-[#B0B0B0]";
@@ -252,7 +251,7 @@ export default function Locations({
                           letterSpacing: "0.54px",
                         }}
                       >
-                        {loc.name}
+                        {localizedText(locale, loc.name)}
                       </span>
 
                       {/* Address — stays 2-line clamp */}
@@ -269,7 +268,7 @@ export default function Locations({
                             fontSize: "clamp(11px, 1.15vw, 13px)",
                           }}
                         >
-                          {loc.address}
+                          {localizedText(locale, loc.address)}
                         </span>
                       </div>
 
@@ -284,7 +283,7 @@ export default function Locations({
                         <span
                           className={`w-[6px] h-[6px] rounded-full ${statusDot} shrink-0`}
                         />
-                        {loc.status === "open" ? "Open Now" : "Close Now"}
+                        {loc.status === "open" ? t("locations.openNow") : t("locations.closed")}
                       </span>
 
                       {/* Hours */}
@@ -295,13 +294,13 @@ export default function Locations({
                           fontSize: "clamp(12px, 1.2vw, 14px)",
                         }}
                       >
-                        {loc.hours}
+                        {localizedText(locale, loc.hours)}
                       </span>
 
                       {/* Arrow */}
                       <button
                         type="button"
-                        aria-label={`Show ${loc.name} on map`}
+                        aria-label={`Show ${localizedText(locale, loc.name)} on map`}
                         onClick={(e) => {
                           e.stopPropagation();
                           chooseBranch(loc.id);
@@ -350,7 +349,7 @@ export default function Locations({
                   fontSize: "clamp(22px, 2.8vw, 32px)",
                 }}
               >
-                {ctaLabel}
+                {localizedText(locale, ctaLabel)}
               </span>
               <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] sm:rounded-[12px] bg-white flex items-center justify-center shrink-0">
                 <svg

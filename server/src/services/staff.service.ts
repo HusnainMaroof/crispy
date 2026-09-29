@@ -1,19 +1,21 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
-import { isAdminTab, tabsForRole, type AdminTabId } from "../config/admin-tabs.js";
+import { isAdminTab, resolveTabs, tabsForRole, type AdminTabId } from "../config/admin-tabs.js";
+import { canManageRole, isBranchScoped, isTeamMemberRole, normalizeRole, type AdminRole } from "../config/admin-roles.js";
 import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error.js";
 import { hashPassword } from "../utils/password.js";
 import { serialize } from "../utils/db.js";
 import type { AuthPayload } from "../types/responses.js";
 
 type Actor = Pick<AuthPayload, "sub" | "role">;
-type StaffRole = "superadmin" | "admin" | "branch_manager";
+type StaffRole = AdminRole;
 
 const publicSelect = {
   id: true,
   name: true,
   email: true,
   role: true,
+  position: true,
   tabs: true,
   is_active: true,
   created_at: true,
@@ -24,16 +26,23 @@ const publicSelect = {
 } as const;
 
 function assertCanManageStaff(actor: Actor) {
-  if (actor.role === "branch_manager") {
-    throw new ForbiddenException("Branch managers cannot manage staff");
+  if (isTeamMemberRole(actor.role)) {
+    throw new ForbiddenException("This account cannot manage staff");
   }
 }
 
-function assertRoleChange(actor: Actor, nextRole: string, currentRole?: string) {
-  if (actor.role === "superadmin") return;
-  if (nextRole === "superadmin" || currentRole === "superadmin") {
-    throw new ForbiddenException("Only a superadmin can change that role");
+function assertCanManageTarget(actor: Actor, targetRole: string) {
+  if (!canManageRole(actor.role, targetRole)) {
+    throw new ForbiddenException("You can only manage people below your own role");
   }
+}
+
+async function actorBranchIds(actor: Actor) {
+  const rows = await getPrisma().admin_branch_access.findMany({
+    where: { admin_id: actor.sub },
+    select: { location_id: true },
+  });
+  return rows.map((row) => row.location_id);
 }
 
 async function existingBranches(branchIds: string[]) {
@@ -48,6 +57,7 @@ function present(row: {
   name: string;
   email: string;
   role: string;
+  position: string | null;
   tabs: string[];
   is_active: boolean;
   created_at: Date;
@@ -58,8 +68,9 @@ function present(row: {
     id: row.id,
     name: row.name,
     email: row.email,
-    role: row.role,
-    tabs: row.tabs.filter(isAdminTab),
+    role: normalizeRole(row.role),
+    position: row.position,
+    tabs: resolveTabs(row.role, row.tabs),
     is_active: row.is_active,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -70,36 +81,59 @@ function present(row: {
   });
 }
 
+function sharesBranch(row: { admin_branch_access: { location_id: string }[] }, branchIds: string[]) {
+  return row.admin_branch_access.length > 0 && row.admin_branch_access.every((access) => branchIds.includes(access.location_id));
+}
+
+/** Branch managers only ever see and manage team members of their own branches. */
+async function assertTargetInScope(actor: Actor, row: { admin_branch_access: { location_id: string }[] }) {
+  if (normalizeRole(actor.role) !== "branch_manager") return;
+  const mine = await actorBranchIds(actor);
+  if (!sharesBranch(row, mine)) throw new NotFoundException("Staff member not found");
+}
+
 export async function listStaff(actor: Actor) {
   assertCanManageStaff(actor);
   const rows = await getPrisma().admin_profiles.findMany({
     select: publicSelect,
     orderBy: { name: "asc" },
   });
-  return rows.map(present);
+  const mine = normalizeRole(actor.role) === "branch_manager" ? await actorBranchIds(actor) : null;
+  return rows
+    .filter((row) => canManageRole(actor.role, row.role))
+    .filter((row) => !mine || (isTeamMemberRole(row.role) && sharesBranch(row, mine)))
+    .map(present);
 }
 
 export async function getStaff(actor: Actor, id: string) {
   assertCanManageStaff(actor);
   const row = await getPrisma().admin_profiles.findUnique({ where: { id }, select: publicSelect });
-  if (!row) throw new NotFoundException("Staff member not found");
+  if (!row || !canManageRole(actor.role, row.role)) throw new NotFoundException("Staff member not found");
+  await assertTargetInScope(actor, row);
   return present(row);
 }
 
+/**
+ * Flexible tab assignment: any valid mix of tabs can be chosen, with two rules:
+ * a team member (staff) never receives the Team tab, and non-super-admins can
+ * only hand out tabs they hold themselves (assertTabsGrant).
+ */
 function cleanTabs(tabs: string[] | undefined, role: StaffRole): AdminTabId[] {
   const source = tabs?.length ? tabs : tabsForRole(role);
   const unique = [...new Set(source)];
   if (unique.some((tab) => !isAdminTab(tab))) throw new BadRequestException("Unknown tab");
-  if (unique.length === 0) throw new BadRequestException("Assign at least one tab");
-  return unique.filter(isAdminTab);
+  // A role-forbidden area is dropped rather than granted: resolveTabs caps the set.
+  const allowed = resolveTabs(role, unique);
+  if (allowed.length === 0) throw new BadRequestException("Assign at least one tab");
+  return allowed;
 }
 
 async function assertTabsGrant(actor: Actor, tabs: string[]) {
-  if (actor.role === "superadmin") return;
+  if (normalizeRole(actor.role) === "superadmin") return;
   const profile = await getPrisma().admin_profiles.findUnique({ where: { id: actor.sub }, select: { role: true, tabs: true } });
-  if (!profile || profile.role === "superadmin") return;
-  const owned = new Set(profile.tabs);
-  if (tabs.some((tab) => !owned.has(tab))) {
+  if (!profile) throw new ForbiddenException("Account not found");
+  const owned = new Set(resolveTabs(profile.role, profile.tabs));
+  if (tabs.some((tab) => !owned.has(tab as AdminTabId))) {
     throw new ForbiddenException("You can only assign tabs you have");
   }
 }
@@ -108,18 +142,29 @@ export async function createStaff(actor: Actor, input: {
   name: string;
   email: string;
   password: string;
-  role?: StaffRole;
+  role?: string;
+  position?: string | null;
   tabs?: string[];
   branchIds: string[];
 }) {
   assertCanManageStaff(actor);
-  const role: StaffRole = input.role ?? (input.branchIds.length > 0 ? "branch_manager" : "admin");
-  assertRoleChange(actor, role);
+  // A branch manager may only add team members; anything higher is refused,
+  // not silently downgraded.
+  const role: StaffRole = normalizeRole(input.role ?? "staff");
+  assertCanManageTarget(actor, role);
   const tabs = cleanTabs(input.tabs, role);
   await assertTabsGrant(actor, tabs);
-  const branchIds = role === "branch_manager" ? await existingBranches(input.branchIds) : [];
-  if (role === "branch_manager" && branchIds.length === 0) {
-    throw new BadRequestException("Choose at least one branch, or leave branches empty for access to every branch");
+  let requestedBranches = input.branchIds;
+  if (normalizeRole(actor.role) === "branch_manager") {
+    const mine = await actorBranchIds(actor);
+    if (requestedBranches.some((id) => !mine.includes(id))) throw new ForbiddenException("You can only assign your branches");
+    requestedBranches = requestedBranches.length > 0 ? requestedBranches : mine;
+    if (requestedBranches.length === 0) throw new ForbiddenException("You can only add staff to your branch");
+  }
+  const needsBranch = isBranchScoped(role);
+  const branchIds = needsBranch ? await existingBranches(requestedBranches) : [];
+  if (needsBranch && branchIds.length === 0) {
+    throw new BadRequestException("Choose at least one branch");
   }
   try {
     const row = await getPrisma().admin_profiles.create({
@@ -128,6 +173,7 @@ export async function createStaff(actor: Actor, input: {
         email: input.email,
         password_hash: await hashPassword(input.password),
         role,
+        position: role === "staff" ? input.position?.trim() || null : null,
         tabs,
         admin_branch_access: { create: branchIds.map((location_id) => ({ location_id })) },
       },
@@ -146,7 +192,8 @@ export async function updateStaff(actor: Actor, id: string, input: {
   name?: string;
   email?: string;
   password?: string;
-  role?: StaffRole;
+  role?: string;
+  position?: string | null;
   tabs?: string[];
   branchIds?: string[];
   is_active?: boolean;
@@ -155,16 +202,32 @@ export async function updateStaff(actor: Actor, id: string, input: {
   if (input.is_active === false && actor.sub === id) {
     throw new BadRequestException("You cannot deactivate your own account");
   }
-  const current = await getPrisma().admin_profiles.findUnique({ where: { id }, select: { role: true } });
+  const current = await getPrisma().admin_profiles.findUnique({
+    where: { id },
+    select: { role: true, tabs: true, admin_branch_access: { select: { location_id: true } } },
+  });
   if (!current) throw new NotFoundException("Staff member not found");
-  if (input.role) assertRoleChange(actor, input.role, current.role);
-  else assertRoleChange(actor, current.role, current.role);
-  const tabs = input.tabs ? cleanTabs(input.tabs, current.role as StaffRole) : undefined;
+  assertCanManageTarget(actor, current.role);
+  await assertTargetInScope(actor, current);
+
+  const role = input.role ? normalizeRole(input.role) : normalizeRole(current.role);
+  if (input.role) assertCanManageTarget(actor, role);
+
+  const tabs = input.tabs ? cleanTabs(input.tabs, role) : input.role ? cleanTabs(current.tabs, role) : undefined;
   if (tabs) await assertTabsGrant(actor, tabs);
 
-  let role = input.role;
-  if (input.branchIds && current.role !== "superadmin") {
-    role = input.branchIds.length > 0 ? "branch_manager" : "admin";
+  let branchIds: string[] | undefined;
+  if (isBranchScoped(role)) {
+    const requested = input.branchIds ?? current.admin_branch_access.map((access) => access.location_id);
+    if (requested.length === 0 && (input.role || input.branchIds || input.is_active === true)) throw new BadRequestException("Choose at least one branch");
+    if (normalizeRole(actor.role) === "branch_manager") {
+      const mine = await actorBranchIds(actor);
+      if (requested.some((branchId) => !mine.includes(branchId))) throw new ForbiddenException("You can only assign your branches");
+    }
+    if (input.branchIds) branchIds = await existingBranches(requested);
+  } else if (input.branchIds || input.role) {
+    if (input.branchIds?.length) throw new BadRequestException("Branches only apply to branch managers and team members");
+    branchIds = [];
   }
 
   await getPrisma().admin_profiles.update({
@@ -173,12 +236,14 @@ export async function updateStaff(actor: Actor, id: string, input: {
       ...(input.name ? { name: input.name } : {}),
       ...(input.email ? { email: input.email } : {}),
       ...(input.password ? { password_hash: await hashPassword(input.password) } : {}),
-      ...(role ? { role } : {}),
+      ...(input.role ? { role } : {}),
+      ...(role !== "staff" ? { position: null } : input.position !== undefined ? { position: input.position?.trim() || null } : {}),
       ...(tabs ? { tabs } : {}),
       ...(input.is_active !== undefined ? { is_active: input.is_active } : {}),
+      ...(branchIds !== undefined ? { admin_branch_access: { deleteMany: {}, create: branchIds.map((location_id) => ({ location_id })) } } : {}),
     },
   });
-  if (input.branchIds) return replaceStaffBranches(actor, id, input.branchIds);
+
   return getStaff(actor, id);
 }
 
@@ -188,12 +253,26 @@ export async function setStaffActive(actor: Actor, id: string, isActive: boolean
 
 export async function replaceStaffBranches(actor: Actor, id: string, branchIds: string[]) {
   assertCanManageStaff(actor);
-  const current = await getPrisma().admin_profiles.findUnique({ where: { id }, select: { role: true } });
+  const current = await getPrisma().admin_profiles.findUnique({
+    where: { id },
+    select: { role: true, admin_branch_access: { select: { location_id: true } } },
+  });
   if (!current) throw new NotFoundException("Staff member not found");
-  assertRoleChange(actor, current.role, current.role);
-  const unique = await existingBranches(branchIds);
-  if (current.role === "branch_manager" && unique.length === 0) {
-    throw new BadRequestException("A branch manager needs at least one branch");
+  assertCanManageTarget(actor, current.role);
+  await assertTargetInScope(actor, current);
+  if (!isBranchScoped(current.role)) {
+    throw new BadRequestException("Branches only apply to branch managers and team members");
+  }
+  let allowedIds = branchIds;
+  if (normalizeRole(actor.role) === "branch_manager") {
+    const mine = await actorBranchIds(actor);
+    if (branchIds.some((branchId) => !mine.includes(branchId))) throw new ForbiddenException("You can only assign your branches");
+    allowedIds = branchIds;
+    if (allowedIds.length === 0) throw new ForbiddenException("You can only assign your branch");
+  }
+  const unique = await existingBranches(allowedIds);
+  if (unique.length === 0) {
+    throw new BadRequestException("Choose at least one branch");
   }
   await getPrisma().$transaction([
     getPrisma().admin_branch_access.deleteMany({ where: { admin_id: id } }),

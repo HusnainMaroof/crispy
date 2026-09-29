@@ -9,27 +9,37 @@ import { useUI } from "@/lib/context/ui-context";
 import { cartCount } from "@/lib/cart-model";
 import type { RootState } from "@/lib/redux/store";
 import DeliveryOverlay from "./delivery-overlay";
-import { SUPPORTED_LOCALES } from "@/lib/i18n";
+import { SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
-import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 type NavLink = { label?: string; href?: string };
 type SocialLink = { platform?: string; label?: string; url?: string };
 export type NavbarContent = {
+  ordering?: { mode?: "cart" | "redirect" };
   logo?: { imageUrl?: string; alt?: string };
-  navigation?: { links?: NavLink[]; showLanguage?: boolean; cartLabel?: string; menuLabel?: string; closeLabel?: string };
-  actions?: {
-    showCollect?: boolean;
-    collectLine1?: string;
-    collectLine2?: string;
-    collectIcon?: string;
-    showDeliver?: boolean;
-    deliverLine1?: string;
-    deliverLine2?: string;
-    deliverIcon?: string;
-  };
+  navigation?: { links?: NavLink[]; showLanguage?: boolean; menuLabel?: string; closeLabel?: string };
   socials?: { show?: boolean; links?: SocialLink[] };
 };
+
+const LOCALE_LABEL: Record<AppLocale, string> = { en: "EN", ar: "عربي" };
+
+function LanguageSwitch({ locale, onChange }: { locale: AppLocale; onChange: (value: AppLocale) => void }) {
+  return (
+    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white">
+      {SUPPORTED_LOCALES.map((code) => (
+        <button
+          key={code}
+          type="button"
+          onClick={() => onChange(code)}
+          aria-pressed={locale === code}
+          className={`cursor-pointer ${locale === code ? "text-[#FF0931]" : "text-white/50"}`}
+        >
+          {LOCALE_LABEL[code]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const DEFAULT_LINKS: Required<NavLink>[] = [
   { label: "Menu", href: "/menu" },
@@ -209,11 +219,13 @@ function PillButton({
   lines,
   variant,
   className = "",
+  count = 0,
 }: {
   icon?: ReactNode;
   lines: string[];
   variant: "filled" | "outline";
   className?: string;
+  count?: number;
 }) {
   const base =
     `btn-press group flex shrink-0 items-center gap-2 rounded-[4px] ${PILL_PADDING} text-left h-[42px] 2xl:h-[48px] ` +
@@ -225,8 +237,13 @@ function PillButton({
       : "border text-[#FF0931] hover:bg-[#FF0931]/10 hover:text-white";
 
   return (
-    <div className={`${base} ${variantClass} ${className}`} role="presentation">
+    <div className={`${base} ${variantClass} ${className} relative`} role="presentation">
       {icon}
+      {count > 0 && (
+        <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none text-[#FF0931]">
+          {count}
+        </span>
+      )}
       <span className="flex flex-col">
         {lines.map((line) => (
           <span className="text-[12px] 2xl:text-[13px]" key={line}>
@@ -260,39 +277,35 @@ function SocialRail({ links, className = "" }: { links: Required<SocialLink>[]; 
   );
 }
 
-export default function Navbar({ content }: { content?: NavbarContent }) {
+export default function Navbar({ content, copies }: { content?: NavbarContent; copies?: Partial<Record<AppLocale, NavbarContent | undefined>> }) {
   const [open, setOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const { toggleCart } = useUI();
-  const { locale, setLocale } = useLocale();
-  const links = (content?.navigation?.links?.length ? content.navigation.links : DEFAULT_LINKS)
+  const { locale, setLocale, t } = useLocale();
+  const activeContent = copies?.[locale] ?? copies?.en ?? content;
+  const links = (activeContent?.navigation?.links?.length ? activeContent.navigation.links : DEFAULT_LINKS)
     .filter((link): link is Required<NavLink> => Boolean(link.label?.trim() && link.href?.trim()));
-  const showLanguage = content?.navigation?.showLanguage !== false;
-  const cartLabel = content?.navigation?.cartLabel || "Cart";
-  const menuLabel = content?.navigation?.menuLabel || "Menu";
-  const closeLabel = content?.navigation?.closeLabel || "Close";
-  const actions = content?.actions;
-  const collectLines = [actions?.collectLine1 || "Click", actions?.collectLine2 || "& Collect"];
-  const deliverLines = [actions?.deliverLine1 || "Get It", actions?.deliverLine2 || "Delivered"];
-  const showCollect = actions?.showCollect !== false;
-  const showDeliver = actions?.showDeliver !== false;
-  const socials = (content?.socials?.links?.length ? content.socials.links : DEFAULT_SOCIALS)
+  const showLanguage = activeContent?.navigation?.showLanguage !== false;
+  const menuLabel = activeContent?.navigation?.menuLabel || t("nav.menu");
+  const closeLabel = activeContent?.navigation?.closeLabel || t("nav.close");
+  const socials = (activeContent?.socials?.links?.length ? activeContent.socials.links : DEFAULT_SOCIALS)
     .filter((link): link is Required<SocialLink> => Boolean(link.url?.trim() && /^https:\/\//i.test(link.url)));
-  const showSocials = content?.socials?.show !== false && socials.length > 0;
-  const logoUrl = content?.logo?.imageUrl?.trim() ?? "";
-  const logoAlt = content?.logo?.alt || "Crispies home";
+  const showSocials = activeContent?.socials?.show !== false && socials.length > 0;
+  const logoUrl = activeContent?.logo?.imageUrl?.trim() ?? "";
+  const logoAlt = activeContent?.logo?.alt || "Crispies home";
   const itemCount = cartCount(useSelector((state: RootState) => state.cart));
-  const { ordering, redirect } = useStoreOrdering();
-  const handleCart = async () => {
-    if (await redirect()) return;
+  const orderSystem = activeContent?.ordering?.mode === "redirect" ? "redirect" : "cart";
+  const openOrdering = () => {
+    setOpen(false);
+    if (orderSystem === "redirect") {
+      setDeliveryOpen(true);
+      return;
+    }
     toggleCart();
   };
-  const handleDelivery = async () => {
-    if (await redirect()) return;
-    setDeliveryOpen(true);
-  };
+  const pillWidth = "w-[150px] 2xl:w-[160px] justify-center";
 
   useEffect(() => {
     const el = headerRef.current;
@@ -400,40 +413,19 @@ export default function Navbar({ content }: { content?: NavbarContent }) {
           </div>
 
           <div className=" flex items-center gap-8">
-            {showLanguage && <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white">
-              {SUPPORTED_LOCALES.map((code) => (
-                <button key={code} type="button" onClick={() => setLocale(code)} className={`cursor-pointer ${locale === code ? "text-[#FF0931]" : "text-white/50"}`}>{code}</button>
-              ))}
-            </div>}
-            <button type="button" onClick={handleCart} className="cursor-pointer rounded-full border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white">
-              {cartLabel}{itemCount > 0 ? ` ${itemCount}` : ""}
+            {showLanguage && <LanguageSwitch locale={locale} onChange={setLocale} />}
+            {orderSystem === "cart" ? (
+              <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
+                <PillButton variant="filled" count={itemCount} icon={<OrderIcon name="bag" className="h-4 w-3.5 2xl:h-5 2xl:w-4" />} lines={[t("nav.pill.cart.1"), t("nav.pill.cart.2")].filter(Boolean)} className={pillWidth} />
+              </button>
+            ) : (
+              <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
+                <PillButton variant="filled" icon={<OrderIcon name="bag" className="h-4 w-3.5 2xl:h-5 2xl:w-4" />} lines={[t("nav.pill.collect.1"), t("nav.pill.collect.2")].filter(Boolean)} className={pillWidth} />
+              </button>
+            )}
+            <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
+              <PillButton variant="filled" icon={<OrderIcon name="bike" className="h-4 w-6 2xl:h-5 2xl:w-7" />} lines={[t("nav.pill.delivery.1"), t("nav.pill.delivery.2")].filter(Boolean)} className={pillWidth} />
             </button>
-            {showCollect && <button
-              type="button"
-              onClick={handleDelivery}
-              aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
-              className="cursor-pointer"
-            >
-              <PillButton
-                variant="filled"
-                icon={<OrderIcon name={actions?.collectIcon} className="h-4 w-3.5 2xl:h-5 2xl:w-4" />}
-                lines={collectLines}
-                className="w-[150px] 2xl:w-[160px] justify-center"
-              />
-            </button>}
-            {showDeliver && <button
-              type="button"
-              onClick={handleDelivery}
-              aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
-              className="cursor-pointer"
-            >
-              <PillButton
-                variant="filled"
-                icon={<OrderIcon name={actions?.deliverIcon} className="h-4 w-6 2xl:h-5 2xl:w-7" />}
-                lines={deliverLines}
-                className="w-[150px] 2xl:w-[160px] justify-center"
-              />
-            </button>}
           </div>
 
           {showSocials && <SocialRail links={socials} className="flex-col gap-1.5" />}
@@ -499,14 +491,17 @@ export default function Navbar({ content }: { content?: NavbarContent }) {
           </div>
           )}
         </Link>
-        <button
-          aria-label="Toggle menu"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="px-2.5 py-1.5 text-[12px] font-semibold capitalize tracking-[0.4px] text-white [font-family:var(--font-inter),Inter,sans-serif]"
-        >
-          {open ? closeLabel : menuLabel}
-        </button>
+        <div className="flex items-center gap-3">
+          {showLanguage && <LanguageSwitch locale={locale} onChange={setLocale} />}
+          <button
+            aria-label={t("nav.toggleMenu")}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="px-2.5 py-1.5 text-[12px] font-semibold capitalize tracking-[0.4px] text-white [font-family:var(--font-inter),Inter,sans-serif]"
+          >
+            {open ? closeLabel : menuLabel}
+          </button>
+        </div>
       </nav>
 
       {open && (
@@ -542,48 +537,18 @@ export default function Navbar({ content }: { content?: NavbarContent }) {
                 style={{ animationDelay: `${0.05 + links.length * 0.08}s` }}
                 className="menu-item mt-2 flex flex-col gap-2.5"
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    void handleCart();
-                  }}
-                  className="cursor-pointer rounded-full border border-white/20 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white"
-                >
-                  {cartLabel}{itemCount > 0 ? ` ${itemCount}` : ""}
+                {orderSystem === "cart" ? (
+                  <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
+                    <PillButton variant="filled" count={itemCount} icon={<OrderIcon name="bag" className="h-4 w-3.5" />} lines={[t("nav.pill.cart.1"), t("nav.pill.cart.2")].filter(Boolean)} className="w-full justify-center" />
+                  </button>
+                ) : (
+                  <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
+                    <PillButton variant="filled" icon={<OrderIcon name="bag" className="h-4 w-3.5" />} lines={[t("nav.pill.collect.1"), t("nav.pill.collect.2")].filter(Boolean)} className="w-full justify-center" />
+                  </button>
+                )}
+                <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
+                  <PillButton variant="filled" icon={<OrderIcon name="bike" className="h-4 w-6" />} lines={[t("nav.pill.delivery.1"), t("nav.pill.delivery.2")].filter(Boolean)} className="w-full justify-center" />
                 </button>
-                {showCollect && <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    void handleDelivery();
-                  }}
-                  aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
-                  className="cursor-pointer"
-                >
-                  <PillButton
-                    variant="filled"
-                    icon={<OrderIcon name={actions?.collectIcon} className="h-4 w-3.5" />}
-                    lines={collectLines}
-                    className="w-full justify-center"
-                  />
-                </button>}
-                {showDeliver && <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    void handleDelivery();
-                  }}
-                  aria-haspopup={ordering.mode === "cart" ? "dialog" : undefined}
-                  className="cursor-pointer"
-                >
-                  <PillButton
-                    variant="filled"
-                    icon={<OrderIcon name={actions?.deliverIcon} className="h-4 w-6" />}
-                    lines={deliverLines}
-                    className="w-full justify-center"
-                  />
-                </button>}
               </div>
 
               {showSocials && <div
@@ -598,7 +563,7 @@ export default function Navbar({ content }: { content?: NavbarContent }) {
           </div>
         </>
       )}
-      {deliveryOpen && ordering.mode === "cart" && (
+      {deliveryOpen && orderSystem === "redirect" && (
         <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />
       )}
     </header>

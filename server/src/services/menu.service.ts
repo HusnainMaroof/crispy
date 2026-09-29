@@ -25,6 +25,9 @@ async function resolveBranch(scope?: { locationId: string; required: boolean }) 
 export async function getFullMenu(scope?: { locationId: string; required: boolean }): Promise<CategoryWithItems[]> {
   if (!scope) return globalMenu();
 
+  const stored = await db().locations.findUnique({ where: { id: scope.locationId }, select: { status: true } });
+  if (stored && stored.status !== "active") return [];
+
   const location = await resolveBranch(scope);
   if (!location) return globalMenu();
 
@@ -120,6 +123,22 @@ export async function deleteCategory(id: string): Promise<void> {
   }
 }
 
+const itemBranchInclude = {
+  branch_menu_items: {
+    where: { available: true },
+    select: { location: { select: { id: true, name: true } } },
+    orderBy: { location: { name: "asc" as const } },
+  },
+};
+
+function withBranches<T extends { branch_menu_items?: { location: { id: string; name: string } }[] }>(row: T) {
+  const { branch_menu_items, ...item } = row;
+  return {
+    ...item,
+    locations: (branch_menu_items ?? []).map((link) => link.location),
+  };
+}
+
 export async function getMenuItems(categoryId?: string, activeOnly = true): Promise<MenuItem[]> {
   const rows = await db().menu_items.findMany({
     where: {
@@ -127,14 +146,15 @@ export async function getMenuItems(categoryId?: string, activeOnly = true): Prom
       ...(categoryId ? { category_id: categoryId } : {}),
     },
     orderBy: { sort_order: "asc" },
+    include: itemBranchInclude,
   });
-  return serialize(rows);
+  return serialize(rows.map(withBranches));
 }
 
 export async function getMenuItemById(id: string): Promise<MenuItem> {
-  const row = await db().menu_items.findUnique({ where: { id } });
+  const row = await db().menu_items.findUnique({ where: { id }, include: itemBranchInclude });
   if (!row) throw new NotFoundException("Menu item not found");
-  return serialize(row);
+  return serialize(withBranches(row));
 }
 
 export async function createMenuItem(input: Record<string, unknown>): Promise<MenuItem> {

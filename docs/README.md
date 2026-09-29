@@ -42,8 +42,8 @@ Next.js app (client/)  ──fetch /api──►  Express API (server/)  ──P
 | Server pricing | At quote and checkout the server looks up every price itself and ignores what the browser sent |
 | Order snapshot | An order line copies the name and price at checkout, so later menu edits never change old orders |
 | Guest customers | No customer logins. A browser cookie identifies the guest and their orders |
-| Staff roles | `superadmin` and `admin` see everything. `branch_manager` sees only assigned branches |
-| Homepage CMS | Homepage copy, images, video, and Instagram reels are edited in admin, in English or Urdu |
+| Staff roles | `superadmin` sees every branch. `branch_manager` and `staff` see only assigned branches and allowed areas |
+| Homepage CMS | Homepage copy, images, video, and Instagram reels are edited in admin, in English or Arabic |
 | Fixed design | The storefront look is fixed. New data is fed into the existing components, never a redesign |
 
 **What is not real yet.** The menu is development mock data (fictional prices, stock photos). Payment is only a "card/cash" label. Delivery fees are not added. Brevo emails currently fail with an invalid key. Details are in [Known gaps](#known-gaps).
@@ -53,7 +53,7 @@ Next.js app (client/)  ──fetch /api──►  Express API (server/)  ──P
 | You want to… | Look in |
 |---|---|
 | Change a storefront section | `client/app/components/store/` |
-| Change an admin screen | `client/app/admin/` and `client/lib/admin/` |
+| Change an admin screen | `client/app/super-admin/` and `client/lib/admin/` |
 | Change cart or branch behaviour | `client/lib/redux/slices/cartSlice.ts`, `client/lib/cart-model.ts`, `client/lib/branch-selection.tsx` |
 | Add or change an endpoint | `server/src/routes/` → `controllers/` → `services/`, with Zod in `validators/` |
 | Change the database | `server/prisma/schema.prisma` plus a new folder in `server/prisma/migrations/` |
@@ -159,10 +159,10 @@ The menu, location list, locations page, delivery page, and delivery overlay sto
 - `GET /api/store/homepage` returns only published sections; missing sections fall back to built-in copy.
 - New admin editor with active/published toggles, ordering, and Cloudinary image upload. HTML and unsafe links are rejected. Branch managers cannot edit.
 
-### Stage 14 — English and Urdu
+### Stage 14 — English and Arabic
 
 - Section copy moved into `homepage_section_translations`, one row per language.
-- Language is chosen by `?locale=`, then the `crispy_locale` cookie, then the browser language, then English. Missing Urdu falls back to English.
+- Language is chosen by `?locale=`, then the `crispy_locale` cookie, then the browser language, then English. Missing Arabic falls back to English.
 - Navbar, cart, checkout, and order pages read a UI dictionary. Money always shows as GBP.
 
 ### After Stage 14 — Richer homepage CMS
@@ -214,7 +214,7 @@ The Next app never opens a database connection. Every read and write goes throug
 | Client | `client/` | Storefront at `/`, admin at `/admin` | 3000 |
 | Server | `server/` | REST API under `/api`, health at `/health` | `PORT` or 4000 |
 
-`client/next.config.ts` rewrites `/api/:path*` to `NEXT_PUBLIC_API_BASE_URL`, falling back to `http://localhost:4000`. `client/lib/api.ts` prefixes every request with the same variable and sends `credentials: "include"` so cookies travel. Keep that variable and the server `PORT` in agreement.
+`client/next.config.ts` rewrites public `/api/:path*` requests to `NEXT_PUBLIC_API_BASE_URL`, falling back to `http://localhost:4000`. Admin API requests use a same-origin Next route handler at `app/api/admin/[...path]/route.ts`, which forwards request cookies and upstream `Set-Cookie` headers so HttpOnly admin sessions work across deployments. Set `NEXT_PUBLIC_API_BASE_URL` to the Express API origin in production.
 
 **Client** (`client/.env`): `NEXT_PUBLIC_API_BASE_URL`.
 
@@ -281,27 +281,26 @@ Pages under `app/(store)/` share `layout.tsx`: Lenis smooth scroll, a toast host
 
 | Admin URL | What it is |
 |---|---|
-| `/admin/login` | Sign-in, no shell |
-| `/admin` | Dashboard stats and latest orders |
-| `/admin/orders`, `/admin/orders/[id]` | Branch-scoped order list, detail, and status workflow |
-| `/admin/customers`, `/admin/customers/[id]` | Branch-scoped CRM |
-| `/admin/staff`, `/admin/staff/[id]` | Staff accounts, roles, branch assignment |
-| `/admin/branches`, `/admin/branches/[id]` | Branch status and assigned-staff count |
-| `/admin/locations` | Branch detail editor |
-| `/admin/branch-menu` | Per-branch price overrides and availability |
-| `/admin/menu`, `/admin/categories`, `/admin/deals` | Global catalogue |
-| `/admin/posts` | Job posts |
-| `/admin/cms/[page]` | CMS editor for one page (`site`, `home`, …), superadmin only. `/admin/cms`, `/admin/homepage`, and the old `/admin/cms/homepage|flavours|partner` redirect to `/admin/cms/home` |
-| `/admin/settings` | Company delivery fee and free-delivery threshold |
+| `/super-admin/login` | Shared sign-in, no shell |
+| `/super-admin` | Company dashboard |
+| `/super-admin/orders`, `/super-admin/customers` | Ordering, with Orders and Customers views |
+| `/super-admin/staff`, `/super-admin/staff/[id]` | Team, positions, branch assignments, and access |
+| `/super-admin/locations` | Branch editor |
+| `/super-admin/menu` | Shared catalogue and branch menus |
+| `/super-admin/posts` | Job posts and applications |
+| `/super-admin/cms/[page]` | Content editor, super admin only |
+| `/super-admin/settings` | Saved delivery values |
+| `/{branch}/admin/...` | Branch manager view of assigned operational tabs |
+| `/{branch}/{person}/...` | Staff view of assigned operational tabs |
 
-`app/admin/layout.tsx` is a client gate. Without `crispies_admin_token` in `localStorage` it redirects to `/admin/login`. Signed-in pages render inside `AdminShell` (sidebar and top bar).
+`app/super-admin/layout.tsx` verifies the HttpOnly `crispy_admin_session` cookie against `/api/admin/auth/me`, shows a skeleton while checking, redirects guests to `/super-admin/login`, and sends signed-in visitors to the home path for their role. Branch and staff URLs reuse the same pages through Next middleware.
 
 #### Data on the client
 
 ```
 Page or hook
   → Redux thunk, admin hook, or branch-selection context
-    → lib/api.ts   (Bearer token, one refresh + retry on 401, one retry on 429)
+    → lib/api.ts   (HttpOnly cookie, one refresh + retry on 401, one retry on 429)
       → Express /api
 ```
 
@@ -406,19 +405,21 @@ Named exceptions in `utils/app-error.ts`: `BadRequestException` (400), `Unauthor
 1. `POST /api/admin/auth/login` looks up `admin_profiles` by email and checks the scrypt hash (`salt:hash`).
 2. Unknown email, wrong password, and inactive account all return the same 401.
 3. The server signs a JWT (`sub`, `email`, `role`) with `JWT_SECRET`.
-4. The browser stores it as `crispies_admin_token` and sends `Authorization: Bearer <token>`.
-5. `middleware/auth.ts` verifies the token, then reloads the profile on every request. A missing or inactive profile is rejected, and the **database** role is used, not the one baked into the token.
-6. `POST /api/admin/auth/refresh` re-signs a still-valid token. `lib/api.ts` calls it once on a 401.
+4. The server sends it in the HttpOnly, SameSite=Lax `crispy_admin_session` cookie; JavaScript cannot read the credential.
+5. `middleware/auth.ts` verifies the cookie, then reloads the profile on every request. A missing or inactive profile is rejected, and the **database** role is used, not the one baked into the token.
+6. `POST /api/admin/auth/refresh` re-signs a still-valid cookie session. `lib/api.ts` calls it once on a 401. Logout clears the cookie.
 
-| Capability | superadmin | admin | branch_manager |
+| Capability | Super admin | Branch manager | Staff member |
 |---|---|---|---|
-| Branches visible | All | All | Rows in `admin_branch_access` only |
-| Create, edit, deactivate branches | Yes | Yes | No |
-| Branch menu and deals | All | All | Assigned branches |
-| Orders and customers | All, including orders with no branch | All | Assigned branches only |
-| Manage staff | Yes | Yes, but cannot edit or grant `superadmin` | No |
-| Site content (CMS) | Yes | No (403) | No (403) |
+| Branches visible | All | Assigned branches | Assigned branches |
+| Create, edit, deactivate branches | Yes | No | No |
+| Branch menu and deals | All | Assigned branches | View assigned branch menu |
+| Orders and customers | All | Assigned branches, if granted the area | Assigned branches, if granted the area |
+| Manage team accounts | All | Staff in assigned branches only | No |
+| Site content, jobs, settings, shared catalogue | Yes | No | No |
 | Edit own name | Yes | Yes | Yes |
+
+Only three account roles can be assigned: `superadmin`, `branch_manager`, and `staff`. Staff accounts have a job position such as Cashier or Kitchen staff; the position is descriptive, while tab permissions control access. The Team form uses branch and access selectors instead of a wall of checkboxes. Existing `admin` accounts become branch managers in the migration. Accounts with no branch assignment are deactivated until the super admin assigns a branch and reactivates them.
 
 Branch lists are read at request time, so removing an assignment takes effect before the token expires.
 
@@ -606,7 +607,7 @@ The nine branches: Harrow Road, Tower Hill, Kilburn, Harrow, Elephant & Castle, 
 - Brevo sends currently fail with `401 Key not found`; orders and status changes still save.
 - `GET /api/admin/dashboard/stats` is not branch-scoped, so a branch manager sees company totals.
 - Login for an unknown email returns slightly faster than a wrong password (same message).
-- The Urdu UI dictionary is empty, so Urdu pages show English interface strings until keys are added.
+- Catalogue rows without Arabic names (`name_ar`, `title_ar`) show their English names in the Arabic store.
 - Full `pnpm lint` on the server fails on the `namespace` declaration in `identify-customer.ts`.
 - No browser end-to-end tests. Server rules are covered by `server/tests/`.
 - Not built from the earlier design: lead status/assignment columns on `contact_messages`, an activity timeline, a `translations` table for catalogue text, a `redirects` table, and a franchise-pack download.
@@ -623,7 +624,7 @@ Health is not under `/api`:
 
 `GET /health` → `{ "status": "ok", "timestamp": "<ISO>" }`
 
-Admin routes need `Authorization: Bearer <token>`, except `POST /api/admin/auth/login`.
+Admin routes authenticate with the HttpOnly `crispy_admin_session` cookie. `POST /api/admin/auth/login` sets it; `POST /api/admin/auth/logout` clears it.
 
 ---
 
@@ -691,7 +692,7 @@ Server cookies are `httpOnly`, `sameSite=lax`, path `/`, `secure` in production.
 
 #### Branch scope for staff
 
-`superadmin` and `admin` see every branch. `branch_manager` sees only branches in `admin_branch_access`. Where a route is branch-scoped, a manager gets 403 for another branch, and list routes silently return only their branches.
+`superadmin` sees every branch. `branch_manager` and `staff` see only branches in `admin_branch_access`. Where a route is branch-scoped, another branch returns 403, and list routes return only assigned branches.
 
 ---
 
@@ -959,7 +960,6 @@ The job id is the URL param. Increments `job_posts.applications`.
 
 ```json
 {
-  "token": "<jwt>",
   "user": { "id": "...", "email": "...", "name": "...", "role": "superadmin", "is_active": true, "created_at": "..." }
 }
 ```
@@ -968,7 +968,7 @@ Unknown email, wrong password, and inactive account all return 401 `Invalid emai
 
 #### `POST /api/admin/auth/refresh`
 
-Needs a still-valid Bearer token for an active account. Returns `{ "token": "<jwt>" }`.
+Needs a still-valid `crispy_admin_session` cookie for an active account. Rotates the cookie and returns the current user profile.
 
 #### `GET /api/admin/auth/me`
 
@@ -1119,14 +1119,14 @@ Branch-scoped through orders: a manager sees a customer only if they have an ord
 
 ### Admin — Staff
 
-admin and superadmin only. Managers get 403.
+Super admins manage branch managers and staff. Branch managers manage staff assigned to their own branches. Staff members cannot access Team.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/admin/staff` | Name, email, role, `is_active`, assigned branch names |
+| GET | `/api/admin/staff` | Name, email, role, position, `is_active`, assigned branch names |
 | GET | `/api/admin/staff/:id` | |
 | POST | `/api/admin/staff` | See body below |
-| PATCH | `/api/admin/staff/:id` | Any of `name`, `email`, `password`, `role`, `is_active` |
+| PATCH | `/api/admin/staff/:id` | Any of `name`, `email`, `password`, `role`, `position`, `tabs`, `branchIds`, `is_active` |
 | POST | `/api/admin/staff/:id/deactivate` | Keeps the row and assignments. You cannot deactivate yourself |
 | POST | `/api/admin/staff/:id/activate` | |
 | PUT | `/api/admin/staff/:id/branches` | `{ "branchIds": ["..."] }` replaces assignments |
@@ -1135,7 +1135,7 @@ admin and superadmin only. Managers get 403.
 { "name": "Sam", "email": "sam@crispies.co.uk", "password": "at-least-8-chars", "role": "branch_manager", "branchIds": ["6f8c2a14-0b31-4d5e-9a72-11c0ffee0001"] }
 ```
 
-`role`: `superadmin` | `admin` | `branch_manager`. A manager needs at least one real branch. An admin cannot create, edit, or grant `superadmin`. Up to 20 branch ids.
+`role`: `superadmin` | `branch_manager` | `staff`. Branch managers and staff need at least one real branch. Branch managers can only add staff within their assigned branches and grant access they hold themselves. Up to 20 branch ids.
 
 ---
 
@@ -1149,7 +1149,7 @@ admin and superadmin only. Managers get 403.
 | GET | `/pages/:page` | `?locale=en|ur`. Creates any missing section rows, then returns each section with its field `definition`, the `content` to edit (that locale's copy, else English, else defaults), `translation` (`is_published`, `updated_at`) or null, `copied_from_english`, and `coverage` per locale |
 | PATCH | `/sections/:id` | `{ locale?, content?, is_active?, is_published? }`. Upserts that locale's copy. Returns the page |
 | POST | `/sections/:id/move` | `{ "direction": "up" | "down" }`. Only on sortable pages and unpinned sections, else 400. Returns the page |
-| POST | `/sections/:id/reset` | `{ "locale": "en" | "ur" }`. Deletes that locale's copy, so English or the default shows. Returns the page |
+| POST | `/sections/:id/reset` | `{ "locale": "en" | "ar" }`. Deletes that locale's copy, so English or the default shows. Returns the page |
 
 `content` is checked against the section's registry fields. Unknown keys are rejected. Errors come back as 400 with the field path, e.g. `ctaUrl: Link must be an existing storefront page`.
 
@@ -1418,7 +1418,7 @@ Textareas match inputs. Checkboxes and radios use the brand-red accent.
 
 Dark shell, never the marketing layout.
 
-`app/admin/layout.tsx` blocks every admin URL until `crispies_admin_token` exists. `/admin/login` renders without the shell. Everything else sits in `admin-shell.tsx`:
+`app/admin/layout.tsx` checks the `crispy_admin_session` cookie before rendering admin pages, using skeletons during verification. `/admin/login` renders without the shell. The authenticated shell is lazy-loaded from `admin-shell.tsx`:
 
 - `sidebar.tsx`: fixed left, 256px or collapsed to 80px, `border-r border-white/10`. Links: Dashboard, Menu, Categories, Orders, Customers, Staff, Branches, Deals, Branch Menu, Job Posts, Locations. A **Content** group underneath lists the CMS pages from `GET /api/admin/cms/pages`; it only appears for a superadmin. Settings and Sign out sit at the bottom.
 - Active item: `bg-brand-red text-white shadow-lg shadow-brand-red/20`. Inactive: `text-white/50 hover:bg-white/5 hover:text-white`. Icons `group-hover:scale-110`.
@@ -1432,14 +1432,14 @@ Screen notes:
 
 - **Orders:** the status dropdown lists only the current status plus `allowed_statuses` from the server. Detail shows stored line prices and totals.
 - **Branch Menu:** per-branch price override (empty clears it) and an on/off availability toggle per row. It labels the catalogue as development mock data.
-- **CMS** (`/admin/cms/[page]`, superadmin only): forms are drawn from the server's field definitions (`cms-fields.tsx`), so a new registry field needs no editor code. One English/Urdu selector with `translated/total` coverage; per section a show/hide toggle, a publish toggle for that language, up/down ordering on sortable pages, save, discard, and reset. Lists can add, remove, and reorder items. Every image field uploads (5 MB) and every video field uploads up to 50 MB via `/api/admin/upload-media`. Unsaved changes are flagged and leaving the page warns. The editor never sets fonts, spacing, or colours.
+- **CMS** (`/admin/cms/[page]`, superadmin only): forms are drawn from the server's field definitions (`cms-fields.tsx`), so a new registry field needs no editor code. One English/Arabic selector with `translated/total` coverage; per section a show/hide toggle, a publish toggle for that language, up/down ordering on sortable pages, save, discard, and reset. Lists can add, remove, and reorder items. Every image field uploads (5 MB) and every video field uploads up to 50 MB via `/api/admin/upload-media`. Unsaved changes are flagged and leaving the page warns. The editor never sets fonts, spacing, or colours.
 - Forms that take images upload through `POST /api/admin/upload` and store the returned Cloudinary URL.
 
 ---
 
 ### Localisation in the UI
 
-English is the default; Urdu is supported for homepage CMS copy. Navbar labels, cart, checkout, and order pages read the dictionary in `client/lib/i18n/`, falling back to English for any missing key. Order status codes stay English in the API and are translated only when rendered. Money always uses `formatCurrency` (GBP, `en-GB`). Switching language sets `crispy_locale` and refreshes the page; it never clears the cart. The admin interface stays English.
+English is the default; Arabic is the second language, and choosing it flips the storefront to right-to-left (`dir="rtl"` on `<html>`). Navbar labels, cart, checkout, and order pages read the dictionary in `client/lib/i18n/`, falling back to English for any missing key. Menu categories, items, and deals carry Arabic names (`title_ar`, `name_ar`, `description_ar`) edited in admin and shown in the Arabic store with English fallback; cart lines and order items are stored in the customer's language. Order status codes stay English in the API and are translated only when rendered. Money always uses `formatCurrency` (GBP, `en-GB`). Switching language sets `crispy_locale` and refreshes the page; it never clears the cart. The admin interface stays English.
 
 ---
 

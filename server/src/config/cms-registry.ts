@@ -6,9 +6,10 @@ export type CmsField =
   | { kind: "number"; label: string; min: number; max: number; hint?: string; default: number }
   | { kind: "select"; label: string; options: { value: string; label: string }[]; hint?: string; default: string }
   | { kind: "toggle"; label: string; hint?: string; default: boolean }
+  | { kind: "branches"; label: string; max: number; hint?: string; default: string[] }
   | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] };
 
-export type CmsListItem = Exclude<CmsField, { kind: "list" }> | { kind: "object"; label: string; fields: Record<string, CmsField> };
+export type CmsListItem = Exclude<CmsField, { kind: "list" } | { kind: "branches" }> | { kind: "object"; label: string; fields: Record<string, CmsField> };
 
 export type CmsIssue = { path: string[]; message: string };
 
@@ -60,7 +61,10 @@ export const CMS_PAGES: CmsPage[] = [
             ],
             default: "cart",
           },
-          redirectUrl: { kind: "url", label: "External order URL", hint: "Required for redirect mode. Must start with https://", default: "" },
+          redirectUrl: { kind: "url", label: "External order URL", hint: "Fallback destination for redirect mode, used when a platform link is empty. Must start with https://", default: "" },
+          uberEatsUrl: { kind: "url", label: "Uber Eats link", hint: "Where the customer goes after picking Uber Eats in the Click & Collect popup. Must start with https://", default: "" },
+          deliverooUrl: { kind: "url", label: "Deliveroo link", hint: "Where the customer goes after picking Deliveroo in the Click & Collect popup. Must start with https://", default: "" },
+          justEatUrl: { kind: "url", label: "Just Eat link", hint: "Where the customer goes after picking Just Eat in the Click & Collect popup. Must start with https://", default: "" },
           ctaLabel: text("Order button label", 80, "Order Now"),
         },
         check: (content) => content.mode === "redirect" && !String(content.redirectUrl ?? "").startsWith("https://")
@@ -72,10 +76,27 @@ export const CMS_PAGES: CmsPage[] = [
   {
     id: "navbar",
     label: "Navbar",
-    detail: "Logo, navigation links, order buttons, language switch, and the social icons in the header.",
+    detail: "Logo, navigation, and social icons. The order system chooses which two buttons appear in the bar.",
     path: "/",
     sortable: false,
     sections: [
+      {
+        key: "ordering",
+        label: "Order system",
+        hint: "Cart system shows Cart and Get It Delivered. Both open the cart. Redirect system shows Click & Collect and Get It Delivered. Both open the branch and platform popup.",
+        fields: {
+          mode: {
+            kind: "select",
+            label: "System",
+            options: [
+              { value: "cart", label: "Cart system" },
+              { value: "redirect", label: "Redirect system" },
+            ],
+            hint: "These two systems run side by side. Only the one you select is used.",
+            default: "cart",
+          },
+        },
+      },
       {
         key: "logo",
         label: "Logo",
@@ -109,42 +130,8 @@ export const CMS_PAGES: CmsPage[] = [
             ],
           },
           showLanguage: { kind: "toggle", label: "Show the language switch", default: true },
-          cartLabel: text("Cart button label", 40, "Cart"),
           menuLabel: text("Mobile menu button", 40, "Menu"),
           closeLabel: text("Mobile close button", 40, "Close"),
-        },
-      },
-      {
-        key: "actions",
-        label: "Order buttons",
-        hint: "The Click & Collect and Get It Delivered pills. Icons are the built-in bag and bike.",
-        fields: {
-          showCollect: { kind: "toggle", label: "Show Click & Collect", default: true },
-          collectLine1: text("Collect, first line", 24, "Click"),
-          collectLine2: text("Collect, second line", 24, "& Collect"),
-          collectIcon: {
-            kind: "select",
-            label: "Collect icon",
-            options: [
-              { value: "bag", label: "Bag" },
-              { value: "bike", label: "Bike" },
-              { value: "none", label: "No icon" },
-            ],
-            default: "bag",
-          },
-          showDeliver: { kind: "toggle", label: "Show Get It Delivered", default: true },
-          deliverLine1: text("Deliver, first line", 24, "Get It"),
-          deliverLine2: text("Deliver, second line", 24, "Delivered"),
-          deliverIcon: {
-            kind: "select",
-            label: "Deliver icon",
-            options: [
-              { value: "bag", label: "Bag" },
-              { value: "bike", label: "Bike" },
-              { value: "none", label: "No icon" },
-            ],
-            default: "bike",
-          },
         },
       },
       {
@@ -188,7 +175,7 @@ export const CMS_PAGES: CmsPage[] = [
   {
     id: "home",
     label: "Homepage",
-    detail: "Manage each homepage section. Hero and welcome always open the page; the rest can be reordered.",
+    detail: "Hero and welcome stay at the top. Reorder the other sections, and edit only what each section shows.",
     path: "/",
     sortable: true,
     sections: [
@@ -205,20 +192,24 @@ export const CMS_PAGES: CmsPage[] = [
       {
         key: "welcome",
         label: "Welcome",
-        hint: "The welcome paragraph beside the homepage images.",
+        hint: "Headline, paragraph, and the two photos in the welcome panel.",
         pinned: true,
         fields: {
+          headline: text("Headline", 80, "Welcome to"),
+          accent: text("Highlighted word", 40, "Crispies"),
           description: text("Paragraph", 2000, "Crispies was founded with a mission to serve the best burgers & chicken around. Our aim has always been to serve fresh, handmade food, bursting with flavours from around the globe.", { multiline: true }),
+          backImage: { kind: "image", label: "Back photo", hint: "The straight photo behind the tilted one.", default: "/images/welcomeSectionimageOne.jpg.avif" },
+          frontImage: { kind: "image", label: "Front photo", hint: "The tilted photo that slides in over the back photo.", default: "/images/welcomeSectionimageTwo.jpg.avif" },
         },
       },
       {
         key: "flavours",
         label: "Discover your flavor",
-        hint: "Section heading, flavour tiles, heat scale, gallery, and order button.",
+        hint: "Headings, flavour names, heat scale, scrolling photos, and the order button.",
         fields: {
           title: text("Original flavours label", 120, "Crispies Original Flavours"),
           discoverTitle: text("Main heading", 120, "Discover Your Crispy Flavor"),
-          flavours: {
+          tiles: {
             kind: "list",
             label: "Flavour tiles",
             max: 5,
@@ -233,27 +224,26 @@ export const CMS_PAGES: CmsPage[] = [
             item: { kind: "object", label: "Heat level", fields: { label: text("Name", 60, ""), image: { kind: "image", label: "Icon artwork", default: "" } } },
             default: ["Garlic", "Lemon", "Mild", "Hot", "Extra", "BBQ & Jerk Sauce"].map((label) => ({ label, image: "" })),
           },
-          galleryImages: { kind: "list", label: "Gallery images", max: 12, item: { kind: "image", label: "Image", default: "" }, default: [] },
           ctaLabel: text("Button label", 80, "Order On The Website"),
           ctaUrl: { kind: "link", label: "Button destination", external: true, default: "/menu" },
+          centerImage: { kind: "image", label: "Center image", hint: "The photo on the white card in the middle of the carousel.", default: "/images/orderOnimage.png" },
+          galleryImages: {
+            kind: "list",
+            label: "Carousel",
+            max: 12,
+            hint: "These photos scroll behind the center card. Use at least two.",
+            item: { kind: "image", label: "Slide", default: "" },
+            default: ["/images/aboutimage.jpg", "/images/aboutimage.jpg", "/images/aboutimage.jpg", "/images/aboutimage.jpg"],
+          },
         },
       },
       {
         key: "locations",
         label: "Locations",
-        hint: "Show live branch cards or a single button to the locations page. Branch details come from the Locations manager.",
+        hint: "Pick which branches appear, and the order they appear in. Names, hours, and addresses come from Locations.",
         fields: {
           title: text("Heading", 120, "Find Your Nearest Crispies"),
-          displayMode: {
-            kind: "select",
-            label: "Display mode",
-            options: [
-              { value: "cards", label: "Show branch cards" },
-              { value: "redirect", label: "Show button and redirect" },
-            ],
-            default: "cards",
-          },
-          cardLimit: { kind: "number", label: "Maximum cards", min: 1, max: 10, default: 5 },
+          locationIds: { kind: "branches", label: "Branches", max: 12, hint: "Leave this empty to show every branch. Otherwise only the ticked branches appear, in this order.", default: [] },
           ctaLabel: text("Button label", 80, "View All Locations"),
           ctaUrl: { kind: "link", label: "Button destination", default: "/locations" },
         },
@@ -273,7 +263,7 @@ export const CMS_PAGES: CmsPage[] = [
       {
         key: "instagram",
         label: "Instagram",
-        hint: "Profile metrics, bio, reels, thumbnails, likes, and views.",
+        hint: "Profile, numbers, and the reels in the row.",
         fields: {
           title: text("Section heading", 120, "Instagram"),
           username: text("Username", 50, "crispiesuk"),

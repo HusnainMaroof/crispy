@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/i18n";
@@ -8,6 +9,7 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import { clearCart } from "@/lib/redux/slices/cartSlice";
 import type { AppDispatch, RootState } from "@/lib/redux/store";
 import { useStoreLocations } from "@/lib/use-store-locations";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 type Quote = {
   locationId: string;
@@ -39,6 +41,8 @@ function checkoutKey() {
 
 export default function CheckoutPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
+  const { resolveOrdering } = useStoreOrdering();
   const cart = useSelector((state: RootState) => state.cart);
   useStoreLocations();
   const locations = useSelector((state: RootState) => state.locations.locations);
@@ -52,11 +56,23 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ customer_name: "", email: "", phone: "", address: "", postcode: "", city: "", notes: "" });
   const { locale, t } = useLocale();
 
+  // Redirect system: orders go to the external apps, so on-site checkout is closed.
+  useEffect(() => {
+    let active = true;
+    void resolveOrdering().then((resolved) => {
+      if (active && resolved.mode === "redirect") router.replace("/menu");
+    });
+    return () => {
+      active = false;
+    };
+  }, [resolveOrdering, router]);
+
   useEffect(() => {
     if (!cart.locationId || cart.items.length === 0) return;
     let cancelled = false;
     api.post<Quote>("/menu/quote", {
       locationId: cart.locationId,
+      locale,
       items: cart.items.map((item) => ({ kind: item.kind, id: item.id, quantity: item.quantity })),
     }).then((data) => {
       if (!cancelled) {
@@ -72,9 +88,9 @@ export default function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [cart]);
+  }, [cart, locale]);
 
-  const branchName = locations.find((location) => location.id === cart.locationId)?.name ?? "Selected branch";
+  const branchName = locations.find((location) => location.id === cart.locationId)?.name ?? t("checkout.branchFallback");
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -88,13 +104,14 @@ export default function CheckoutPage() {
         payment_method: payment,
         location_id: cart.locationId,
         checkout_key: checkoutKey(),
+        locale,
         items: cart.items.map((item) => ({ kind: item.kind, id: item.id, quantity: item.quantity })),
       });
       setOrder(created);
       dispatch(clearCart());
       sessionStorage.removeItem(KEY);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Checkout failed");
+      setError(err instanceof Error ? err.message : t("error.generic"));
     } finally {
       setSubmitting(false);
     }
@@ -105,9 +122,9 @@ export default function CheckoutPage() {
       <main className="min-h-screen bg-black px-4 py-16 text-white">
         <div className="mx-auto max-w-lg">
           <h1 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-5xl uppercase">{t("checkout.placed")}</h1>
-          <p className="mt-4 text-sm text-white/60">Order #{order.id} is {t(`status.${order.status}`)}.</p>
-          <p className="mt-6 text-sm">Branch {branchName}</p>
-          <p className="text-sm capitalize">{order.fulfilment}</p>
+          <p className="mt-4 text-sm text-white/60">{t("order.statusLine", { id: order.id, status: t(`status.${order.status}`) })}</p>
+          <p className="mt-6 text-sm">{t("checkout.branch", { name: branchName })}</p>
+          <p className="text-sm">{t(`checkout.${order.fulfilment}`)}</p>
           <ul className="mt-6 space-y-2 text-sm">
             {order.items.map((item) => (
               <li key={`${item.kind}-${item.name}`} className="flex justify-between gap-4">
@@ -127,38 +144,38 @@ export default function CheckoutPage() {
     <main className="min-h-screen bg-black px-4 py-16 text-white">
       <form onSubmit={(event) => void submit(event)} className="mx-auto flex max-w-lg flex-col gap-4">
         <h1 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-5xl uppercase">{t("checkout.title")}</h1>
-        <p className="text-sm text-white/60">{branchName}. Totals below come from the server.</p>
+        <p className="text-sm text-white/60">{t("checkout.branch", { name: branchName })}. {t("checkout.quoteNote")}</p>
         {quoteError && <p className="text-sm text-[#FF0931]">{quoteError}</p>}
         {error && <p className="text-sm text-[#FF0931]">{error}</p>}
-        <label className="text-xs uppercase tracking-widest text-white/50">Name
+        <label className="text-xs uppercase tracking-widest text-white/50">{t("checkout.name")}
           <input required value={form.customer_name} onChange={(event) => setForm({ ...form, customer_name: event.target.value })} className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white" />
         </label>
-        <label className="text-xs uppercase tracking-widest text-white/50">Email
+        <label className="text-xs uppercase tracking-widest text-white/50">{t("checkout.email")}
           <input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white" />
         </label>
-        <label className="text-xs uppercase tracking-widest text-white/50">Phone
+        <label className="text-xs uppercase tracking-widest text-white/50">{t("checkout.phone")}
           <input required value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white" />
         </label>
-        <label className="text-xs uppercase tracking-widest text-white/50">Fulfilment
+        <label className="text-xs uppercase tracking-widest text-white/50">{t("checkout.fulfilment")}
           <select value={fulfilment} onChange={(event) => setFulfilment(event.target.value as "collection" | "delivery")} className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm">
-            <option value="collection">Collection</option>
-            <option value="delivery">Delivery</option>
+            <option value="collection">{t("checkout.collection")}</option>
+            <option value="delivery">{t("checkout.delivery")}</option>
           </select>
         </label>
         {fulfilment === "delivery" && (
           <>
-            <input required placeholder="Address" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
-            <input required placeholder="Postcode" value={form.postcode} onChange={(event) => setForm({ ...form, postcode: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
-            <input required placeholder="City" value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
+            <input required placeholder={t("checkout.address")} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
+            <input required placeholder={t("checkout.postcode")} value={form.postcode} onChange={(event) => setForm({ ...form, postcode: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
+            <input required placeholder={t("checkout.city")} value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
           </>
         )}
-        <label className="text-xs uppercase tracking-widest text-white/50">Payment label
+        <label className="text-xs uppercase tracking-widest text-white/50">{t("checkout.payment")}
           <select value={payment} onChange={(event) => setPayment(event.target.value as "cash" | "card")} className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm">
-            <option value="cash">Cash</option>
-            <option value="card">Card</option>
+            <option value="cash">{t("checkout.cash")}</option>
+            <option value="card">{t("checkout.card")}</option>
           </select>
         </label>
-        <textarea placeholder="Notes" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} className="min-h-24 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm" />
+        <textarea placeholder={t("checkout.notes")} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} className="min-h-24 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm" />
         <ul className="space-y-2 text-sm">
           {(quote?.items ?? []).map((item) => (
             <li key={`${item.kind}-${item.id}`} className="flex justify-between">
@@ -169,7 +186,7 @@ export default function CheckoutPage() {
         </ul>
         <p className="text-lg">{quote ? `${t("checkout.total")} ${formatCurrency(quote.total, locale)}` : t("checkout.waiting")}</p>
         <button type="submit" disabled={!quote || submitting || !cart.locationId} className="cursor-pointer rounded-full bg-[#FF0931] py-4 text-xs font-bold uppercase tracking-widest disabled:opacity-50">
-          {submitting ? "Placing order..." : "Place order"}
+          {submitting ? t("checkout.placing") : t("checkout.save")}
         </button>
       </form>
     </main>

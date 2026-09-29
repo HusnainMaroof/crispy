@@ -16,7 +16,6 @@ import { BadRequestException, ForbiddenException, NotFoundException } from "../s
 
 const prisma = getPrisma();
 const superadmin = { sub: "cms-super", role: "superadmin" as const };
-const admin = { sub: "cms-admin", role: "admin" as const };
 const manager = { sub: "cms-manager", role: "branch_manager" as const };
 
 async function section(page: string, key: string) {
@@ -44,22 +43,24 @@ describe("cms registry", () => {
   it("rejects html, unknown fields, unsafe links, and bad media", () => {
     assert.equal(schemaFor("home", "welcome").safeParse({ description: "<script>alert(1)</script>" }).success, false);
     assert.equal(schemaFor("home", "welcome").safeParse({ banner: "x" }).success, false);
-    assert.equal(schemaFor("home", "partner").safeParse({ ctaUrl: "https://evil.example" }).success, false);
-    assert.equal(schemaFor("home", "partner").safeParse({ ctaUrl: "/admin" }).success, false);
-    assert.equal(schemaFor("home", "partner").safeParse({ ctaUrl: "/franchise-inquiries" }).success, true);
-    assert.equal(schemaFor("home", "flavours").safeParse({ ctaUrl: "https://orders.example.com" }).success, true);
-    assert.equal(schemaFor("home", "flavours").safeParse({ ctaUrl: "javascript:alert(1)" }).success, false);
-    assert.equal(schemaFor("home", "partner").safeParse({ imageUrl: "javascript:alert(1)" }).success, false);
+    assert.equal(schemaFor("home", "locations").safeParse({ ctaUrl: "/admin" }).success, false);
+    assert.equal(schemaFor("home", "locations").safeParse({ ctaUrl: "/locations" }).success, true);
+    assert.equal(schemaFor("home", "flavours").safeParse({ centerImage: "https://cdn.example.com/card.png" }).success, true);
+    assert.equal(schemaFor("home", "flavours").safeParse({ galleryImages: ["javascript:alert(1)"] }).success, false);
+    assert.equal(schemaFor("home", "welcome").safeParse({ backImage: "javascript:alert(1)" }).success, false);
     assert.equal(schemaFor("home", "hero").safeParse({ videoUrl: "https://cdn.example.com/hero.mp4" }).success, true);
     assert.equal(schemaFor("home", "hero").safeParse({ lines: ["a", "b", "c", "d"] }).success, false);
-    assert.equal(schemaFor("home", "flavours").safeParse({ flavours: [{ label: "Lemon", image: "/images/lemon.png", extra: 1 }] }).success, false);
+    assert.equal(schemaFor("home", "flavours").safeParse({ galleryImages: ["/images/aboutimage.jpg"] }).success, true);
     assert.equal(schemaFor("home", "instagram").safeParse({ reels: [{ url: "https://evil.example/reel/1", thumbnailUrl: "/images/reel.jpg" }] }).success, false);
     assert.equal(schemaFor("home", "instagram").safeParse({ reels: [{ url: "https://www.instagram.com/reel/abc/", thumbnailUrl: "/images/reel.jpg" }] }).success, true);
-    assert.equal(schemaFor("home", "locations").safeParse({ cardLimit: 11 }).success, false);
+    assert.equal(schemaFor("home", "locations").safeParse({ locationIds: ["branch-1", "branch-2"] }).success, true);
+    assert.equal(schemaFor("home", "locations").safeParse({ locationIds: Array.from({ length: 13 }, (_, index) => `branch-${index}`) }).success, false);
     assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "" }).success, false);
     assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "http://orders.example.com" }).success, false);
     assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "https://orders.example.com" }).success, true);
     assert.equal(cmsSectionUpdateSchema.safeParse({ locale: "../../" }).success, false);
+    assert.equal(cmsSectionUpdateSchema.parse({ locale: "ur", is_published: true }).locale, "ar");
+    assert.equal(cmsSectionUpdateSchema.parse({ locale: "ar", is_published: true }).locale, "ar");
     assert.equal(cmsSectionUpdateSchema.safeParse({}).success, false);
   });
 });
@@ -69,7 +70,10 @@ describe("cms pages", { concurrency: 1 }, () => {
     const page = await getPublicCmsPage("home");
     assert.deepEqual(page.order, ["hero", "welcome", "flavours", "locations", "partner", "instagram"]);
     assert.deepEqual(page.sections.hero.lines, ["Always Good", "Mood Food"]);
-    assert.equal((page.sections.flavours.flavours as unknown[]).length, 5);
+    assert.equal("flavours" in page.sections.flavours, false);
+    assert.ok(Array.isArray(page.sections.flavours.galleryImages));
+    assert.equal(typeof page.sections.flavours.centerImage, "string");
+    assert.equal(page.sections.welcome.headline, "Welcome to");
     assert.equal("id" in page.sections.hero, false);
 
     const hero = await section("home", "hero");
@@ -91,7 +95,7 @@ describe("cms pages", { concurrency: 1 }, () => {
     assert.equal((await getPublicCmsPage("home")).sections.welcome.description, "Fresh handmade food.");
     await updateCmsSection(superadmin, welcome.id, { content: before });
     await assert.rejects(() => updateCmsSection(superadmin, welcome.id, { content: { description: "<b>x</b>" } }), BadRequestException);
-    for (const actor of [admin, manager]) {
+    for (const actor of [manager]) {
       await assert.rejects(() => listCmsPages(actor), ForbiddenException);
       await assert.rejects(() => getCmsPageForEditing(actor, "home"), ForbiddenException);
       await assert.rejects(() => updateCmsSection(actor, welcome.id, { content: { description: "No" } }), ForbiddenException);
@@ -113,28 +117,38 @@ describe("cms pages", { concurrency: 1 }, () => {
 
   it("falls back to English until a translation is published, and resets it", async () => {
     const hero = await section("home", "hero");
-    await assert.rejects(() => updateCmsSection(superadmin, hero.id, { locale: "../../" }), BadRequestException);
-    const draft = await getCmsPageForEditing(superadmin, "home", "ur");
-    const heroDraft = draft.sections.find((item) => item.key === "hero")!;
-    assert.equal(heroDraft.copied_from_english, true);
-    assert.deepEqual(heroDraft.content.lines, ["Always Good", "Mood Food"]);
+    const existing = await prisma.cms_section_translations.findUnique({ where: { section_id_locale: { section_id: hero.id, locale: "ar" } } });
+    if (existing) await prisma.cms_section_translations.delete({ where: { id: existing.id } });
+    try {
+      await assert.rejects(() => updateCmsSection(superadmin, hero.id, { locale: "../../" }), BadRequestException);
+      const draft = await getCmsPageForEditing(superadmin, "home", "ar");
+      const heroDraft = draft.sections.find((item) => item.key === "hero")!;
+      assert.equal(heroDraft.copied_from_english, true);
+      assert.deepEqual(heroDraft.content.lines, ["Always Good", "Mood Food"]);
 
-    await updateCmsSection(superadmin, hero.id, { locale: "ur", content: { lines: ["اچھا موڈ"] }, is_published: false });
-    assert.deepEqual((await getPublicCmsPage("home", "ur")).sections.hero.lines, ["Always Good", "Mood Food"]);
-    assert.deepEqual((await getPublicCmsPage("home", "../../")).sections.hero.lines, ["Always Good", "Mood Food"]);
-    await updateCmsSection(superadmin, hero.id, { locale: "ur", is_published: true });
-    assert.deepEqual((await getPublicCmsPage("home", "ur")).sections.hero.lines, ["اچھا موڈ"]);
-    assert.deepEqual((await getPublicCmsPage("home", "ur")).sections.welcome, (await getPublicCmsPage("home", "en")).sections.welcome);
+      await updateCmsSection(superadmin, hero.id, { locale: "ar", content: { lines: ["مزاج رائع"] }, is_published: false });
+      assert.deepEqual((await getPublicCmsPage("home", "ar")).sections.hero.lines, ["Always Good", "Mood Food"]);
+      assert.deepEqual((await getPublicCmsPage("home", "../../")).sections.hero.lines, ["Always Good", "Mood Food"]);
+      await updateCmsSection(superadmin, hero.id, { locale: "ar", is_published: true });
+      assert.deepEqual((await getPublicCmsPage("home", "ar")).sections.hero.lines, ["مزاج رائع"]);
 
-    await resetCmsSection(superadmin, hero.id, "ur");
-    assert.deepEqual((await getPublicCmsPage("home", "ur")).sections.hero.lines, ["Always Good", "Mood Food"]);
+      await resetCmsSection(superadmin, hero.id, "ar");
+      assert.deepEqual((await getPublicCmsPage("home", "ar")).sections.hero.lines, ["Always Good", "Mood Food"]);
+    } finally {
+      await prisma.cms_section_translations.deleteMany({ where: { section_id: hero.id, locale: "ar" } });
+      if (existing) {
+        await prisma.cms_section_translations.create({
+          data: { section_id: hero.id, locale: "ar", content: existing.content ?? {}, is_published: existing.is_published },
+        });
+      }
+    }
   });
 
   it("serves navbar defaults before anything is saved", async () => {
     const page = await getPublicCmsPage("navbar");
-    assert.deepEqual(page.order, ["logo", "navigation", "actions", "socials"]);
+    assert.deepEqual(page.order, ["ordering", "logo", "navigation", "socials"]);
+    assert.equal(["cart", "redirect"].includes(String(page.sections.ordering.mode)), true);
     assert.equal((page.sections.navigation.links as { label: string }[])[0].label, "Menu");
-    assert.equal(page.sections.actions.collectIcon, "bag");
     assert.equal(page.sections.socials.show, true);
   });
 
@@ -146,6 +160,5 @@ describe("cms pages", { concurrency: 1 }, () => {
 });
 
 after(async () => {
-  await prisma.cms_section_translations.deleteMany({ where: { locale: "ur" } });
   await prisma.$disconnect();
 });

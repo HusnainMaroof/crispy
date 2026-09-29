@@ -27,7 +27,7 @@ export const MenuController = {
   },
 
   async quote(req: Request, res: Response) {
-    const quote = await quoteCart(req.body.locationId, req.body.items);
+    const quote = await quoteCart(req.body.locationId, req.body.items, req.body.locale);
     sendSuccess(res, quote);
   },
 

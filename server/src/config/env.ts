@@ -71,7 +71,7 @@ export const envConfig = {
   EMAIL: {
     BREVO_SMTP_SDK_KEY: required("BREVO_SMTP_SDK_KEY"),
     EMAIL_FROM: required("EMAIL_FROM"),
-    ADMIN_EMAIL: required("ADMIN_EMAIL"),
+    ADMIN_EMAIL: required("ADMIN_EMAIL", process.env.superADMIN_EMAIL),
   } satisfies EmailConfig,
 
   CLOUDINARY: {

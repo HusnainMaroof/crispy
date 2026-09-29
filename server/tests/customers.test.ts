@@ -114,7 +114,7 @@ describe("customers", { concurrency: 1 }, () => {
     const tower = await branch("tower-hill");
     const harrowOrder = await place(harrow.id, owner, email);
     const towerOrder = await place(tower.id, owner, email);
-    const admin = { sub: "admin", role: "admin" as const };
+    const admin = { sub: "admin", role: "superadmin" as const };
     const harrowManager = await manager(harrow.id);
     const towerManager = await manager(tower.id);
 

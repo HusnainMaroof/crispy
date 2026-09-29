@@ -15,7 +15,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white shadow-sm outline-none transition-colors placeholder:text-white/30 focus:border-brand-red/50 focus:ring-1 focus:ring-brand-red/20 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate",
+      "flex h-11 w-full cursor-pointer items-center justify-between gap-3 whitespace-nowrap rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none transition-colors hover:border-white/30 focus:border-brand-red focus:ring-1 focus:ring-brand-red disabled:cursor-not-allowed disabled:opacity-50 [&>span]:truncate",
       className
     )}
     {...props}
@@ -43,7 +43,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-60 min-w-[8rem] overflow-hidden rounded-lg border border-white/10 bg-black text-white shadow-xl shadow-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "relative z-[70] max-h-60 min-w-[8rem] overflow-hidden rounded-lg border border-white/10 bg-black text-white shadow-xl shadow-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className

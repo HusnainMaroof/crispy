@@ -14,9 +14,10 @@ describe("branch slug", () => {
 });
 
 describe("branch access", () => {
-  it("leaves superadmin and admin unrestricted", () => {
+  it("leaves only the superadmin unrestricted", () => {
     assert.equal(accessibleLocationIds("superadmin", ["loc-a"]), null);
-    assert.equal(accessibleLocationIds("admin", []), null);
+    // The legacy admin role folds into branch_manager, so it stays branch-scoped.
+    assert.deepEqual(accessibleLocationIds("admin", []), []);
   });
 
   it("limits a branch manager to assigned locations", () => {

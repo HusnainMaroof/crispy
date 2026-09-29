@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireRole } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { menuCategorySchema, menuCategoryUpdateSchema } from "../../validators/menu.schema.js";
 import { asyncHandler } from "../../utils/async-handler.js";
@@ -8,8 +9,8 @@ const router = Router();
 
 router.get("/", asyncHandler(CategoriesController.list));
 router.get("/:id", asyncHandler(CategoriesController.getById));
-router.post("/", validate(menuCategorySchema), asyncHandler(CategoriesController.create));
-router.put("/:id", validate(menuCategoryUpdateSchema), asyncHandler(CategoriesController.update));
-router.delete("/:id", asyncHandler(CategoriesController.remove));
+router.post("/", requireRole("superadmin"), validate(menuCategorySchema), asyncHandler(CategoriesController.create));
+router.put("/:id", requireRole("superadmin"), validate(menuCategoryUpdateSchema), asyncHandler(CategoriesController.update));
+router.delete("/:id", requireRole("superadmin"), asyncHandler(CategoriesController.remove));
 
 export default router;

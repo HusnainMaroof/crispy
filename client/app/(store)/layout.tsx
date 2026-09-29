@@ -8,7 +8,10 @@ export default async function StoreLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const navbar = await loadCmsPage<{ sections?: NavbarContent }>("navbar");
+  const [english, arabic] = await Promise.all([
+    loadCmsPage<{ sections?: NavbarContent }>("navbar", "en"),
+    loadCmsPage<{ sections?: NavbarContent }>("navbar", "ar"),
+  ]);
   return (
     <SmoothScroll>
       <Toaster
@@ -33,7 +36,7 @@ export default async function StoreLayout({
         }}
       />
       <div className="min-h-screen bg-brand-black text-white selection:bg-brand-red selection:text-white">
-        <Navbar content={navbar?.sections} />
+        <Navbar copies={{ en: english?.sections, ar: arabic?.sections }} />
         <main>{children}</main>
       </div>
     </SmoothScroll>

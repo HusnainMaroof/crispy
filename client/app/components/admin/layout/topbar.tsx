@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAdminSession } from "@/lib/admin/session";
+import { usePanel } from "@/lib/admin/use-panel";
+import { roleLabel } from "@/lib/admin/roles";
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -11,16 +14,14 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+  const panel = usePanel();
+  const { user, tabs } = useAdminSession();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    if (q.startsWith("#")) {
-      router.push(`/admin/orders`);
-    } else {
-      router.push(`/admin/menu`);
-    }
+    if (tabs.includes("orders")) router.push(`${panel.href("orders")}?q=${encodeURIComponent(q.replace(/^#/, ""))}`);
     setSearchQuery("");
     setSearchOpen(false);
   };
@@ -32,6 +33,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         {/* Mobile menu button */}
         <button
           onClick={onToggleSidebar}
+          aria-label="Open navigation"
           className="cursor-pointer rounded-lg p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,13 +42,15 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         </button>
 
         {/* Search */}
-        <div
+        {tabs.includes("orders") && <div
           className={`flex items-center rounded-lg border border-white/10 bg-white/5 transition-all duration-300 ${
             searchOpen ? "w-48 sm:w-80" : "w-10"
           }`}
         >
           <button
             onClick={() => setSearchOpen(!searchOpen)}
+            aria-label={searchOpen ? "Close search" : "Open search"}
+            aria-expanded={searchOpen}
             className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-white/50 transition-colors hover:text-white"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +66,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
             <form onSubmit={handleSearch} className="flex items-center">
               <input
                 type="text"
-                placeholder="Search menu, orders..."
+                placeholder="Search orders by number or customer"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-10 w-full bg-transparent text-sm text-white placeholder-white/30 outline-none"
@@ -70,19 +74,19 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
               />
             </form>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Right side */}
       <div className="flex items-center gap-2 sm:gap-4">
         {/* User */}
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-brand-red text-sm font-bold text-white transition-all duration-200 hover:scale-110 hover:shadow-lg hover:shadow-brand-red/30">
-            A
+          <div aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-red text-sm font-bold text-white">
+            {(user?.name?.[0] ?? "A").toUpperCase()}
           </div>
           <div className="hidden text-sm md:block">
-            <p className="font-medium text-white">Admin</p>
-            <p className="text-xs text-white/50">crispies.co.uk</p>
+            <p className="font-medium text-white">{user?.name ?? roleLabel(user?.role ?? "staff")}</p>
+            <p className="text-xs text-white/50">{roleLabel(user?.role ?? "staff")}</p>
           </div>
         </div>
       </div>
