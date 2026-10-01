@@ -33,20 +33,70 @@ function money(value: Prisma.Decimal): number {
   return value.toDecimalPlaces(2).toNumber();
 }
 
+const productFields = { id: true, name: true, name_ar: true, price: true, active: true } as const;
+const dealFields = { id: true, name: true, name_ar: true, price: true, active: true } as const;
+
+/**
+ * Prices a whole cart in four queries instead of two per line.
+ *
+ * This used to await findUnique for the catalogue row and then another for the
+ * branch override, once per line, inside a for loop. createOrderSchema allows
+ * 40 lines, so a full cart cost 81 sequential round-trips before the order was
+ * even written, on every cart render and every checkout.
+ *
+ * Behaviour is unchanged: lines are still resolved in request order, a missing
+ * id still raises NotFoundException, and an item that is inactive or not
+ * stocked at the branch still raises ItemUnavailableException. Only the number
+ * of queries changed.
+ */
 export async function quoteCart(locationId: string, lines: QuoteRequestLine[], locale?: string): Promise<Quote> {
   const db = getPrisma();
-  const location = await db.locations.findUnique({ where: { id: locationId } });
+
+  // Run with the rest of the pricing reads: three independent lookups, so a
+  // serial chain would only add latency.
+  const [location, products, deals] = await Promise.all([
+    db.locations.findUnique({ where: { id: locationId }, select: { id: true, status: true } }),
+    db.menu_items.findMany({
+      where: { id: { in: lines.filter((l) => l.kind === "product").map((l) => l.id) } },
+      select: productFields,
+    }),
+    db.deals.findMany({
+      where: { id: { in: lines.filter((l) => l.kind === "deal").map((l) => l.id) } },
+      select: dealFields,
+    }),
+  ]);
+
   if (!location || location.status !== "active") {
     throw new NotFoundException("Location not found");
   }
+
+  // Batch the branch overrides too, one query per catalogue type.
+  const [productLinks, dealLinks] = await Promise.all([
+    db.branch_menu_items.findMany({
+      where: {
+        location_id: location.id,
+        menu_item_id: { in: products.map((product) => product.id) },
+      },
+      select: { menu_item_id: true, price: true, available: true },
+    }),
+    db.branch_deals.findMany({
+      where: { location_id: location.id, deal_id: { in: deals.map((deal) => deal.id) } },
+      select: { deal_id: true, price: true, available: true },
+    }),
+  ]);
+
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const dealById = new Map(deals.map((deal) => [deal.id, deal]));
+  const productPriceById = new Map(productLinks.map((link) => [link.menu_item_id, link]));
+  const dealPriceById = new Map(dealLinks.map((link) => [link.deal_id, link]));
 
   const items: QuoteLine[] = [];
   let subtotal = new Prisma.Decimal(0);
 
   for (const line of lines) {
     const unit = line.kind === "product"
-      ? await productPrice(location.id, line, locale)
-      : await dealPrice(location.id, line, locale);
+      ? resolveProduct(productById, productPriceById, line, locale)
+      : resolveDeal(dealById, dealPriceById, line, locale);
     const lineTotal = unit.amount.mul(line.quantity);
     subtotal = subtotal.add(lineTotal);
     items.push({
@@ -63,28 +113,36 @@ export async function quoteCart(locationId: string, lines: QuoteRequestLine[], l
   return { locationId: location.id, items, subtotal: total, total };
 }
 
-async function productPrice(locationId: string, line: QuoteRequestLine, locale?: string): Promise<{ name: string; amount: Prisma.Decimal }> {
-  const db = getPrisma();
-  const product = await db.menu_items.findUnique({ where: { id: line.id } });
+type Product = { id: string; name: string; name_ar: string; price: Prisma.Decimal; active: boolean };
+type Deal = { id: string; name: string; name_ar: string; price: Prisma.Decimal; active: boolean };
+type Link = { price: Prisma.Decimal | null; available: boolean };
+
+function resolveProduct(
+  byId: Map<string, Product>,
+  pricesById: Map<string, Link>,
+  line: QuoteRequestLine,
+  locale: string | undefined,
+): { name: string; amount: Prisma.Decimal } {
+  const product = byId.get(line.id);
   if (!product) throw new NotFoundException("Menu item not found");
 
-  const branch = await db.branch_menu_items.findUnique({
-    where: { location_id_menu_item_id: { location_id: locationId, menu_item_id: product.id } },
-  });
+  const branch = pricesById.get(product.id);
   if (!product.active || !branch || !branch.available) {
     throw new ItemUnavailableException(`${product.name} is not available at this branch`, { kind: "product", id: product.id });
   }
   return { name: localizedName(locale, product.name, product.name_ar), amount: new Prisma.Decimal(branch.price ?? product.price) };
 }
 
-async function dealPrice(locationId: string, line: QuoteRequestLine, locale?: string): Promise<{ name: string; amount: Prisma.Decimal }> {
-  const db = getPrisma();
-  const deal = await db.deals.findUnique({ where: { id: line.id } });
+function resolveDeal(
+  byId: Map<string, Deal>,
+  pricesById: Map<string, Link>,
+  line: QuoteRequestLine,
+  locale: string | undefined,
+): { name: string; amount: Prisma.Decimal } {
+  const deal = byId.get(line.id);
   if (!deal) throw new NotFoundException("Deal not found");
 
-  const branch = await db.branch_deals.findUnique({
-    where: { location_id_deal_id: { location_id: locationId, deal_id: deal.id } },
-  });
+  const branch = pricesById.get(deal.id);
   if (!deal.active || !branch || !branch.available) {
     throw new ItemUnavailableException(`${deal.name} is not available at this branch`, { kind: "deal", id: deal.id });
   }

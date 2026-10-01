@@ -119,7 +119,7 @@ function Select({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`${INPUT_CLS} cursor-pointer appearance-none pr-10`}
+          className={`${INPUT_CLS} cursor-pointer appearance-none pe-10`}
         >
           {options.map((o) => (
             <option key={o} value={o}>
@@ -131,7 +131,7 @@ function Select({
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="none"
-          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black"
+          className="pointer-events-none absolute end-4 top-1/2 h-4 w-4 -translate-y-1/2 text-black"
           aria-hidden="true"
         >
           <path
@@ -251,11 +251,11 @@ export default function FranchiseApplicationOverlay({
         data-lenis-prevent
         className="loc-scroll relative flex h-[95vh]  w-[95%] md:w-[90%]  rounded-2xl border border-[#242424] bg-black bg-black rounded-[20px] flex-col items-center overflow-y-auto px-4 pb-8 pt-12 shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6 my-10!"
       >
-             <button
+        <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="overlay-fade-in fixed right-8 md:right-14 lg:right-20 2xl:right-24 top-8 md:top-10   flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
+          className="overlay-fade-in sticky -top-10 ms-auto z-50 -mb-9 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
             width="14"
@@ -310,7 +310,7 @@ export default function FranchiseApplicationOverlay({
         </p>
 
         {/* Qualification criteria card */}
-        <div className="mt-10 w-full max-w-[640px] rounded-2xl bg-[#1C1C1C] p-7 text-left sm:mt-12 sm:p-9">
+        <div className="mt-10 w-full max-w-[640px] rounded-2xl bg-[#1C1C1C] p-7 text-start sm:mt-12 sm:p-9">
           <h3
             className={`m-0 uppercase text-white ${KOROLEV}`}
             style={{
@@ -345,7 +345,7 @@ export default function FranchiseApplicationOverlay({
         {/* ---------- Application form ---------- */}
         <form
           onSubmit={handleSubmit}
-          className="relative mt-12 w-fit rounded-[20px] bg-white px-5 py-9 text-left sm:mt-16 sm:px-12 sm:py-14"
+          className="relative mt-12 w-fit rounded-[20px] bg-white px-5 py-9 text-start sm:mt-16 sm:px-12 sm:py-14"
         >
           <div className="mx-auto flex max-w-[820px] flex-col gap-12 sm:gap-14">
             {/* 01 — Personal Information */}
@@ -491,7 +491,11 @@ export default function FranchiseApplicationOverlay({
                   type="checkbox"
                   checked={confirmAccurate}
                   onChange={(e) => setConfirmAccurate(e.target.checked)}
-                  className=" hidden"
+                  aria-label="I confirm that the financial and personal details provided are accurate to the best of my knowledge."
+                  // sr-only, not `hidden`: display:none drops the input from the
+                  // accessibility tree and from tab order, so a keyboard user
+                  // could never tick the box that gates submit.
+                  className="sr-only"
                 />
                 <span className="h-5 w-5 shrink-0 cursor-pointer rounded border-2 border-[#FF0931] flex items-center justify-center">
                   {confirmAccurate && <Check className="text-[#FF0931]" />}
@@ -508,7 +512,8 @@ export default function FranchiseApplicationOverlay({
                   type="checkbox"
                   checked={agreeComms}
                   onChange={(e) => setAgreeComms(e.target.checked)}
-                  className="hidden"
+                  aria-label="I agree to receive communications regarding my franchise inquiries and future partnership opportunities."
+                  className="sr-only"
                 />
 
                 <span className="h-5 w-5 shrink-0 cursor-pointer rounded border-2 border-[#FF0931] flex items-center justify-center">

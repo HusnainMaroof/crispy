@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
+import { Play } from "lucide-react";
 
 type InstagramContent = {
   title?: string;
@@ -92,9 +93,11 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
   return (
     <section ref={scopeRef} className="overflow-hidden w-full bg-[#FF0931] rounded-b-3xl lg:rounded-b-[50px]">
       <div className="px-6 py-16 bg-white rounded-3xl lg:rounded-[50px]">
-        <h2 className="mb-8 text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-3xl font-bold text-black sm:text-4xl">{content?.title || "Instagram"}</h2>
-        <div className="fade-up flex items-start justify-center gap-40 mx-auto px-6 py-8 sm:px-10 sm:py-10">
-          <div className="flex items-start gap-20">
+      
+        {/* gap-40 / gap-20 needed ~638px, so the Follow button sat off-screen
+            on a 375px phone. Desktop spacing is unchanged. */}
+        <div className="fade-up flex items-start justify-center gap-4 sm:gap-10 lg:gap-40 mx-auto px-6 py-8 sm:px-10 sm:py-10">
+          <div className="flex items-start gap-4 sm:gap-6 lg:gap-20">
             <div className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-full bg-black sm:h-[85px] sm:w-[85px]">
               <svg xmlns="http://www.w3.org/2000/svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
                 <path d="M16.1839 16.2838V15.4791C16.1839 12.9055 14.4411 11.1094 11.9748 11.1094C9.50844 11.1094 7.76562 12.9055 7.76562 15.4791V26.0426C7.76562 28.5908 9.48141 30.3853 11.9748 30.3853C14.4682 30.3853 16.1839 28.5892 16.1839 26.0426V25.1306H13.5585V26.1229C13.5585 27.4634 12.808 27.8657 11.9763 27.8657C11.1447 27.8657 10.3679 27.4634 10.3679 26.1229V15.3988C10.3679 14.0583 11.1455 13.6298 11.9763 13.6298C12.8072 13.6298 13.5585 14.0583 13.5585 15.3988V16.2838H16.1839Z" fill="white" />
@@ -146,7 +149,7 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
                 </span>
               </div>
 
-              <div className="text-left text-[12px] leading-[1.5] text-[#414040]">
+              <div className="text-start text-[12px] leading-[1.5] text-[#414040]">
                 <p className="font-[family-name:var(--font-korolev),Korolev,sans-serif] font-normal">
                   {content?.bio ?? "Good Mood Food 🍔🍟"}
                 </p>
@@ -188,22 +191,15 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
                     src={post.thumbnailUrl}
                     alt={`Instagram reel by ${username}`}
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    decoding="async"
                   />
 
                   <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40" />
-                  {(post.likes || post.views) && <div className="absolute bottom-4 left-4 flex gap-3 text-xs font-semibold text-white drop-shadow">{post.views && <span>▶ {post.views}</span>}{post.likes && <span>♥ {post.likes}</span>}</div>}
+                  {(post.likes || post.views) && <div className="absolute bottom-4 start-4 flex gap-3 text-xs font-semibold text-white drop-shadow">{post.views && <span>▶ {post.views}</span>}{post.likes && <span>♥ {post.likes}</span>}</div>}
 
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:bg-white sm:h-12 sm:w-12">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="#FF0931"
-                        className="ml-0.5 h-4 w-4 sm:h-5 sm:w-5"
-                      >
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
+                   <Play  className="w-16 h-16 p-3 text-black bg-gray-100/40 rounded-2xl fill-black"/>
                   </div>
 
                 </a>

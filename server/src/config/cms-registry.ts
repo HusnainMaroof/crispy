@@ -49,41 +49,8 @@ export const CMS_PAGES: CmsPage[] = [
     sections: [
       {
         key: "ordering",
-        label: "Store ordering behavior",
-        hint: "Use the on-site cart and delivery flow, or send every order button to an external ordering site.",
-        fields: {
-          mode: {
-            kind: "select",
-            label: "Ordering mode",
-            options: [
-              { value: "cart", label: "On-site cart and delivery flow" },
-              { value: "redirect", label: "Redirect to an external ordering URL" },
-            ],
-            default: "cart",
-          },
-          redirectUrl: { kind: "url", label: "External order URL", hint: "Fallback destination for redirect mode, used when a platform link is empty. Must start with https://", default: "" },
-          uberEatsUrl: { kind: "url", label: "Uber Eats link", hint: "Where the customer goes after picking Uber Eats in the Click & Collect popup. Must start with https://", default: "" },
-          deliverooUrl: { kind: "url", label: "Deliveroo link", hint: "Where the customer goes after picking Deliveroo in the Click & Collect popup. Must start with https://", default: "" },
-          justEatUrl: { kind: "url", label: "Just Eat link", hint: "Where the customer goes after picking Just Eat in the Click & Collect popup. Must start with https://", default: "" },
-          ctaLabel: text("Order button label", 80, "Order Now"),
-        },
-        check: (content) => content.mode === "redirect" && !String(content.redirectUrl ?? "").startsWith("https://")
-          ? { path: ["redirectUrl"], message: "Add a secure external ordering URL before enabling redirect mode" }
-          : null,
-      },
-    ],
-  },
-  {
-    id: "navbar",
-    label: "Navbar",
-    detail: "Logo, navigation, and social icons. The order system chooses which two buttons appear in the bar.",
-    path: "/",
-    sortable: false,
-    sections: [
-      {
-        key: "ordering",
         label: "Order system",
-        hint: "Cart system shows Cart and Get It Delivered. Both open the cart. Redirect system shows Click & Collect and Get It Delivered. Both open the branch and platform popup.",
+        hint: "Cart system shows Your Cart and Get It Delivered, both open the cart, and /checkout stays live. Redirect system shows Click & Collect and Get It Delivered, both open the branch and platform popup, and the cart and /checkout are switched off.",
         fields: {
           mode: {
             kind: "select",
@@ -92,11 +59,25 @@ export const CMS_PAGES: CmsPage[] = [
               { value: "cart", label: "Cart system" },
               { value: "redirect", label: "Redirect system" },
             ],
-            hint: "These two systems run side by side. Only the one you select is used.",
-            default: "cart",
+            hint: "This one switch controls the whole store, including the navbar buttons.",
+            default: "redirect",
           },
+          redirectUrl: { kind: "url", label: "External order URL", hint: "Fallback destination for redirect mode, used when a platform link is empty. Must start with https://", default: "" },
+          uberEatsUrl: { kind: "url", label: "Uber Eats link", hint: "Where the customer goes after picking Uber Eats in the Click & Collect popup. Must start with https://", default: "" },
+          deliverooUrl: { kind: "url", label: "Deliveroo link", hint: "Where the customer goes after picking Deliveroo in the Click & Collect popup. Must start with https://", default: "" },
+          justEatUrl: { kind: "url", label: "Just Eat link", hint: "Where the customer goes after picking Just Eat in the Click & Collect popup. Must start with https://", default: "" },
+          ctaLabel: text("Order button label", 80, "Order Now"),
         },
       },
+    ],
+  },
+  {
+    id: "navbar",
+    label: "Navbar",
+    detail: "Logo and order buttons. The navigation links are fixed in the storefront code and are not editable here.",
+    path: "/",
+    sortable: false,
+    sections: [
       {
         key: "logo",
         label: "Logo",
@@ -104,70 +85,6 @@ export const CMS_PAGES: CmsPage[] = [
         fields: {
           imageUrl: { kind: "image", label: "Logo image", default: "" },
           alt: text("Alt text", 80, "Crispies home"),
-        },
-      },
-      {
-        key: "navigation",
-        label: "Navigation",
-        hint: "Links shown in the header and the mobile menu. Keep this short so the bar still fits.",
-        fields: {
-          links: {
-            kind: "list",
-            label: "Links",
-            max: 6,
-            item: {
-              kind: "object",
-              label: "Link",
-              fields: {
-                label: text("Label", 40, ""),
-                href: { kind: "link", label: "Page", default: "/menu" },
-              },
-            },
-            default: [
-              { label: "Menu", href: "/menu" },
-              { label: "Locations", href: "/locations" },
-              { label: "Franchise inquiry", href: "/franchise-inquiries" },
-            ],
-          },
-          showLanguage: { kind: "toggle", label: "Show the language switch", default: true },
-          menuLabel: text("Mobile menu button", 40, "Menu"),
-          closeLabel: text("Mobile close button", 40, "Close"),
-        },
-      },
-      {
-        key: "socials",
-        label: "Social icons",
-        hint: "The icon column on desktop and the row in the mobile menu.",
-        fields: {
-          show: { kind: "toggle", label: "Show social icons", default: true },
-          links: {
-            kind: "list",
-            label: "Accounts",
-            max: 5,
-            item: {
-              kind: "object",
-              label: "Account",
-              fields: {
-                platform: {
-                  kind: "select",
-                  label: "Icon",
-                  options: [
-                    { value: "instagram", label: "Instagram" },
-                    { value: "facebook", label: "Facebook" },
-                    { value: "x", label: "X" },
-                  ],
-                  default: "instagram",
-                },
-                label: text("Accessible label", 40, ""),
-                url: { kind: "url", label: "Profile URL", default: "" },
-              },
-            },
-            default: [
-              { platform: "instagram", label: "Instagram", url: "https://instagram.com" },
-              { platform: "facebook", label: "Facebook", url: "https://facebook.com" },
-              { platform: "x", label: "X", url: "https://twitter.com" },
-            ],
-          },
         },
       },
     ],
@@ -192,11 +109,9 @@ export const CMS_PAGES: CmsPage[] = [
       {
         key: "welcome",
         label: "Welcome",
-        hint: "Headline, paragraph, and the two photos in the welcome panel.",
+        hint: "Paragraph and the two photos in the welcome panel. The headline is fixed and cannot be edited here.",
         pinned: true,
         fields: {
-          headline: text("Headline", 80, "Welcome to"),
-          accent: text("Highlighted word", 40, "Crispies"),
           description: text("Paragraph", 2000, "Crispies was founded with a mission to serve the best burgers & chicken around. Our aim has always been to serve fresh, handmade food, bursting with flavours from around the globe.", { multiline: true }),
           backImage: { kind: "image", label: "Back photo", hint: "The straight photo behind the tilted one.", default: "/images/welcomeSectionimageOne.jpg.avif" },
           frontImage: { kind: "image", label: "Front photo", hint: "The tilted photo that slides in over the back photo.", default: "/images/welcomeSectionimageTwo.jpg.avif" },

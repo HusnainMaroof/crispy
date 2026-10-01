@@ -66,3 +66,27 @@ export function isBranchScoped(role: string): boolean {
 export function isTeamMemberRole(role: string): boolean {
   return normalizeRole(role) === "staff";
 }
+
+/**
+ * Every value `role` may physically hold in the column.
+ *
+ * Filtering by role in SQL means naming the stored strings rather than testing
+ * a computed tier. The set is exactly ADMIN_ROLES, because the column carries
+ * a CHECK constraint (`admin_profiles_role_check`) admitting only those three
+ * values, so a legacy spelling can never reach the table and does not need to
+ * be matched here. LEGACY_ROLE_ALIASES still matters for request bodies and
+ * any row read through an older code path.
+ */
+export function storedRoleValues(): string[] {
+  return [...ADMIN_ROLES];
+}
+
+/** Stored values that normalize to `target`, for `role: { in: [...] }`. */
+export function storedRolesFor(target: AdminRole): string[] {
+  return ADMIN_ROLES.filter((value) => value === target);
+}
+
+/** Stored role values an actor is allowed to see, for `role: { in: [...] }`. */
+export function manageableRoleValues(actorRole: string): string[] {
+  return ADMIN_ROLES.filter((value) => canManageRole(actorRole, value));
+}

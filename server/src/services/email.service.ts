@@ -1,10 +1,8 @@
-import * as sib from "@getbrevo/brevo";
+import { Resend } from "resend";
 import { envConfig } from "../config/env.js";
 import { logger } from "../middleware/logger.js";
 
-const client = new sib.BrevoClient({
-  apiKey: envConfig.EMAIL.BREVO_SMTP_SDK_KEY,
-});
+const resend = new Resend(envConfig.EMAIL.RESEND_API_KEY);
 
 interface SendEmailProps {
   to: string;
@@ -14,16 +12,19 @@ interface SendEmailProps {
 
 export async function sendEmail({ to, subject, htmlContent }: SendEmailProps) {
   try {
-    const res = await client.transactionalEmails.sendTransacEmail({
-      sender: { email: envConfig.EMAIL.EMAIL_FROM, name: "Crispies" },
-      to: [{ email: to }],
+    // Resend resolves with an { error } payload instead of throwing, so both
+    // failure shapes have to be checked or a bad send looks like a success.
+    const { data, error } = await resend.emails.send({
+      from: envConfig.EMAIL.EMAIL_FROM,
+      to: [to],
       subject,
-      htmlContent,
+      html: htmlContent,
     });
-    logger.info({ to, subject }, "Email sent");
-    return res;
+    if (error) throw new Error(error.message);
+    logger.info({ id: data?.id }, "Email sent");
+    return data;
   } catch (error) {
-    logger.error({ error, to, subject }, "Failed to send email");
+    logger.error({ err: error, subject }, "Failed to send email");
     throw error;
   }
 }

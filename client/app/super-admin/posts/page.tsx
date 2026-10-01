@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import Dropdown from "@/app/components/admin/ui/dropdown";
+import { Pagination } from "@/app/components/admin/ui/list-toolbar";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useJobPosts } from "@/lib/admin/use-job-posts";
 import { useJobApplications, type AdminJobApplication } from "@/lib/admin/use-job-applications";
@@ -76,21 +77,22 @@ type TabId = (typeof tabs)[number]["id"];
 
 function PostJobsTab() {
   const panel = usePanel();
-  const { jobPosts, loading, fetchJobPosts, deleteJobPost, toggleJobStatus } = useJobPosts();
+  const { jobPosts, pagination, loading, error, fetchJobPosts, deleteJobPost, toggleJobStatus } = useJobPosts();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
+  // Search, the status filter and paging are all server-side, so the grid shows
+  // one page of matches and `total` counts every match.
   useEffect(() => {
-    fetchJobPosts();
-  }, [fetchJobPosts]);
-
-  const filtered = jobPosts.filter((post) => {
-    const matchesSearch =
-      post.title.toLowerCase().includes(search.toLowerCase()) ||
-      post.location.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === "all" || post.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+    void fetchJobPosts({
+      status: filterStatus === "all" ? undefined : filterStatus,
+      q: search.trim() || undefined,
+      page,
+      limit: PAGE_SIZE,
+    });
+  }, [fetchJobPosts, filterStatus, search, page]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this job post?")) return;
@@ -111,6 +113,14 @@ function PostJobsTab() {
     }
   };
 
+  if (error) {
+    return (
+      <p role="alert" className="rounded-lg border border-brand-red/40 bg-brand-red/10 px-4 py-3 text-sm text-brand-red">
+        {error}
+      </p>
+    );
+  }
+
   if (loading) return <TableSkeleton />;
 
   return (
@@ -121,21 +131,21 @@ function PostJobsTab() {
             type="text"
             placeholder="Search jobs..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-brand-red/50"
           />
         </div>
         <Dropdown
           options={filterOptions}
           value={filterStatus}
-          onChange={setFilterStatus}
+          onChange={(value) => { setFilterStatus(value); setPage(1); }}
           placeholder="Filter by status"
           className="w-48"
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((post, index) => (
+        {jobPosts.map((post, index) => (
           <div
             key={post.id}
             className="group rounded-xl border border-white/10 bg-white/5 p-6 transition-all duration-200 hover:border-white/20 hover:bg-white/10 admin-slide-up"
@@ -218,10 +228,10 @@ function PostJobsTab() {
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {jobPosts.length === 0 && (
         <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
           <svg className="mx-auto h-12 w-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002 2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
           <h3 className="mt-4 text-sm font-medium text-white">No job posts found</h3>
           <p className="mt-1 text-sm text-white/50">
@@ -238,36 +248,43 @@ function PostJobsTab() {
           </Link>
         </div>
       )}
+
+      <Pagination page={pagination.page} total={pagination.total} size={pagination.limit} onChange={setPage} />
     </>
   );
 }
 
 function ReviewApplicationsTab() {
-  const { applications, loading, fetchApplications, updateApplicationStatus, deleteApplication } = useJobApplications();
+  const { applications, pagination, loading, fetchApplications, updateApplicationStatus, deleteApplication } = useJobApplications();
   const { jobPosts, fetchJobPosts } = useJobPosts();
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterJob, setFilterJob] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
+  // Applications are filtered and paged in the database.
   useEffect(() => {
-    fetchApplications();
-    fetchJobPosts();
-  }, [fetchApplications, fetchJobPosts]);
+    void fetchApplications({
+      status: filterStatus === "all" ? undefined : filterStatus,
+      job_post_id: filterJob === "all" ? undefined : filterJob,
+      q: search.trim() || undefined,
+      page,
+      limit: PAGE_SIZE,
+    });
+  }, [fetchApplications, filterStatus, filterJob, search, page]);
+
+  // The job dropdown and its options need every post, not the page currently in
+  // the grid, so this is a separate unfiltered read with a raised limit.
+  useEffect(() => {
+    void fetchJobPosts({ limit: 100 });
+  }, [fetchJobPosts]);
 
   const jobOptions = [
     { value: "all", label: "All Jobs" },
     ...jobPosts.map((p) => ({ value: p.id, label: p.title })),
   ];
-
-  const filtered = applications.filter((app) => {
-    const matchesSearch =
-      app.applicantName.toLowerCase().includes(search.toLowerCase()) ||
-      app.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === "all" || app.status === filterStatus;
-    const matchesJob = filterJob === "all" || app.jobPostId === filterJob;
-    return matchesSearch && matchesStatus && matchesJob;
-  });
 
   const handleStatusChange = async (id: string, status: AdminJobApplication["status"]) => {
     try {
@@ -288,9 +305,9 @@ function ReviewApplicationsTab() {
     }
   };
 
-  const getJobTitle = (jobPostId: string) => {
-    return jobPosts.find((p) => p.id === jobPostId)?.title ?? "Unknown Job";
-  };
+  // The title now travels with the row. It used to be looked up in the
+  // job-posts array, which broke as soon as that list was paged.
+  const getJobTitle = (app: AdminJobApplication) => app.jobTitle ?? "Unknown Job";
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
@@ -306,28 +323,28 @@ function ReviewApplicationsTab() {
             type="text"
             placeholder="Search by name or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-brand-red/50"
           />
         </div>
         <Dropdown
           options={jobOptions}
           value={filterJob}
-          onChange={setFilterJob}
+          onChange={(value) => { setFilterJob(value); setPage(1); }}
           placeholder="Filter by job"
           className="w-48"
         />
         <Dropdown
           options={appStatusOptions}
           value={filterStatus}
-          onChange={setFilterStatus}
+          onChange={(value) => { setFilterStatus(value); setPage(1); }}
           placeholder="Filter by status"
           className="w-48"
         />
       </div>
 
       <div className="space-y-3">
-        {filtered.map((app, index) => (
+        {applications.map((app, index) => (
           <div
             key={app.id}
             className="rounded-xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-white/20 admin-slide-up"
@@ -360,7 +377,7 @@ function ReviewApplicationsTab() {
                 <div className="mt-0.5 flex items-center gap-3 text-xs text-white/40">
                   <span className="truncate">{app.email}</span>
                   <span className="hidden sm:inline">•</span>
-                  <span className="hidden sm:inline">{getJobTitle(app.jobPostId)}</span>
+                  <span className="hidden sm:inline">{getJobTitle(app)}</span>
                   <span className="hidden sm:inline">•</span>
                   <span className="hidden sm:inline">
                     {new Date(app.createdAt).toLocaleDateString()}
@@ -393,7 +410,7 @@ function ReviewApplicationsTab() {
                       <p>Email: {app.email}</p>
                       {app.phone && <p>Phone: {app.phone}</p>}
                       <p>Applied: {new Date(app.createdAt).toLocaleString()}</p>
-                      <p>Job: {getJobTitle(app.jobPostId)}</p>
+                      <p>Job: {getJobTitle(app)}</p>
                     </div>
                   </div>
                   <div>
@@ -463,7 +480,7 @@ function ReviewApplicationsTab() {
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {applications.length === 0 && (
         <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
           <svg className="mx-auto h-12 w-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -474,6 +491,8 @@ function ReviewApplicationsTab() {
           </p>
         </div>
       )}
+
+      <Pagination page={pagination.page} total={pagination.total} size={pagination.limit} onChange={setPage} />
     </>
   );
 }

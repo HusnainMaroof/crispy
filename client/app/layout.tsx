@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import { Plus_Jakarta_Sans, Inter, Poppins } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/app/components/providers";
-import { resolveLocale } from "@/lib/i18n";
+import { localeDir, resolveLocale } from "@/lib/i18n";
 import "./globals.css";
 
 const korolev = localFont({
@@ -109,7 +109,7 @@ export default async function RootLayout({
   const jar = await cookies();
   const locale = resolveLocale(jar.get("crispy_locale")?.value);
   return (
-    <html lang={locale} dir="ltr" className={`${korolev.variable} ${jakarta.variable} ${inter.variable} ${poppins.variable}`}>
+    <html lang={locale} dir={localeDir(locale)} className={`${korolev.variable} ${jakarta.variable} ${inter.variable} ${poppins.variable}`}>
       <body>
         <Providers locale={locale}>{children}</Providers>
       </body>

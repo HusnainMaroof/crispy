@@ -3,7 +3,15 @@ import { MulterError } from "multer";
 import { logger } from "./logger.js";
 import { AppError, ItemUnavailableException } from "../utils/app-error.js";
 
-export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: Error, _req: Request, res: Response, next: NextFunction) {
+  // The response is already on the wire. Writing to it again is the
+  // ERR_HTTP_HEADERS_SENT crash, which kills the process rather than the
+  // request, so hand off to Express to tear the socket down instead.
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       success: false,

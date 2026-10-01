@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { Plus, ArrowUpRight } from "lucide-react";
@@ -9,7 +9,7 @@ import Dropdown from "@/app/components/admin/ui/dropdown";
 import TeamAccessFields from "@/app/components/admin/ui/team-access-fields";
 import { ListToolbar, ListMessage, Pagination, adminInput, primaryButton, secondaryButton } from "@/app/components/admin/ui/list-toolbar";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
-import { api } from "@/lib/api";
+import { api, type Pagination as PageMeta } from "@/lib/api";
 import { TAB_PICKER_LABELS, type AdminTabId } from "@/lib/admin/tabs";
 import { assignableRoles, normalizeRole, roleLabel, ROLE_DEFAULTS, type AdminRole } from "@/lib/admin/roles";
 import { useAdminSession } from "@/lib/admin/session";
@@ -18,6 +18,7 @@ import { usePanel } from "@/lib/admin/use-panel";
 type Branch = { id: string; name: string };
 type StaffRow = { id: string; name: string; email: string; role: string; position?: string | null; tabs: string[]; is_active: boolean; branches: Branch[] };
 const emptyForm = { name: "", email: "", password: "", role: "staff" as AdminRole, position: "", tabs: [...ROLE_DEFAULTS.staff], branchIds: [] as string[] };
+const PAGE_SIZE = 20;
 
 export default function StaffPage() {
   const panel = usePanel();
@@ -26,6 +27,7 @@ export default function StaffPage() {
   const isManager = actorRole === "branch_manager";
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [pagination, setPagination] = useState<PageMeta>({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -36,17 +38,28 @@ export default function StaffPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
-  async function load() {
+  // Search, the three dropdowns and paging all run in the database, which is
+  // also where the role/branch visibility rule lives. `total` therefore counts
+  // every row the actor may see, not the rows on this page.
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [people, places] = await Promise.all([api.get<StaffRow[]>("/admin/staff"), api.get<Branch[]>("/admin/locations")]);
-      setStaff(people); setBranches(places); setError("");
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("q", query.trim());
+      if (branchFilter !== "all") params.set("branch_id", branchFilter);
+      if (roleFilter !== "all") params.set("role", roleFilter);
+      if (statusFilter !== "all") params.set("is_active", String(statusFilter === "active"));
+      params.set("page", String(page));
+      params.set("limit", String(PAGE_SIZE));
+      const [people, places] = await Promise.all([
+        api.getPage<StaffRow>(`/admin/staff?${params.toString()}`),
+        api.get<Branch[]>("/admin/locations"),
+      ]);
+      setStaff(people.items); setPagination(people.pagination); setBranches(places); setError("");
     } catch (err) { setError(err instanceof Error ? err.message : "Could not load the team."); }
     finally { setLoading(false); }
-  }
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, []);
-  const visible = staff.filter((person) => `${person.name} ${person.email} ${person.position ?? ""}`.toLowerCase().includes(query.toLowerCase()) && (branchFilter === "all" || person.branches.some((branch) => branch.id === branchFilter)) && (roleFilter === "all" || normalizeRole(person.role) === roleFilter) && (statusFilter === "all" || person.is_active === (statusFilter === "active")));
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(visible.length / 20)));
+  }, [query, branchFilter, roleFilter, statusFilter, page]);
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const permittedDefaults = (role: AdminRole) => ROLE_DEFAULTS[role].filter((tab) => actorRole === "superadmin" || user?.tabs.includes(tab));
   function openModal() {
     setError(""); setForm({ ...emptyForm, tabs: permittedDefaults("staff"), branchIds: branches.length === 1 ? [branches[0].id] : [] }); setOpen(true);
@@ -67,14 +80,14 @@ export default function StaffPage() {
     <PageHeader title="Team" description={isManager ? "Manage the people working in your branches." : "People, branch assignments, and access across your business."} action={<button className={primaryButton} onClick={openModal}><Plus className="h-4 w-4" />Add team member</button>} />
     <ListToolbar query={query} onQueryChange={(value) => { setQuery(value); setPage(1); }} placeholder="Search name, email, or job position">
       <Dropdown aria-label="Filter by branch" className="w-full sm:w-44" value={branchFilter} onChange={(value) => { setBranchFilter(value); setPage(1); }} options={[{ value: "all", label: "All branches" }, ...branches.map((branch) => ({ value: branch.id, label: branch.name }))]} />
-      <Dropdown aria-label="Filter by role" className="w-full sm:w-44" value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(1); }} options={[{ value: "all", label: "All roles" }, ...Array.from(new Set(staff.map((person) => normalizeRole(person.role)))).map((role) => ({ value: role, label: roleLabel(role) }))]} />
+      <Dropdown aria-label="Filter by role" className="w-full sm:w-44" value={roleFilter} onChange={(value) => { setRoleFilter(value); setPage(1); }} options={[{ value: "all", label: "All roles" }, ...assignableRoles(actorRole).map((role) => ({ value: role, label: roleLabel(role) }))]} />
       <Dropdown aria-label="Filter by status" className="w-full sm:w-36" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(1); }} options={[{ value: "all", label: "Any status" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} />
     </ListToolbar>
     {!open && error && <div role="alert" className="mb-5 flex items-center gap-4 text-sm text-red-400">{error}<button className={secondaryButton} onClick={() => void load()}>Retry</button></div>}
-    {loading ? <TableSkeleton /> : visible.length === 0 ? <ListMessage title="No team members found" detail="Try another search or change your filters." /> : <>
+    {loading ? <TableSkeleton /> : staff.length === 0 ? <ListMessage title="No team members found" detail="Try another search or change your filters." /> : <>
       <div className="overflow-x-auto rounded-xl border border-white/10"><table className="w-full min-w-[760px] text-left text-sm">
         <thead className="border-b border-white/10 bg-white/[0.025] text-xs uppercase tracking-wider text-white/50"><tr>{["Person", "Role / position", "Branches", "Access", "Status", ""].map((heading) => <th key={heading} scope="col" className="px-5 py-4 font-medium">{heading || <span className="sr-only">Manage</span>}</th>)}</tr></thead>
-        <tbody className="divide-y divide-white/10">{visible.slice((currentPage - 1) * 20, currentPage * 20).map((person) => <tr key={person.id} className="transition-colors hover:bg-white/[0.03]">
+        <tbody className="divide-y divide-white/10">{staff.map((person) => <tr key={person.id} className="transition-colors hover:bg-white/[0.03]">
           <td className="px-5 py-4"><Link href={panel.href(`staff/${person.id}`)} className="font-medium text-white hover:underline">{person.name}</Link><p className="mt-1 text-xs text-white/50">{person.email}</p></td>
           <td className="px-5 py-4 text-white/80">{roleLabel(person.role)}{person.position && <p className="mt-1 text-xs text-white/50">{person.position}</p>}</td>
           <td className="max-w-52 px-5 py-4 text-white/70">{person.branches.map((branch) => branch.name).join(", ") || "All branches"}</td>
@@ -82,7 +95,7 @@ export default function StaffPage() {
           <td className="px-5 py-4 text-white/70">{person.is_active ? "Active" : "Inactive"}</td>
           <td className="px-5 py-4"><Link href={panel.href(`staff/${person.id}`)} aria-label={`Manage ${person.name}`} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"><ArrowUpRight className="h-4 w-4" /></Link></td>
         </tr>)}</tbody>
-      </table></div><Pagination page={currentPage} total={visible.length} onChange={setPage} />
+      </table></div><Pagination page={pagination.page} total={pagination.total} size={pagination.limit} onChange={setPage} />
     </>}
     {open && <Modal title="Add team member" onClose={() => { if (!saving) { setOpen(false); setError(""); } }} busy={saving}>
       <form onSubmit={(event) => void create(event)} className="space-y-5">

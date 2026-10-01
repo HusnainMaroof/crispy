@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, type Pagination } from "@/lib/api";
 
 export type AdminJobApplication = {
   id: string;
   jobPostId: string;
+  /** Travels with the row from the server, so the grid never has to look the title up. */
+  jobTitle: string | null;
   applicantName: string;
   email: string;
   phone: string | null;
@@ -21,6 +23,7 @@ function mapApplication(raw: Record<string, unknown>): AdminJobApplication {
   return {
     id: raw.id as string,
     jobPostId: raw.job_post_id as string,
+    jobTitle: (raw.job_title as string) ?? null,
     applicantName: raw.applicant_name as string,
     email: raw.email as string,
     phone: (raw.phone as string) ?? null,
@@ -35,17 +38,24 @@ function mapApplication(raw: Record<string, unknown>): AdminJobApplication {
 
 export function useJobApplications() {
   const [applications, setApplications] = useState<AdminJobApplication[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false,
+  });
   const [loading, setLoading] = useState(true);
 
-  const fetchApplications = useCallback(async (filters?: { job_post_id?: string; status?: string }) => {
+  const fetchApplications = useCallback(async (filters?: { job_post_id?: string; status?: string; q?: string; page?: number; limit?: number }) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (filters?.job_post_id) params.set("job_post_id", filters.job_post_id);
       if (filters?.status) params.set("status", filters.status);
+      if (filters?.q) params.set("q", filters.q);
+      if (filters?.page) params.set("page", String(filters.page));
+      if (filters?.limit) params.set("limit", String(filters.limit));
       const query = params.toString() ? `?${params.toString()}` : "";
-      const data = await api.get<Record<string, unknown>[]>(`/admin/job-applications${query}`);
-      setApplications(data.map(mapApplication));
+      const { items, pagination: meta } = await api.getPage<Record<string, unknown>>(`/admin/job-applications${query}`);
+      setApplications(items.map(mapApplication));
+      setPagination(meta);
     } finally {
       setLoading(false);
     }
@@ -80,6 +90,7 @@ export function useJobApplications() {
 
   return {
     applications,
+    pagination,
     loading,
     fetchApplications,
     updateApplicationStatus,

@@ -1,17 +1,30 @@
 import { Toaster } from "react-hot-toast";
 import SmoothScroll from "@/app/components/providers/smooth-scroll";
 import Navbar, { type NavbarContent } from "@/app/components/store/navbar";
+import StoreStatus from "@/app/components/store/store-status";
+import { isApiResponding } from "@/lib/api-health";
 import { loadCmsPage } from "@/lib/load-cms";
+import { loadStoreLocations } from "@/lib/load-locations";
+import { StoreLocationsProvider } from "@/lib/use-store-locations";
+import type { OrderingContent } from "@/lib/use-store-ordering";
+
+type SitePage = { sections?: { ordering?: OrderingContent } };
 
 export default async function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [english, arabic] = await Promise.all([
-    loadCmsPage<{ sections?: NavbarContent }>("navbar", "en"),
-    loadCmsPage<{ sections?: NavbarContent }>("navbar", "ar"),
-  ]);
+  const online = await isApiResponding();
+  const [english, arabic, siteEn, siteAr, branches] = online
+    ? await Promise.all([
+        loadCmsPage<{ sections?: NavbarContent }>("navbar", "en"),
+        loadCmsPage<{ sections?: NavbarContent }>("navbar", "ar"),
+        loadCmsPage<SitePage>("site", "en"),
+        loadCmsPage<SitePage>("site", "ar"),
+        loadStoreLocations(),
+      ])
+    : [null, null, null, null, []];
   return (
     <SmoothScroll>
       <Toaster
@@ -36,8 +49,12 @@ export default async function StoreLayout({
         }}
       />
       <div className="min-h-screen bg-brand-black text-white selection:bg-brand-red selection:text-white">
-        <Navbar copies={{ en: english?.sections, ar: arabic?.sections }} />
-        <main>{children}</main>
+        <Navbar copies={{ en: english?.sections, ar: arabic?.sections }} ordering={{ en: siteEn?.sections?.ordering, ar: siteAr?.sections?.ordering }} />
+        <main>
+          <StoreLocationsProvider initial={branches}>
+            {online ? children : <StoreStatus kind="offline" />}
+          </StoreLocationsProvider>
+        </main>
       </div>
     </SmoothScroll>
   );

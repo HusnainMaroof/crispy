@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { api, isSessionExpiredError } from "@/lib/api";
+import { api, isSessionExpiredError, type Pagination } from "@/lib/api";
 
 export type AdminOrder = {
   id: string;
@@ -52,21 +52,44 @@ function mapOrderItems(items: Record<string, unknown>[]): AdminOrder["items"] {
   }));
 }
 
+export type OrderFilters = {
+  status?: string;
+  location_id?: string;
+  fulfilment?: string;
+  q?: string;
+};
+
 export function useOrders() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false,
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const fetchOrders = useCallback(async (filters?: { status?: string; location_id?: string }) => {
+  /**
+   * Filtering, sorting and paging all happen in the database now. The page
+   * renders exactly the rows the server returned, so `total` is the whole
+   * collection rather than the length of whatever was downloaded.
+   */
+  const fetchOrders = useCallback(async (filters?: OrderFilters & { page?: number; limit?: number }) => {
     setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams();
       if (filters?.status) params.set("status", filters.status);
       if (filters?.location_id) params.set("location_id", filters.location_id);
+      if (filters?.fulfilment) params.set("fulfilment", filters.fulfilment);
+      if (filters?.q) params.set("q", filters.q);
+      if (filters?.page) params.set("page", String(filters.page));
+      if (filters?.limit) params.set("limit", String(filters.limit));
       const query = params.toString() ? `?${params.toString()}` : "";
-      const data = await api.get<Record<string, unknown>[]>(`/admin/orders${query}`);
-      setOrders(data.map(mapOrder));
+      const { items, pagination: meta } = await api.getPage<Record<string, unknown>>(`/admin/orders${query}`);
+      setOrders(items.map(mapOrder));
+      setPagination(meta);
     } catch (error) {
-      if (!isSessionExpiredError(error)) throw error;
+      if (isSessionExpiredError(error)) return;
+      setError(error instanceof Error ? error.message : "Could not load orders.");
     } finally {
       setLoading(false);
     }
@@ -84,6 +107,8 @@ export function useOrders() {
       const data = await api.patch<Record<string, unknown>>(`/admin/orders/${id}/status`, {
         status,
       });
+      // In-place, so a status change does not drop the reader back to page 1
+      // or throw away the filters they set.
       setOrders((prev) =>
         prev.map((order) => {
           if (order.id !== id) return order;
@@ -105,5 +130,5 @@ export function useOrders() {
     [orders]
   );
 
-  return { orders, loading, fetchOrders, fetchOrderById, updateOrderStatus, getOrder, getOrdersByStatus };
+  return { orders, pagination, loading, error, fetchOrders, fetchOrderById, updateOrderStatus, getOrder, getOrdersByStatus };
 }

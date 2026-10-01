@@ -1,9 +1,10 @@
 "use client";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import type { SVGProps } from "react";
 import gsap from "gsap";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
+import DeliveryOverlay from "@/app/components/store/delivery-overlay";
 import { localizedText } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
 
@@ -16,6 +17,7 @@ function DividerLineLeft(props: SVGProps<SVGSVGElement>) {
       height="10"
       viewBox="0 0 132 10"
       fill="none"
+      {...props}
     >
       <circle cx="126.635" cy="4.60493" r="4.60493" fill="#F7230B" />
       <path d="M117.714 4.89258H0" stroke="#F7230B" strokeWidth="3" />
@@ -30,6 +32,7 @@ function DividerLineRight(props: SVGProps<SVGSVGElement>) {
       height="10"
       viewBox="0 0 132 10"
       fill="none"
+      {...props}
     >
       <circle
         cx="4.60503"
@@ -56,6 +59,7 @@ function FlavourIconA(props: SVGProps<SVGSVGElement>) {
       height="42"
       viewBox="0 0 33 42"
       fill="none"
+      {...props}
     >
       <g clipPath="url(#clip0_639_2753)">
         <path
@@ -85,6 +89,7 @@ function FlavourIconB(props: SVGProps<SVGSVGElement>) {
       height="42"
       viewBox="0 0 33 42"
       fill="none"
+      {...props}
     >
       <g clipPath="url(#clip0_639_2723)">
         <path
@@ -114,6 +119,7 @@ function FlavourIconC(props: SVGProps<SVGSVGElement>) {
       height="42"
       viewBox="0 0 33 42"
       fill="none"
+      {...props}
     >
       <g clipPath="url(#clip0_639_2733)">
         <path
@@ -143,6 +149,7 @@ function FlavourIconD(props: SVGProps<SVGSVGElement>) {
       height="42"
       viewBox="0 0 33 42"
       fill="none"
+      {...props}
     >
       <g clipPath="url(#clip0_639_2743)">
         <path
@@ -172,6 +179,7 @@ function FlavourIconE(props: SVGProps<SVGSVGElement>) {
       height="42"
       viewBox="0 0 33 42"
       fill="none"
+      {...props}
     >
       <g clipPath="url(#clip0_639_2713)">
         <path
@@ -203,6 +211,7 @@ function GarlicIcon(props: SVGProps<SVGSVGElement>) {
       height="27"
       viewBox="0 0 28 27"
       fill="none"
+      {...props}
     >
       <path
         d="M17.1049 25.3353C14.9753 27.0759 12.1262 27.1185 9.9908 25.4127C7.15725 26.3305 4.195 25.5541 2.16686 23.3546C0.487799 21.5287 -0.342958 19.0446 0.132875 16.5449C0.548253 14.359 1.87044 12.0839 4.1443 11.0713L7.51413 9.57265C9.58517 8.65102 11.0536 6.74967 11.118 4.48624L11.2077 1.39993C11.2252 0.7939 11.6621 -0.00768912 12.3758 5.56954e-05L14.9129 0.031035C15.6618 0.040716 16.0928 0.741622 16.1006 1.40574L16.1435 4.86961C16.1708 6.99169 17.569 8.75751 19.4684 9.69076C20.7029 10.2968 22.0309 10.6995 23.2049 11.3927C26.0755 13.0869 27.5459 16.3165 26.9414 19.5383C26.1399 23.8154 21.4108 26.9617 17.1049 25.3353ZM17.179 23.5133C19.5855 20.0107 19.1857 15.6078 16.4496 12.4692C16.2527 12.2446 16.2351 11.7025 16.4321 11.5689C16.5959 11.4566 17.0815 11.5495 17.2258 11.7083C20.5059 15.2864 20.7887 20.4909 17.8791 24.5337C21.1007 25.2462 24.2677 23.4339 25.469 20.5296C26.6703 17.6253 25.5841 14.3919 22.9592 12.5912C21.9627 11.9077 20.8335 11.4663 19.6693 11.0345C16.9352 10.016 15.0748 7.61709 15.0007 4.66437L14.911 1.16565L12.3661 1.12112C12.4402 7.20467 11.3481 9.5165 5.67905 11.6076C2.28387 12.8177 0.421495 16.3261 1.33416 19.6312C2.25267 22.9576 5.43724 25.2714 9.08399 24.5453C6.00473 20.6129 6.18024 15.0792 9.74898 11.6115C9.92059 11.445 10.334 11.2823 10.5193 11.3249C10.7045 11.3675 10.8528 11.807 10.8586 12.0452C8.31368 14.3861 7.42442 17.7338 8.46384 20.9885C8.99233 22.8724 10.1917 24.6053 12.0891 25.3256C13.9457 26.0304 16.0265 25.1901 17.179 23.5114V23.5133Z"
@@ -219,6 +228,7 @@ function LeafIcon(props: SVGProps<SVGSVGElement>) {
       height="28"
       viewBox="0 0 28 28"
       fill="none"
+      {...props}
     >
       <path
         d="M27.4817 13.0158C27.7202 21.4893 20.1008 28.0694 11.83 26.9525C5.29253 26.0683 0.505717 20.7992 0.0365355 14.4864C-0.448156 7.96594 3.93733 2.06062 10.3566 0.455497C13.9297 -0.438374 17.5261 -0.0385351 20.6669 1.84917C24.622 4.22513 27.346 8.21007 27.4817 13.0158ZM26.3941 13.5502C26.3727 7.76217 22.3285 2.86799 16.7991 1.4724C9.78853 -0.294201 2.71203 4.29434 1.32388 11.2646C0.298269 16.4164 2.78183 21.5163 7.09364 24.1421C11.6323 26.9064 17.342 26.5354 21.4909 23.2348C24.434 20.8934 26.4076 17.514 26.3941 13.5522V13.5502Z"
@@ -239,6 +249,7 @@ function singleChiliIcon(props: SVGProps<SVGSVGElement>) {
       height="29"
       viewBox="0 0 34 29"
       fill="none"
+      {...props}
     >
       <path
         d="M12.0723 27.4473C8.35414 28.7001 4.21846 29.4491 0.771411 27.6268C0.338335 27.3971 -0.0362168 26.6462 0.002799 26.2504C0.0437656 25.8257 0.629003 25.0381 1.15962 24.9416C4.61837 24.3142 7.60308 22.7892 9.96939 20.1658C14.0778 15.612 13.9763 10.7744 15.9154 7.13948C16.7679 5.54111 18.6231 5.02762 20.2696 4.66664C22.6417 3.02966 20.9601 0.875338 22.0136 0.137926C22.355 -0.101443 23.1704 -0.0165059 23.4884 0.294288C24.4384 1.22088 24.4443 2.43317 24.2823 3.67635L23.9878 5.93105C24.694 6.47928 25.5718 7.0391 25.8391 7.78037C26.5062 9.63935 26.159 11.562 25.4977 13.3399C23.1021 19.7681 18.7031 25.2119 12.0704 27.4473H12.0723ZM24.9827 8.94247C24.9905 6.99084 22.55 7.05454 22.8075 5.68203L23.3011 3.05283C23.4435 2.28839 23.3382 1.44288 22.5774 0.98151C22.907 2.28646 22.7178 3.27482 22.0565 4.36164C21.7697 4.83265 21.3191 5.59516 20.8685 5.8133C19.8014 5.76504 18.8552 5.99282 18.0691 6.53913L21.2898 7.78037L24.9827 8.9444V8.94247ZM14.5733 25.1018C18.7109 22.8085 21.6527 19.2006 23.6581 14.9904C24.4267 13.3785 25.0412 11.7145 25.0997 9.97523L21.3932 8.78225L17.16 7.22442C16.1593 9.00617 15.654 10.5717 15.1585 12.3844C14.2904 15.5657 12.9541 18.469 10.7497 20.938C8.21758 23.6231 5.0651 25.4242 1.39371 25.9029L1.06403 26.3933C0.995752 26.4936 1.32934 26.7388 1.44053 26.7871C5.46306 28.5553 10.7926 27.2002 14.5752 25.1038L14.5733 25.1018Z"
@@ -271,6 +282,7 @@ function CitrusIcon(props: SVGProps<SVGSVGElement>) {
       height="28"
       viewBox="0 0 39 28"
       fill="none"
+      {...props}
     >
       <path
         d="M20.8953 27.0719C18.6959 27.0329 15.9434 26.5282 16.1899 24.9128C16.4675 23.0929 20.0547 24.0789 23.2518 21.3197C28.0445 17.1808 27.4098 11.3779 29.6576 6.70328C30.2768 5.41526 31.9715 5.44059 33.0042 4.9515C34.2504 4.35913 34.2174 2.50212 33.734 1.40117C33.5904 1.07381 34.0485 0.438566 34.33 0.378159C35.6888 0.0897682 36.9447 1.60772 36.8146 3.36145L36.6322 5.80693C38.286 6.34864 39.0373 7.60353 38.9654 9.21891C38.915 10.3374 38.8859 11.4539 38.5578 12.5354C36.0382 20.8306 29.8517 27.2278 20.8933 27.0699L20.8953 27.0719ZM37.8512 8.72981C37.8008 6.6721 35.3588 7.17484 35.5354 5.62181L35.7936 3.3595C35.8674 2.71257 35.6732 1.8435 34.9337 1.54342C35.3898 3.10618 34.9822 4.96709 33.6564 6.02517C32.8683 6.10506 31.9676 6.12455 31.228 6.70328L34.2019 7.88802L37.8512 8.72787V8.72981ZM29.6848 23.4631C34.0446 20.698 37.232 15.016 37.9522 9.88143L34.2426 8.84478L30.4205 7.46128L29.0986 11.9859C28.458 14.182 28.0173 16.3878 26.9419 18.4046C25.8161 20.5188 24.2166 22.3563 22.0871 23.4573L17.0731 25.0921C21.0117 27.0115 26.1946 25.6767 29.6848 23.4611V23.4631Z"
@@ -291,6 +303,7 @@ function BBQSauceIcone(props: SVGProps<SVGSVGElement>) {
       height="28"
       viewBox="0 0 34 28"
       fill="none"
+      {...props}
     >
       <path
         d="M11.3465 27.4357L2.38985 27.4878C1.00656 27.4955 0.00579591 26.5616 0.00579591 25.1491L0 13.9764C0 12.6392 0.421169 11.7149 1.40454 10.8292L4.09964 8.39975L4.07452 4.95533L3.47561 4.33013L3.46402 0.980261C3.46402 0.563457 4.04941 0.00964823 4.48603 0.00964823L9.37391 0C9.93805 0 10.3457 0.449608 10.3399 1.00535L10.3032 4.44591L9.55359 4.9534L9.55938 8.5136L11.899 10.6497C12.5636 11.2556 12.9809 12.0738 12.979 12.9981L12.9558 25.5466C12.9558 26.3898 12.4361 27.4299 11.3465 27.4357ZM9.29664 3.7493L9.31209 1.06324L4.55752 1.0806L4.51694 3.74737H9.29664V3.7493ZM2.01118 21.4249L1.99959 15.8733C1.99959 15.4777 2.39564 14.9991 2.79363 15.0011L11.8352 15.0204L11.8179 12.616C11.814 12.2012 11.2247 11.5547 10.9098 11.2537L8.54124 8.98251L8.50066 4.80289L5.14097 4.78938L5.10813 8.95356L3.06604 10.7983C2.36666 11.4312 1.46057 12.1684 1.12827 13.0772V25.4906C1.12827 25.8862 1.84696 26.4053 2.19665 26.4497L11.7657 26.4053L11.8507 22.5499L3.35197 22.5749C2.76272 22.5749 2.01118 22.1369 2.00925 21.4249H2.01118ZM3.12399 21.475L11.8314 21.4577L11.8217 15.9524L10.7263 16.1338L3.10274 16.1396L3.12399 21.475Z"
@@ -369,8 +382,16 @@ export default function DiscoverFlavours({
   const animRef = useRef<gsap.core.Tween | null>(null);
   const scopeRef = useScrollReveal();
   const { ordering, redirect } = useStoreOrdering();
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
   const orderLabel = localizedText(locale, ordering.mode === "redirect" ? ordering.ctaLabel : ctaLabel);
+  // Redirect system routes every order through the branch and platform popup,
+  // the same as the navbar and the menu. The bare URL is only a last resort for
+  // the cart system, where the CTA points somewhere the customer chose.
   const handleOrderClick = async () => {
+    if (ordering.mode === "redirect") {
+      setDeliveryOpen(true);
+      return;
+    }
     if (await redirect()) return;
     window.location.assign(ctaUrl);
   };
@@ -393,24 +414,25 @@ export default function DiscoverFlavours({
   const handleMouseEnter = () => animRef.current?.pause();
   const handleMouseLeave = () => animRef.current?.resume();
   return (
+    <>
     <section ref={scopeRef} className="relative w-full overflow-hidden bg-white  ">
       <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
         {/* Heading */}
-        <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(32px,7vw,60px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
+        <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(26px,5.5vw,48px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
           {localizedText(locale, discoverTitle)}
         </h2>
 
         {/* Divider: Crispies Original Flavours */}
         <div className="fade-up flex items-center gap-14" data-delay="0.06">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
-          <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
+          <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(15px,2.4vw,24px)] font-bold capitalize tracking-[0.54px] text-white">
             {localizedText(locale, title)}
           </h3>
           <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
         </div>
 
         {/* Flavour tiles */}
-        <div className="flex flex-wrap items-stretch justify-center md:gap-16">
+        <div className="flex flex-wrap items-stretch justify-center gap-4 md:gap-16">
           {flavourTiles.map(({ label, Icon, image }, i) => (
             <div
               key={`${label}-${i}`}
@@ -428,7 +450,7 @@ export default function DiscoverFlavours({
         {/* Divider: Flaming Grill Flavour */}
         <div className="fade-up mt-6 flex items-center gap-24" data-delay="0.12">
           <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
-          <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(18px,3vw,30px)] font-bold capitalize tracking-[0.54px] text-white">
+          <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(15px,2.4vw,24px)] font-bold capitalize tracking-[0.54px] text-white">
             {localizedText(locale, scaleTitle)}
           </h3>
           <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
@@ -451,8 +473,8 @@ export default function DiscoverFlavours({
           </div>
           {/* Static track: red up to the "Mild" marker, thin white/gray after — not an interactive input */}
           <div className="relative mt-10 h-[3px] w-full rounded-full bg-white/25">
-            <div className="absolute inset-y-0 left-0 w-[50%] rounded-full bg-[#FF0931]" />
-            <div className="absolute left-[50%] top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF0931] bg-white" />
+            <div className="absolute inset-y-0 start-0 w-[50%] rounded-full bg-[#FF0931]" />
+            <div className="absolute start-[50%] top-1/2 h-4 w-4 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF0931] bg-white" />
           </div>
         </div>
 
@@ -483,14 +505,14 @@ export default function DiscoverFlavours({
             </div>
 
             {/* Static Center CTA */}
-            <div className="pointer-events-auto absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 p-5 bg-black  ">
+            <div className="pointer-events-auto absolute start-1/2 top-1/2 z-30 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 p-5 bg-black  ">
               <a
-                href={ordering.mode === "redirect" ? ordering.redirectUrl : ctaUrl}
+                href={ctaUrl}
                 onClick={(event) => { event.preventDefault(); void handleOrderClick(); }}
                 aria-label={orderLabel}
                 className="relative flex h-[220px] w-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-2xl sm:h-[260px] sm:w-[260px] sm:p-5"
               >
-                <span className="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] sm:right-4 sm:top-4 sm:h-10 sm:w-10">
+                <span className="absolute end-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] sm:end-4 sm:top-4 sm:h-10 sm:w-10">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -507,10 +529,10 @@ export default function DiscoverFlavours({
                   </svg>
                 </span>
                 <div className="">
-                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
+                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(15px,2vw,21px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
                     {orderLabel.split(" ").slice(0, Math.ceil(orderLabel.split(" ").length / 2)).join(" ")}
                   </h3>
-                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(18px,2.5vw,26px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
+                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(15px,2vw,21px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
                     {orderLabel.split(" ").slice(Math.ceil(orderLabel.split(" ").length / 2)).join(" ")}
                   </h3>
                   <p className="mt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[10px] font-normal capitalize leading-snug text-black sm:text-xs">
@@ -520,17 +542,19 @@ export default function DiscoverFlavours({
                 <img
                   src={centerImage.trim() || "/images/orderOnimage.png"}
                   alt="Order on website"
-                  className="absolute bottom-0 left-1/2 h-[80px] w-auto -translate-x-1/2 object-contain sm:h-fit"
+                  // sm:h-fit resolved to the intrinsic 712x474, so from sm up
+                  // the small logo filled and overflowed the whole 260px card.
+                  className="absolute bottom-0 start-1/2 h-[80px] w-auto -translate-x-1/2 rtl:translate-x-1/2 object-contain sm:h-[100px]"
                 />
               </a>
 
-              <div className="pointer-events-none absolute inset-y-0 right-0 translate-x-full z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
-              <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 -translate-x-full bg-linear-to-l from-black to-transparent sm:w-32" />
+              <div className="pointer-events-none absolute inset-y-0 end-0 translate-x-full rtl:-translate-x-full z-20 w-20 bg-linear-to-r rtl:bg-linear-to-l from-black to-transparent sm:w-32" />
+              <div className="pointer-events-none absolute inset-y-0 start-0 z-20 w-20 -translate-x-full rtl:translate-x-full bg-linear-to-l rtl:bg-linear-to-r from-black to-transparent sm:w-32" />
             </div>
 
             {/* Fade edges */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-linear-to-l from-black to-transparent sm:w-32" />
+            <div className="pointer-events-none absolute inset-y-0 start-0 z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
+            <div className="pointer-events-none absolute inset-y-0 end-0 z-20 w-20 bg-linear-to-l from-black to-transparent sm:w-32" />
           </div>
         </div>
       </div>
@@ -539,5 +563,7 @@ export default function DiscoverFlavours({
           page needs enough negative margin on the next section, or this
           needs to sit in a shared wrapper with it */}
     </section>
+      {deliveryOpen && <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />}
+    </>
   );
 }

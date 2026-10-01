@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paginationSchema } from "./pagination.schema.js";
 
 export const createOrderSchema = z.object({
   customer_name: z.string().min(1).max(200),
@@ -57,7 +58,12 @@ export const customerProfileSchema = z.object({
   phone: z.string().min(7).max(20).optional(),
 }).refine((value) => value.name || value.email || value.phone, { message: "Nothing to update" });
 
-export const customerSearchSchema = z.object({
+/**
+ * validate(..., "query") replaces req.query with the parsed object, and zod
+ * strips keys the schema does not declare. Without page/limit declared here,
+ * `?page=2` was silently discarded before the controller ever saw it.
+ */
+export const customerSearchSchema = paginationSchema.extend({
   q: z.string().trim().max(100).optional(),
 });
 
@@ -73,7 +79,9 @@ export const branchMenuWriteSchema = z.object({
   replace: z.boolean().optional(),
   items: z.array(z.object({
     menu_item_id: z.string().min(1),
-    price: z.number().positive().nullable().optional(),
+    // min(0), not positive(): a branch legitimately prices an item at 0, and
+    // the admin form sends a real 0 rather than null for that.
+    price: z.number().min(0).nullable().optional(),
     available: z.boolean().optional(),
     sort_order: z.number().int().min(0).nullable().optional(),
   })),

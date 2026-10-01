@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/lib/i18n/locale-context";
 import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
+import BrochureOverlay from "@/app/components/store/brochure-overlay";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
 import HowToGetStarted from "@/app/components/store/how-to-get-started";
-import { ArrowUpDown, Download, FilePenLine } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, FilePenLine } from "lucide-react";
+import { useLenis } from "@/app/components/providers/smooth-scroll";
 import Image from "next/image";
 
 const KOROLEV = "font-[family-name:var(--font-korolev),Korolev,sans-serif]";
@@ -103,10 +105,41 @@ function localizedItems<T extends { title: string; titleAr: string; description:
 
 export default function PartnerPage() {
   const [applicationOpen, setApplicationOpen] = useState(false);
+  const [brochureOpen, setBrochureOpen] = useState(false);
   const { locale, t } = useLocale();
   const whyItems = localizedItems(WHY_CHOOSE_ITEMS, locale);
   const startItems = localizedItems(GET_STARTED_ITEMS, locale);
   const become = t("franchise.become").split("\n");
+  const [atBottom, setAtBottom] = useState(false);
+  const lenis = useLenis();
+
+  // Track whether the page is scrolled to the very bottom so the button
+  // can flip between "go to bottom" and "back to top".
+  useEffect(() => {
+    const onScroll = () => {
+      const remaining =
+        document.documentElement.scrollHeight -
+        (window.innerHeight + window.scrollY);
+      setAtBottom(remaining < 48);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  const handleScrollToggle = () => {
+    const target = atBottom ? 0 : document.documentElement.scrollHeight;
+    // Lenis is disabled under reduced motion, so jump instead of smooth-scrolling.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.scrollTo(0, target);
+      return;
+    }
+    lenis.scrollTo(target);
+  };
 
   return (
     <>
@@ -140,7 +173,12 @@ export default function PartnerPage() {
               {t("franchise.intro")}
             </p>
        </div>
-       <button className="bg-[#FF0931] text-white py-16 px-16 text-4xl rounded-2xl hover:bg-[#ff0000] transition-colors duration-300 flex items-center gap-6">
+       <button
+         type="button"
+         onClick={() => setBrochureOpen(true)}
+         aria-haspopup="dialog"
+         className="bg-[#FF0931] text-white py-16 px-16 text-3xl rounded-2xl hover:bg-[#ff0000] transition-colors duration-300 flex items-center gap-6 cursor-pointer"
+       >
       {t("franchise.brochure")} 
 <Download  className="w-16 h-16 sm:w-16 sm:h-16  text-white "/>
        </button>
@@ -154,7 +192,7 @@ export default function PartnerPage() {
           theme="dark"
           heading={
             <h2
-              className={`m-0 shrink-0 ${KOROLEV} capitalize    text-3xl sm:text-4xl md:text-5xl lg:text-7xl xl:text-[150px]`}
+              className={`m-0 shrink-0 ${KOROLEV} capitalize    text-2xl sm:text-4xl  lg:text-[90px] xl:text-[120px]`}
               style={{
                 fontWeight: 900,
                 lineHeight: "100%",
@@ -173,14 +211,14 @@ export default function PartnerPage() {
           heading={
             <div className=" flex items-center justify-between gap-6 sm:gap-12  lg:gap-0">
               <h2
-                className={`m-0 shrink-0 ${KOROLEV} capitalize  text-[44px] sm:text-[70px] md:text-[80px] lg:text-[100px]  xl:text-[135px] 2xl:text-[150px]`}
+                className={`m-0 shrink-0 ${KOROLEV} capitalize  text-[44px] sm:text-[70px] md:text-[80px] lg:text-[100px]   2xl:text-[120px]`}
                 style={{
                   fontWeight: 900,
                   lineHeight: "100%",
                 }}
               >
                 <span className="lg:block text-black"> {t("franchise.started")}</span>
-                <span className="lg:block text-white pl-3 lg:pl-0">
+                <span className="lg:block text-white ps-3 lg:ps-0">
                   {t("franchise.startedAccent")}
                 </span>
               </h2>
@@ -203,7 +241,9 @@ export default function PartnerPage() {
         <div className="h-[50%] w-full bg-black absolute bottom-0  " />
 
         <div className="w-[90%] xl:w-[80%] mx-auto rounded-4xl px-8 py-12 sm:px-14 sm:py-16 bg-[#FEFEFE] relative border-[#C4C4C4] border-2">
-          <div className="flex  items-center justify-between gap-12  lg:items-center">
+          {/* Three children in a 273px box: the logo was pushed off-screen.
+              Stack until lg, where the row has room again. */}
+          <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between lg:gap-12 lg:items-center">
             <div className="w-full lg:w-1/2">
               <h2
                 className={`m-0 ${KOROLEV} uppercase text-black`}
@@ -284,7 +324,25 @@ export default function PartnerPage() {
           </div>
         </div>
       </section>
+      {/* Scroll indicator — jumps to the page bottom, then back to the top once there */}
+      {!brochureOpen && !applicationOpen && (
+        <button
+          type="button"
+          onClick={handleScrollToggle}
+          aria-label={atBottom ? t("scroll.toTop") : t("scroll.toBottom")}
+          className="fixed bottom-5 end-5 z-40 flex h-[52px] w-[52px] items-center justify-center rounded-[16px] border border-[#FF0931] bg-white text-[#FF0931] shadow-[0_10px_30px_rgba(255,9,49,0.25)] transition duration-200 hover:scale-105 hover:bg-[#FF0931] hover:text-white cursor-pointer"
+        >
+          {atBottom ? (
+            <ArrowUp className="w-6 h-6" />
+          ) : (
+            <ArrowDown className="w-6 h-6" />
+          )}
+        </button>
+      )}
       <Footer />
+      {brochureOpen && (
+        <BrochureOverlay onClose={() => setBrochureOpen(false)} />
+      )}
       {applicationOpen && (
         <FranchiseApplicationOverlay
           onClose={() => setApplicationOpen(false)}

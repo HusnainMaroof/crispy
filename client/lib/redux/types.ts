@@ -9,8 +9,18 @@ export type MenuItem = {
   image: string;
   badge?: string;
   badgeVariant?: "default" | "vegan";
-  /** External ordering link for the redirect system. Empty means none. */
-  redirectUrl?: string;
+  /**
+   * Per-platform redirect links for the redirect system. The popup uses the
+   * entry for whichever platform the customer picked; an empty string falls
+   * back to that platform's site-wide link.
+   */
+  redirects?: MenuItemRedirects;
+};
+
+export type MenuItemRedirects = {
+  uberEats: string;
+  deliveroo: string;
+  justEat: string;
 };
 
 export type MenuCategory = {

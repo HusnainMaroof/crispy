@@ -13,6 +13,7 @@ import {
   updateOrderStatus,
 } from "../src/services/order.service.js";
 import { BadRequestException, ConflictException, ForbiddenException } from "../src/utils/app-error.js";
+import { FIRST_PAGE } from "./helpers/page.js";
 
 const prisma = getPrisma();
 const keys: string[] = [];
@@ -68,7 +69,7 @@ async function manager(locationId: string) {
 describe("order management", { concurrency: 1 }, () => {
   it("lists an order from stored snapshots", async () => {
     const order = await place("harrow-road");
-    const listed = await getOrders({ location_id: order.location_id ?? undefined });
+    const listed = await getOrders({ location_id: order.location_id ?? undefined, ...FIRST_PAGE });
     const row = listed.find((entry) => entry.id === order.id);
     assert.ok(row);
     assert.equal(row.location_name, "Harrow Road");
@@ -104,9 +105,9 @@ describe("order management", { concurrency: 1 }, () => {
     await assertOrderAccess(local, order.location_id);
     await assert.rejects(() => assertOrderAccess(other, order.location_id), ForbiddenException);
 
-    const visible = await getOrders({ location_ids: [harrow.id] });
+    const visible = await getOrders({ location_ids: [harrow.id], ...FIRST_PAGE });
     assert.ok(visible.some((entry) => entry.id === order.id));
-    const hidden = await getOrders({ location_ids: [tower.id] });
+    const hidden = await getOrders({ location_ids: [tower.id], ...FIRST_PAGE });
     assert.equal(hidden.some((entry) => entry.id === order.id), false);
 
     await assert.rejects(

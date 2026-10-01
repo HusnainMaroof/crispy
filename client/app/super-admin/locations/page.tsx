@@ -11,12 +11,12 @@ import { useLocations, type AdminLocation } from "@/lib/admin/use-locations";
 import { WEEKDAYS, formatWeekHours, parseWeekHours, type DayHours } from "@/lib/admin/shop-hours";
 
 export default function LocationsPage() {
-  const { locations, loading, fetchLocations, addLocation, updateLocation } = useLocations();
+  const { locations, loading, error, fetchLocations, addLocation, updateLocation } = useLocations();
   const [editing, setEditing] = useState<AdminLocation | null>(null);
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
-    fetchLocations();
+    void fetchLocations();
   }, [fetchLocations]);
 
   const setStatus = async (location: AdminLocation, status: "active" | "inactive") => {
@@ -66,7 +66,11 @@ export default function LocationsPage() {
         }
       />
 
-      {loading ? <TableSkeleton /> : locations.length === 0 ? (
+      {error ? (
+        <p role="alert" className="rounded-lg border border-brand-red/40 bg-brand-red/10 px-4 py-3 text-sm text-brand-red">
+          {error}
+        </p>
+      ) : loading ? <TableSkeleton /> : locations.length === 0 ? (
         <p className="rounded-2xl border border-white/10 px-5 py-10 text-center text-sm text-white/50">No branches yet. Add one to set its address and hours.</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/10">

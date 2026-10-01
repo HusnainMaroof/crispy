@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { api } from "@/lib/api";
+import { mapStoreLocation } from "@/lib/storefront-locations";
 import type { Location } from "../types";
 
 type LocationsState = {
@@ -16,17 +17,11 @@ const initialState: LocationsState = {
 
 export const fetchLocations = createAsyncThunk("locations/fetchLocations", async () => {
   const data = await api.get<Record<string, unknown>[]>("/store/locations");
-  return data.map((l) => ({
-    id: l.id as string,
-    name: l.name as string,
-    address: l.address as string,
-    hours: l.hours as string,
-    phone: l.phone as string,
-    status: (l.status as string) ?? "active",
-    lat: (l.lat as number) ?? null,
-    lng: (l.lng as number) ?? null,
-    sort_order: (l.sort_order as number) ?? 0,
-  }));
+  if (!Array.isArray(data)) return [] as Location[];
+  return data.flatMap((row) => {
+    const location = mapStoreLocation(row);
+    return location ? [location] : [];
+  });
 });
 
 const locationsSlice = createSlice({

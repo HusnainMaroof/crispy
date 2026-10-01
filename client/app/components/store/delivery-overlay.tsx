@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useStoreLocations } from "@/lib/use-store-locations";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
+import type { MenuItemRedirects } from "@/lib/redux/types";
 import { useBranchSelection } from "@/lib/branch-selection";
 import { localizedText } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
@@ -77,11 +78,25 @@ const platforms = [
   },
 ];
 
-/** Which CMS link each platform card redirects to. */
-const PLATFORM_URL_FIELDS: Record<string, "uberEatsUrl" | "deliverooUrl" | "justEatUrl"> = {
+/**
+ * Which CMS link each platform card redirects to. Each id is also the key used
+ * by a product's per-platform redirect links, so a product link and the
+ * site-wide link are looked up through the same field.
+ */
+const PLATFORM_URL_FIELDS: Record<
+  string,
+  "uberEatsUrl" | "deliverooUrl" | "justEatUrl"
+> = {
   "uber-eats": "uberEatsUrl",
   deliveroo: "deliverooUrl",
   "just-eat": "justEatUrl",
+};
+
+/** The product link for the chosen platform, keyed by the same platform ids. */
+const PLATFORM_PRODUCT_LINKS: Record<string, keyof MenuItemRedirects> = {
+  "uber-eats": "uberEats",
+  deliveroo: "deliveroo",
+  "just-eat": "justEat",
 };
 
 export default function DeliveryOverlay({
@@ -89,17 +104,18 @@ export default function DeliveryOverlay({
   product,
 }: {
   onClose: () => void;
-  product?: { name: string; image?: string; redirectUrl?: string };
+  product?: { name: string; image?: string; redirects?: MenuItemRedirects };
 }) {
   const { locale, t } = useLocale();
   const { locations } = useStoreLocations();
-  const { redirect, resolveOrdering } = useStoreOrdering();
+  const { resolveOrdering } = useStoreOrdering();
   const { selectBranch } = useBranchSelection();
   const [selected, setSelected] = useState<string | null>("");
   const [step, setStep] = useState<"branch" | "platform" | "redirect">(
     "branch",
   );
   const [platform, setPlatform] = useState<string | null>("");
+  const [linkError, setLinkError] = useState("");
   const selectedName = locations.find((l) => l.id === selected)?.name ?? "";
   const selectedPlatform = platforms.find((p) => p.id === platform);
 
@@ -129,12 +145,14 @@ export default function DeliveryOverlay({
         aria-hidden
       />
 
-      <div className="overlay-panel-in relative my-auto  h-[95vh]  flex w-full  md:w-[90%] flex-col justify-center overflow-y-auto rounded-2xl border border-[#242424] bg-black px-4  shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6 md:px-8 ">
+      {/* justify-start: centring an over-tall flex column pushed the heading
+            above the scroll origin, making it unreachable on a long branch list. */}
+      <div className="overlay-panel-in relative my-auto  h-[100vh]  flex w-full  md:w-[90%] flex-col justify-b overflow-y-auto rounded-2xl border border-[#242424] bg-black px-4  shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6  ">
         <button
           type="button"
           onClick={onClose}
           aria-label={t("delivery.close")}
-          className="overlay-fade-in fixed right-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
+          className="overlay-fade-in fixed end-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
             width="14"
@@ -144,41 +162,52 @@ export default function DeliveryOverlay({
             stroke="currentColor"
             strokeWidth="2.4"
             strokeLinecap="round"
-        className="pointer-events-none"
+            className="pointer-events-none"
           >
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />
           </svg>
         </button>
 
-        {product && (
-          <div className="overlay-fade-in mx-auto mb-4 flex w-full max-w-[85%] items-center gap-3 rounded-2xl border border-[#242424] bg-[#161616] px-4 py-3 sm:mb-5 sm:max-w-[75%] md:max-w-[70%]">
-            {product.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14" />
-            ) : (
-              <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2b2b2b] sm:h-14 sm:w-14" />
-            )}
-            <span className="min-w-0">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8f8f] sm:text-[11px]">Ordering</span>
-              <span className="block truncate text-[15px] font-semibold text-white sm:text-[17px]">{product.name}</span>
-            </span>
-          </div>
-        )}
-
         {step === "branch" && (
           <>
-            <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[48px] lg:text-[80px]">
+            <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[40px] 3xl:text-[80px]">
               Where are
               <br />
               you ordering from?
             </h2>
 
-            <p className="overlay-fade-up stagger-1 mt-3 text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] lg:text-[25px]">
+            <p className="overlay-fade-up stagger-1  text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] 3xl:text-[20px]">
               Choose your nearest Crispies branch to continue.
             </p>
 
-            <div className="mx-auto mt-6 grid w-full max-w-[85%] grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:mt-8 md:max-w-[75%] lg:max-w-[70%]">
+            {product && (
+              <div className="overlay-fade-in mx-auto  flex w-full max-w-[85%] items-center gap-3 rounded-2xl border border-[#242424] bg-[#161616] px-4   sm:max-w-[75%] md:max-w-[70%]">
+                {product.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={product.image}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14"
+                  />
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2b2b2b] sm:h-14 sm:w-14"
+                  />
+                )}
+                <span className="min-w-0">
+                  <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8f8f] sm:text-[11px]">
+                    Ordering
+                  </span>
+                  <span className="block truncate text-[15px] font-semibold text-white sm:text-[17px]">
+                    {product.name}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            <div className="mx-auto mt-6 grid w-full max-w-[85%] grid-cols-1 gap-2 sm:grid-cols-2  md:mt-8 md:max-w-[75%] lg:max-w-[70%]">
               {locations.map((loc, i) => {
                 const isSelected = selected === loc.id;
 
@@ -187,21 +216,24 @@ export default function DeliveryOverlay({
                     key={loc.id}
                     type="button"
                     onClick={() => {
-                    if (!selectBranch(loc.id, localizedText(locale, loc.name))) return;
-                    setSelected(loc.id);
-                  }}
+                      if (
+                        !selectBranch(loc.id, localizedText(locale, loc.name))
+                      )
+                        return;
+                      setSelected(loc.id);
+                    }}
                     aria-pressed={isSelected}
-                    className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] cursor-pointer items-center justify-between overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[120px] ${
+                    className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] cursor-pointer items-center justify-between overflow-hidden rounded-xl border px-4 text-start transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[95px] ${
                       isSelected
                         ? "border-[#FF0931] bg-[#FF0931]/[0.07] shadow-[0_0_18px_rgba(255,9,49,0.15)]"
                         : "border-[#242424] bg-[#161616] hover:border-[#3a3a3a]"
                     }`}
                   >
-                    <span className="flex flex-col items-start gap-1.5 sm:gap-2">
-                      <span className="text-[13px] font-semibold leading-snug text-white sm:text-[14px] md:text-[15px] lg:text-[20px]">
+                    <span className="flex flex-col items-start gap-1.5 sm:gap-3">
+                      <span className="text-[13px] font-semibold leading-snug text-white sm:text-[14px] md:text-[15px] lg:text-[18px] @max-3xl:text-[24px]">
                         {localizedText(locale, loc.name)}
                       </span>
-                      <span className="inline-flex items-center justify-center gap-2 rounded-full bg-[#085B1F] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[10px]">
+                      <span className="inline-flex items-center justify-center gap-2 rounded-full bg-[#085B1F] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[8px] @max-3xl:text-[12px] ">
                         <span className="size-[4px] rounded-full bg-[#22c55e] sm:size-[8px]" />
                         Open Now
                       </span>
@@ -245,7 +277,7 @@ export default function DeliveryOverlay({
               type="button"
               disabled={!selected}
               onClick={() => setStep("platform")}
-              className={`overlay-fade-up stagger-7 mx-auto mt-8 flex w-full max-w-[85%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-10 md:max-w-[75%] md:py-4 md:text-[13px] lg:max-w-[70%] ${
+              className={`overlay-fade-up stagger-7 mx-auto mt-4 flex w-full max-w-[85%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-5 md:max-w-[75%] md:py-4 md:text-[13px] lg:max-w-[70%] ${
                 selected
                   ? "bg-[#FF0931] hover:brightness-110 active:scale-[0.99]"
                   : "cursor-not-allowed bg-[#232323] opacity-60"
@@ -276,7 +308,7 @@ export default function DeliveryOverlay({
               type="button"
               onClick={() => setStep("branch")}
               aria-label={t("delivery.back")}
-              className="overlay-fade-in absolute left-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931] sm:left-4 sm:top-4 sm:size-9"
+              className="overlay-fade-in absolute start-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931] sm:start-4 sm:top-4 sm:size-9"
             >
               <svg
                 width="12"
@@ -294,13 +326,13 @@ export default function DeliveryOverlay({
               </svg>
             </button>
 
-            <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[48px] lg:text-[80px]">
+            <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[40px] 3xl:text-[80px]">
               How would
               <br />
               you like to order?
             </h2>
 
-            <p className="overlay-fade-up stagger-1 mt-3 text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] lg:text-[25px]">
+            <p className="overlay-fade-up stagger-1  text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] 3xl:text-[20px]">
               Choose your preferred delivery platform for{" "}
               <span className="font-bold text-[#FF0931]">{selectedName}</span>{" "}
               branch.
@@ -375,21 +407,31 @@ export default function DeliveryOverlay({
               onClick={() => {
                 if (!platform) return;
                 void (async () => {
-                  // Destination order: the product's own redirect link, then the
-                  // chosen platform's link, then the fallback external order URL.
+                  // Destination order: this product's link for the chosen
+                  // platform, then that platform's site-wide link, then the
+                  // fallback external order URL.
                   const resolved = await resolveOrdering();
                   const field = PLATFORM_URL_FIELDS[platform];
                   const platformUrl = field ? resolved[field] : "";
-                  const target = [product?.redirectUrl, platformUrl, resolved.redirectUrl].find(
-                    (value) => Boolean(value) && /^https:\/\//i.test(value ?? ""),
+                  const productKey = PLATFORM_PRODUCT_LINKS[platform];
+                  const productUrl = productKey
+                    ? product?.redirects?.[productKey]
+                    : undefined;
+                  const target = [
+                    productUrl,
+                    platformUrl,
+                    resolved.redirectUrl,
+                  ].find(
+                    (value) =>
+                      Boolean(value) && /^https:\/\//i.test(value ?? ""),
                   );
-                  if (target) {
-                    setStep("redirect");
-                    window.location.assign(target);
+                  if (!target) {
+                    setLinkError(t("delivery.missingLink"));
                     return;
                   }
-                  const didRedirect = await redirect();
-                  if (!didRedirect) setStep("redirect");
+                  setLinkError("");
+                  setStep("redirect");
+                  window.location.assign(target);
                 })();
               }}
               className={`overlay-fade-up stagger-4 mx-auto mt-8 flex w-full max-w-[90%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-10 md:max-w-[80%] md:py-4 md:text-[14px] lg:max-w-[70%] ${
@@ -415,6 +457,14 @@ export default function DeliveryOverlay({
                 />
               </svg>
             </button>
+            {linkError && (
+              <p
+                className="overlay-fade-up mx-auto mt-4 max-w-[90%] text-center text-[12px] text-[#FF0931] md:max-w-[70%] md:text-[14px]"
+                role="alert"
+              >
+                {linkError}
+              </p>
+            )}
           </>
         )}
 

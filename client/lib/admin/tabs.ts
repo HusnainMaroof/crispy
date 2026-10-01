@@ -42,8 +42,11 @@ export function defaultAdminPath(tabs: readonly string[], prefix = "/super-admin
 
 export function visibleTabIds(role: string, tabs: readonly string[]): AdminTabId[] {
   const normalized = normalizeRole(role);
-  if (normalized === "superadmin") return ADMIN_TABS.map((tab) => tab.id);
+  // No superadmin short-circuit: intersect with what the server actually
+  // granted, so a future tightening of resolveTabs is reflected here instead of
+  // the client over-rendering tabs the API would then reject.
   const allowed = ADMIN_TABS.map((tab) => tab.id).filter((id) => tabs.includes(id));
+  if (normalized === "superadmin") return allowed;
   // A team member (staff panel) never sees the Team area.
   return allowed.filter((id) => ROLE_ACCESS[normalized].includes(id));
 }
@@ -78,6 +81,10 @@ export function tabForPath(pathname: string): AdminTabId | null {
   const rest = pathname.replace(/\/$/, "") || "/";
   if (rest === "/" || rest === "") return "dashboard";
   if (rest.startsWith("/cms") || rest.startsWith("/homepage")) return "content";
+  // The branches tab is reached at /locations, but /branches/* exists too and
+  // previously matched nothing. A null result means "no gate", so those pages
+  // rendered for any signed-in role, then 403'd on save.
+  if (rest === "/branches" || rest.startsWith("/branches/")) return "branches";
   const match = ADMIN_TABS.find((tab) => tab.segment && (rest === `/${tab.segment}` || rest.startsWith(`/${tab.segment}/`)));
   return match?.id ?? null;
 }

@@ -22,7 +22,9 @@ export const MenuController = {
 
   async items(req: Request, res: Response) {
     const categoryId = req.query.category_id as string | undefined;
-    const items = await getMenuItems(categoryId);
+    // Public read: the branch availability map is an admin concern, so it is
+    // left out of this projection.
+    const items = await getMenuItems(categoryId, true, { includeBranches: false });
     sendSuccess(res, items);
   },
 

@@ -76,7 +76,7 @@ export default function Stats() {
     <section className="relative w-full bg-white">
       <div className="relative bg-[#FF0931] rounded-b-[40px] sm:rounded-b-[50px] md:rounded-b-[60px] pt-[90px] sm:pt-[100px] md:pt-[110px] pb-[56px] sm:pb-[64px] md:pb-[72px] px-6">
         {/* Icon — sits on the white/red seam */}
-        <div className="absolute left-1/2 -translate-x-1/2 -top-[50px] sm:-top-[52px] md:-top-[55px] z-10">
+        <div className="absolute start-1/2 -translate-x-1/2 rtl:translate-x-1/2 -top-[50px] sm:-top-[52px] md:-top-[55px] z-10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="100"

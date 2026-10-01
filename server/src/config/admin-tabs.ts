@@ -23,30 +23,33 @@ export const ADMIN_TAB_IDS = ADMIN_TABS.map((tab) => tab.id);
 const MANAGER_TABS: AdminTabId[] = ["dashboard", "orders", "customers", "menu", "branch-menu", "staff"];
 const STAFF_TABS: AdminTabId[] = ["dashboard", "orders", "customers", "menu"];
 
+/**
+ * The tabs a role may hold at all. This is the single allow-list; the default
+ * seed and the per-request resolution both derive from it, so they cannot
+ * disagree the way they did when `tabsForRole` returned 4 tabs for staff while
+ * `resolveTabs` allowed 5.
+ */
+function allowListForRole(role: string): AdminTabId[] {
+  const normalized = normalizeRole(role);
+  if (normalized === "superadmin") return [...ADMIN_TAB_IDS];
+  return normalized === "branch_manager" ? [...MANAGER_TABS] : [...STAFF_TABS, "branch-menu"];
+}
+
 export function isAdminTab(value: string): value is AdminTabId {
   return (ADMIN_TAB_IDS as readonly string[]).includes(value);
 }
 
 export function tabsForRole(role: string): AdminTabId[] {
-  switch (normalizeRole(role)) {
-    case "staff":
-      return [...STAFF_TABS];
-    case "branch_manager":
-      return [...MANAGER_TABS];
-    default:
-      return [...ADMIN_TAB_IDS];
-  }
+  return allowListForRole(role);
 }
 
 export function resolveTabs(role: string, stored: readonly string[]): AdminTabId[] {
   const normalized = normalizeRole(role);
   if (normalized === "superadmin") return [...ADMIN_TAB_IDS];
   const tabs = (stored.length > 0 ? stored.filter(isAdminTab) : tabsForRole(normalized));
-  const allowed = normalized === "branch_manager" ? MANAGER_TABS : [...STAFF_TABS, "branch-menu"];
-  return tabs.filter((tab) => allowed.includes(tab));
+  return tabs.filter((tab) => allowListForRole(normalized).includes(tab));
 }
 
 export function allowedTabsForRole(role: string): AdminTabId[] {
-  const normalized = normalizeRole(role);
-  return normalized === "superadmin" ? [...ADMIN_TAB_IDS] : normalized === "branch_manager" ? [...MANAGER_TABS] : [...STAFF_TABS, "branch-menu"];
+  return allowListForRole(role);
 }

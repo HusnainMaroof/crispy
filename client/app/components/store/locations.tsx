@@ -127,26 +127,39 @@ export default function Locations({
   const locations = useMemo(() => {
     const chosen = locationIds.map((id) => id.trim()).filter(Boolean);
     if (chosen.length === 0) return allLocations;
-    const byId = new Map(allLocations.map((location) => [location.id, location]));
-    return chosen.flatMap((id) => {
+    const byId = new Map(
+      allLocations.map((location) => [location.id, location]),
+    );
+    const picked = chosen.flatMap((id) => {
       const location = byId.get(id);
       return location ? [location] : [];
     });
+    return picked.length > 0 ? picked : allLocations;
   }, [allLocations, locationIds]);
   const mapLocations = useMemo(
     () =>
       locations.flatMap((location) =>
         location.lat != null && location.lng != null
-          ? [{ id: location.id, name: location.name, lat: location.lat, lng: location.lng }]
+          ? [
+              {
+                id: location.id,
+                name: location.name,
+                lat: location.lat,
+                lng: location.lng,
+              },
+            ]
           : [],
       ),
     [locations],
   );
   const [selectedId, setSelectedId] = useState("");
-  const scopeRef = useScrollReveal();
+  const scopeRef = useScrollReveal("top 88%", [locations.length]);
   const { selectBranch } = useBranchSelection();
   const chooseBranch = (id: string) => {
-    const name = localizedText(locale, locations.find((location) => location.id === id)?.name ?? "this branch");
+    const name = localizedText(
+      locale,
+      locations.find((location) => location.id === id)?.name ?? "this branch",
+    );
     if (!selectBranch(id, name)) return;
     setSelectedId(id);
   };
@@ -158,9 +171,9 @@ export default function Locations({
   return (
     <section
       ref={scopeRef}
-      className="relative w-full bg-white px-6 py-16 sm:px-10 sm:py-20 md:px-14 md:py-24 2xl:px-40 lg:py-28"
+      className="relative w-full bg-white px-6 sm:px-10  md:px-14 lg:px-20 py-16  sm:py-20  md:py-24  lg:py-28"
     >
-      <div className="absolute left-[50%] top-0 translate-x-[-50%] translate-y-[-50%]">
+      <div className="absolute start-[50%] top-0 translate-x-[-50%] rtl:translate-x-[50%] translate-y-[-50%]">
         <div className="fade-up">
           <LocationPinIcon />
         </div>
@@ -171,11 +184,15 @@ export default function Locations({
           className="fade-up m-0 text-center uppercase font-semibold leading-[100%] tracking-[0.54px]"
           style={{
             fontFamily: "var(--font-korolev), Korolev, sans-serif",
-            fontSize: "clamp(36px, 7vw, 80px)",
+            fontSize: "clamp(30px, 5.5vw, 64px)",
           }}
         >
-          <span className="text-black">{localizedText(locale, title).split(" ").slice(0, 2).join(" ")} </span>
-          <span className="text-[#FF0931]">{localizedText(locale, title).split(" ").slice(2).join(" ")}</span>
+          <span className="text-black">
+            {localizedText(locale, title).split(" ").slice(0, 2).join(" ")}{" "}
+          </span>
+          <span className="text-[#FF0931]">
+            {localizedText(locale, title).split(" ").slice(2).join(" ")}
+          </span>
         </h2>
 
         {/* Content */}
@@ -224,19 +241,14 @@ export default function Locations({
                     data-reveal="lift"
                     data-delay={String(i * 0.06)}
                   >
-                    <div
-                      className="loc-slide grid items-center gap-x-2 sm:gap-x-3 md:gap-x-5"
-                      style={{
-                        gridTemplateColumns:
-                          "clamp(28px,3vw,40px) clamp(140px,16vw,220px) 1fr clamp(100px,11vw,140px) clamp(70px,8vw,90px) auto",
-                      }}
-                    >
+                    <div className="loc-slide loc-row-grid grid items-center gap-x-2 ">
                       {/* 01 */}
                       <span
                         className={`loc-hover-red ${numColor} font-normal leading-none`}
                         style={{
-                          fontFamily: "var(--font-korolev), Korolev, sans-serif",
-                          fontSize: "clamp(16px, 1.8vw, 20px)",
+                          fontFamily:
+                            "var(--font-korolev), Korolev, sans-serif",
+                          fontSize: "clamp(16px, 1.8vw, 16px)",
                         }}
                       >
                         {displayNum}
@@ -246,8 +258,9 @@ export default function Locations({
                       <span
                         className={`loc-hover-red ${nameColor} uppercase font-normal leading-none whitespace-nowrap truncate`}
                         style={{
-                          fontFamily: "var(--font-korolev), Korolev, sans-serif",
-                          fontSize: "clamp(20px, 2.4vw, 28px)",
+                          fontFamily:
+                            "var(--font-korolev), Korolev, sans-serif",
+                          fontSize: "clamp(20px, 2.4vw, 24px)",
                           letterSpacing: "0.54px",
                         }}
                       >
@@ -265,7 +278,7 @@ export default function Locations({
                           className={`loc-hover-red ${addrColor} font-normal leading-[140%] whitespace-pre-line line-clamp-2`}
                           style={{
                             fontFamily: "var(--font-inter), Inter, sans-serif",
-                            fontSize: "clamp(11px, 1.15vw, 13px)",
+                            fontSize: "clamp(11px, 1.15vw, 10px)",
                           }}
                         >
                           {localizedText(locale, loc.address)}
@@ -277,21 +290,23 @@ export default function Locations({
                         className={`${statusBg} inline-flex items-center justify-center gap-1.5 w-fit rounded-full px-3 py-[5px] text-white font-medium leading-none whitespace-nowrap`}
                         style={{
                           fontFamily: "var(--font-inter), Inter, sans-serif",
-                          fontSize: "clamp(11px, 1.15vw, 13px)",
+                          fontSize: "clamp(11px, 1.15vw, 10px)",
                         }}
                       >
                         <span
                           className={`w-[6px] h-[6px] rounded-full ${statusDot} shrink-0`}
                         />
-                        {loc.status === "open" ? t("locations.openNow") : t("locations.closed")}
+                        {loc.status === "open"
+                          ? t("locations.openNow")
+                          : t("locations.closed")}
                       </span>
 
                       {/* Hours */}
                       <span
-                        className={`loc-hover-red ${hoursColor} font-normal leading-none whitespace-nowrap`}
+                        className={`loc-hover-red ${hoursColor} font-normal leading-none whitespace-nowrap min-w-0`}
                         style={{
                           fontFamily: "var(--font-inter), Inter, sans-serif",
-                          fontSize: "clamp(12px, 1.2vw, 14px)",
+                          fontSize: "clamp(12px, 1.2vw, 12px)",
                         }}
                       >
                         {localizedText(locale, loc.hours)}
@@ -305,7 +320,7 @@ export default function Locations({
                           e.stopPropagation();
                           chooseBranch(loc.id);
                         }}
-                        className="shrink-0 flex items-center justify-center text-[#FF0931] hover:text-white transition-colors duration-200"
+                        className="w-[38px] h-[38px] shrink-0 flex items-center justify-center text-[#FF0931] hover:text-white transition-colors duration-200"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -339,7 +354,7 @@ export default function Locations({
               href={ctaUrl}
               target={locationLinkIsExternal ? "_blank" : undefined}
               rel={locationLinkIsExternal ? "noopener noreferrer" : undefined}
-              className="group fade-up mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] pl-6 sm:pl-8 pr-3 sm:pr-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
+              className="group fade-up mt-10 sm:mt-8 w-full flex items-center justify-between gap-4 rounded-[10px] xl:rounded-[15px] bg-[#FF0931] hover:bg-[#E0082C] ps-6 sm:ps-8 pe-3 sm:pe-3.5 py-3 sm:py-5 text-white hover:cursor-pointer"
               data-delay="0.22"
             >
               <span
@@ -375,10 +390,13 @@ export default function Locations({
             data-delay="0.1"
           >
             <div className="micro-elevate relative h-full w-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
-              <LocationsMap locations={mapLocations} selectedId={activeSelectedId} />
+              <LocationsMap
+                locations={mapLocations}
+                selectedId={activeSelectedId}
+              />
 
               {/* Bottom banner — sits above the map tiles */}
-              <div className="absolute mx-5 bottom-5 rounded-xl  left-0 right-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3 pointer-events-none">
+              <div className="absolute mx-5 bottom-5 rounded-xl  start-0 end-0 z-[3] bg-[#FF0931] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between gap-3 pointer-events-none">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -404,7 +422,13 @@ export default function Locations({
                     Coming Soon
                   </span>
                 </div>
-                <img src="/images/frienchies.png" alt="" className="w-20" />
+                <img
+                  src="/images/frienchies.png"
+                  alt=""
+                  className="w-20 h-auto"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>

@@ -16,7 +16,9 @@ export interface MenuItem {
   name_ar: string;
   description: string;
   description_ar: string;
-  redirect_url: string;
+  redirect_uber_eats: string;
+  redirect_deliveroo: string;
+  redirect_just_eat: string;
   price: number;
   image: string;
   badge: string | null;

@@ -56,18 +56,28 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ customer_name: "", email: "", phone: "", address: "", postcode: "", city: "", notes: "" });
   const { locale, t } = useLocale();
 
-  // Redirect system: orders go to the external apps, so on-site checkout is closed.
+  // Redirect system: orders go to the external apps, so on-site checkout is
+  // closed. Hold the page blank until the published mode is known, otherwise the
+  // form flashes on screen for anyone who arrives on a stale cart.
+  const [modeChecked, setModeChecked] = useState(false);
   useEffect(() => {
     let active = true;
     void resolveOrdering().then((resolved) => {
-      if (active && resolved.mode === "redirect") router.replace("/menu");
+      if (!active) return;
+      if (resolved.mode === "redirect") {
+        dispatch(clearCart());
+        router.replace("/menu");
+        return;
+      }
+      setModeChecked(true);
     });
     return () => {
       active = false;
     };
-  }, [resolveOrdering, router]);
+  }, [resolveOrdering, router, dispatch]);
 
   useEffect(() => {
+    if (!modeChecked) return;
     if (!cart.locationId || cart.items.length === 0) return;
     let cancelled = false;
     api.post<Quote>("/menu/quote", {
@@ -88,7 +98,7 @@ export default function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, [cart, locale]);
+  }, [cart, locale, modeChecked]);
 
   const branchName = locations.find((location) => location.id === cart.locationId)?.name ?? t("checkout.branchFallback");
 
@@ -116,6 +126,8 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
+  if (!modeChecked) return null;
 
   if (order) {
     return (

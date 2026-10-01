@@ -104,7 +104,7 @@ export default function ScrollTabs({ heading, items, theme }: ScrollTabsProps) {
                   <p
                     className={`${descColor} ${INTER} m-0 mt-3 text-[15px] leading-[150%] sm:text-[16px]`}
                   >
-                    {item.description}asfas
+                    {item.description}
                   </p>
                 </div>
               </div>
@@ -129,14 +129,14 @@ export default function ScrollTabs({ heading, items, theme }: ScrollTabsProps) {
           height: "calc(100dvh - var(--navbar-h, 0px))",
         }}
       >
-        <div className="flex w-full  gap-12 flex-row lg:items-center lg:justify-between lg:gap-20">
+        <div className="flex w-full flex-col gap-6 sm:flex-row sm:gap-12 lg:items-center lg:justify-between lg:gap-20">
           {heading}
 
           <div className="flex flex-wrap sm:flex-nowrap items-center justify-end gap-12 xl:gap-30">
             <div className="min-w-0">
               <h3
                 key={`t-${active}`}
-                className={`overlay-fade-up stagger-1 m-0 ${KOROLEV} capitalize ${titleColor}   text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[80px]`}
+                className={`overlay-fade-up stagger-1 m-0 ${KOROLEV} capitalize ${titleColor}   text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[60px]`}
                 style={{
               
                   fontWeight: 900,
@@ -147,7 +147,7 @@ export default function ScrollTabs({ heading, items, theme }: ScrollTabsProps) {
               </h3>
               <p
                 key={`d-${active}`}
-                className={`overlay-fade-up stagger-2 m-0 mt-4 max-w-[400px] ${INTER} capitalize ${descColor} text-[12px] sm:text-[14px] md:text-[16px] lg:text-[18px] xl:text-[20px]`}
+                className={`overlay-fade-up stagger-2 m-0 mt-4 max-w-[400px] ${INTER} capitalize ${descColor} text-[12px] sm:text-[14px] md:text-[16px] lg:text-[16px]  3xl:text-[20px] `}
                 style={{
                 
                 
@@ -160,7 +160,7 @@ export default function ScrollTabs({ heading, items, theme }: ScrollTabsProps) {
 
             <span
               key={active}
-              className={`overlay-fade-up shrink-0 ${INTER} font-thin text-[100px] leading-[0.8] tracking-[-0.06em] lg:text-[150px] xl:text-[254px]`}
+              className={`overlay-fade-up shrink-0 ${INTER} font-thin text-[100px] leading-[0.8] tracking-[-0.06em] lg:text-[150px] xl:text-[200px]  `}
               style={{
                 color: "transparent",
                 WebkitTextStroke: `1px ${numberStroke}`,
@@ -169,7 +169,7 @@ export default function ScrollTabs({ heading, items, theme }: ScrollTabsProps) {
               {String(active + 1).padStart(2, "0")}
             </span>
 
-            <div className="ml-auto hidden shrink-0 flex-col gap-6 sm:flex">
+               <div className="ms-auto absolute shrink-0 flex-col gap-6 flex end-5">
               {items.map((item, i) => (
                 <span
                   key={item.title}

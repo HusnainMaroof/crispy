@@ -518,7 +518,9 @@ export default function Locations() {
               <img
                 src="/images/locationimages.png"
                 alt=""
-                className=" w-[80%]"
+                className=" w-[80%] h-auto"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
@@ -535,7 +537,7 @@ export default function Locations() {
                 {i > 0 && (
                   <span
                     aria-hidden="true"
-                    className="absolute left-0 top-0 hidden h-[50%] translate-y-1/2 w-px bg-linear-to-b from-transparent via-[#3D3C3D] to-transparent lg:block"
+                    className="absolute start-0 top-0 hidden h-[50%] translate-y-1/2 w-px bg-linear-to-b from-transparent via-[#3D3C3D] to-transparent lg:block"
                   />
                 )}
                 <div className="flex lg:items-center gap-8">
@@ -546,7 +548,7 @@ export default function Locations() {
                     <h4 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-black capitalize leading-[100%] text-black">
                       {t(feat.title)}
                     </h4>
-                    <p className=" max-w-[180px]  pl-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[20px] font-normal leading-normal text-[#6B6B6B]">
+                    <p className=" max-w-[180px]  ps-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[20px] font-normal leading-normal text-[#6B6B6B]">
                       {t(feat.desc)}
                     </p>
                   </div>
@@ -561,7 +563,8 @@ export default function Locations() {
  <div className="px-6  sm:px-10 md:px-12 xl:px-25 py-20">
           <div className="rounded-[30px] border-[1.5px] border-[#C4C4C4] bg-[#FDFDFD] px-6 py-8 lg:px-10 lg:py-10">
             <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between xl:gap-30">
-            <div className="flex  justify-between gap-20 w-full lg:w-auto  items-center">
+            {/* gap-20 (80px) plus an 85px icon left 114px for the heading. */}
+            <div className="flex  justify-between gap-6 sm:gap-20 w-full lg:w-auto  items-center">
               {" "}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -592,7 +595,7 @@ export default function Locations() {
                 />
               </svg>
               <div>
-                <h3 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[36px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
+                <h3 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[26px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
                   Cant find us
                 </h3>
                 <p className="m-0 mt-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal capitalize leading-[100%] tracking-[0.54px] text-[#696969]  sm:text-[20px]">
@@ -603,11 +606,13 @@ export default function Locations() {
               </div>
             </div>
 
+            {/* Stacked on mobile: side by side the 84px submit button left the
+                input ~50px wide. lg:contents restores the original row. */}
             <form
               onSubmit={handleSearch}
-              className="flex w-full items-center gap-4 lg:contents"
+              className="flex w-full flex-col items-stretch gap-4 sm:flex-row sm:items-center lg:contents"
             >
-              <div className="relative flex-1 rounded-[20px] border border-[#C4C4C4] bg-white h-[84px] pl-12 pr-6 font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-black outline-none placeholder:text-[#999] focus:border-[#FF0931] sm:text-[16px] flex items-center gap-6">
+              <div className="relative w-full sm:flex-1 rounded-[20px] border border-[#C4C4C4] bg-white h-[84px] ps-12 pe-6 font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-black outline-none placeholder:text-[#999] focus:border-[#FF0931] sm:text-[16px] flex items-center gap-6">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -710,7 +715,7 @@ export default function Locations() {
                 className="relative w-2 shrink-0 self-stretch cursor-pointer touch-none select-none rounded-[4px] bg-[#D9D9D9]"
               >
                 <span
-                  className="absolute left-0 w-2 rounded-[4px] bg-[#FF0931] h-20"
+                  className="absolute start-0 w-2 rounded-[4px] bg-[#FF0931] h-20"
                   style={{ top: indicator.top, }}
                 />
               </div>
@@ -752,12 +757,12 @@ export default function Locations() {
                         rel="noopener noreferrer"
                         aria-label={`Open ${localizedText(locale, loc.name)} in Google Maps`}
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-5 shrink-0 sm:right-6"
+                        className="absolute end-5 shrink-0 sm:end-6"
                       >
                         <ArrowIcon className="h-[42px] w-[42px] sm:h-[44px] sm:w-[44px]" />
                       </a>
 
-                      <div className="flex w-full items-center gap-4 pr-14 sm:gap-10 sm:pl-10 sm:pr-0 lg:gap-20 ">
+                      <div className="flex w-full items-center gap-4 pe-14 sm:gap-10 sm:ps-10 sm:pe-0 lg:gap-20 ">
                         <span
                           className={`shrink-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-bold leading-none sm:text-[34px] ${
                             isActive ? "text-[#FF0931]" : "text-[#F3B9C3]"

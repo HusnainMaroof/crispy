@@ -3,13 +3,10 @@
 
 import { useState } from "react";
 import DeliveryOverlay from "./delivery-overlay";
-import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 export default function Order() {
   const [deliveryOpen, setDeliveryOpen] = useState(false);
-  const { redirect } = useStoreOrdering();
-  const openOrdering = async () => {
-    if (await redirect()) return;
+  const openOrdering = () => {
     setDeliveryOpen(true);
   };
 
@@ -35,7 +32,7 @@ export default function Order() {
               {/* Card 1 — Download App */}
               <div className="bg-white rounded-bl-[50px] w-full sm:w-auto">
                 <div className="bg-[#FF0931] lg:rounded-b-[50px] pb-6  lg:p-10 lg:pt-0 pt-0 flex w-full h-[380px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px] 2xl:w-[530px] 2xl:h-[530px]">
-                  <div className="bg-[#C1001F] relative rounded-[20px] p-5 sm:p-6 pb-0 pt-6 sm:pt-8 text-left overflow-visible flex flex-col lg:flex-row w-full h-full mb-0 lg:mb-5">
+                  <div className="bg-[#C1001F] relative rounded-[20px] p-5 sm:p-6 pb-0 pt-6 sm:pt-8 text-start overflow-visible flex flex-col lg:flex-row w-full h-full mb-0 lg:mb-5">
                     <div className="w-[56px] h-[56px] sm:w-[68px] sm:h-[68px] lg:w-[81px] lg:h-[81px] bg-[#FF0931] flex items-center justify-center absolute rounded-[12px] sm:rounded-[15px] bottom-6 sm:bottom-8 lg:bottom-10 z-[110]">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -54,10 +51,10 @@ export default function Order() {
                       </svg>
                     </div>
                     <div className="max-w-[210px] sm:max-w-[240px] lg:max-w-[268px]">
-                      <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
+                      <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-start capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
                         Download Our App
                       </h3>
-                      <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-white m-0 mt-[clamp(8px,1.2vw,14px)] text-left capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)]">
+                      <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-white m-0 mt-[clamp(8px,1.2vw,14px)] text-start capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)]">
                         Download App For Exclusive{" "}
                         <span className="block">Offers</span>
                       </p>
@@ -65,7 +62,7 @@ export default function Order() {
                     <img
                       src="/images/downloadApp.png"
                       alt="Crispies App"
-                      className="absolute bottom-0 right-0 z-[100] h-[220px] sm:h-[270px] md:h-[300px] lg:h-[350px] w-auto object-contain object-bottom"
+                      className="absolute bottom-0 end-0 z-[100] h-[220px] sm:h-[270px] md:h-[300px] lg:h-[350px] w-auto object-contain object-bottom"
                     />
                   </div>
                 </div>
@@ -88,7 +85,7 @@ export default function Order() {
                   aria-haspopup="dialog"
                   className="bg-[#FF0931] rounded-b-2xl lg:rounded-b-[50px] pb-6  lg:p-10 lg:pt-0 pt-0 w-full h-[380px] sm:w-[420px] sm:h-[420px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px] 2xl:w-[530px] 2xl:h-[530px] cursor-pointer transition-transform duration-200 hover:scale-[1.015] active:scale-[0.99] focus:outline-none"
                 >
-                  <div className="bg-[#C1001F] relative rounded-[20px] p-5 sm:p-6 pb-0 pt-6 sm:pt-8 text-left overflow-visible flex flex-col lg:flex-row w-full h-full mb-0 lg:mb-5">
+                  <div className="bg-[#C1001F] relative rounded-[20px] p-5 sm:p-6 pb-0 pt-6 sm:pt-8 text-start overflow-visible flex flex-col lg:flex-row w-full h-full mb-0 lg:mb-5">
                     <div className="w-[56px] h-[56px] sm:w-[68px] sm:h-[68px] lg:w-[81px] lg:h-[81px] bg-[#FF0931] flex items-center justify-center absolute rounded-[12px] sm:rounded-[15px] bottom-6 sm:bottom-8 lg:bottom-10 z-[110]">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -107,10 +104,10 @@ export default function Order() {
                       </svg>
                     </div>
                     <div className="max-w-[210px] sm:max-w-[240px] lg:max-w-[268px]">
-                      <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-left capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
+                      <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-white m-0 text-start capitalize font-normal leading-[100%] tracking-[0.54px] text-[clamp(1.75rem,4.2vw,4.5rem)]">
                         Get It Delivered
                       </h3>
-                      <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-white m-0 mt-[clamp(8px,1.2vw,14px)] text-left capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)]">
+                      <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-white m-0 mt-[clamp(8px,1.2vw,14px)] text-start capitalize font-normal leading-[1.3] tracking-[0.2px] text-[clamp(0.95rem,1.6vw,1.5rem)]">
                         Delivered Hot & <br /> Fresh To Your{" "}
                         <span className="block">Door Step</span>
                       </p>
@@ -118,7 +115,7 @@ export default function Order() {
                     <img
                       src="/images/deliveredImage.png"
                       alt="Get it delivered"
-                      className="absolute bottom-0 right-0 z-[100] h-[190px] sm:h-[230px] md:h-[260px] lg:h-[300px] 2xl:h-[320px] w-auto object-cover md:object-bottom"
+                      className="absolute bottom-0 end-0 z-[100] h-[190px] sm:h-[230px] md:h-[260px] lg:h-[300px] 2xl:h-[320px] w-auto object-cover md:object-bottom"
                     />
                   </div>
                 </div>

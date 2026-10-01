@@ -2,6 +2,7 @@
 
 import { useLocale } from "@/lib/i18n/locale-context";
 import type { AppLocale } from "@/lib/i18n";
+import type { OrderingSeeds } from "@/lib/use-store-ordering";
 import Navbar, { type NavbarContent } from "@/app/components/store/navbar";
 import Hero from "@/app/components/store/hero";
 import Welcome from "@/app/components/store/welcome";
@@ -57,7 +58,15 @@ function renderSection(key: keyof HomeSections, sections: HomeSections) {
   }
 }
 
-export default function HomeView({ home, navbar }: { home: Copies<Homepage>; navbar: Copies<NavbarContent | undefined> }) {
+export default function HomeView({
+  home,
+  navbar,
+  ordering,
+}: {
+  home: Copies<Homepage>;
+  navbar: Copies<NavbarContent | undefined>;
+  ordering?: OrderingSeeds;
+}) {
   const { locale } = useLocale();
   const page = home[locale] ?? home.en;
   const order = page?.order ?? [];
@@ -65,7 +74,7 @@ export default function HomeView({ home, navbar }: { home: Copies<Homepage>; nav
 
   return (
     <div>
-      <Navbar copies={navbar} />
+      <Navbar copies={navbar} ordering={ordering} />
       <div className="relative">
         {order.includes("hero") && <Hero lines={sections.hero?.lines} videoUrl={sections.hero?.videoUrl} />}
         {order.includes("welcome") && (

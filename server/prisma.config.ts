@@ -1,10 +1,11 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-const databaseUrl =
+const databaseUrl = (
   process.env.NEON_DIRECT_URL ||
   process.env.NEON_DATABASE_URL ||
-  "postgresql://postgres:postgres@127.0.0.1:5432/postgres";
+  "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
+).replace(/\bsslmode=require\b/g, "sslmode=verify-full");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

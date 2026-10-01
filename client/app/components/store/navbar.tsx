@@ -11,14 +11,10 @@ import type { RootState } from "@/lib/redux/store";
 import DeliveryOverlay from "./delivery-overlay";
 import { SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
+import { useStoreOrdering, type OrderingSeeds } from "@/lib/use-store-ordering";
 
-type NavLink = { label?: string; href?: string };
-type SocialLink = { platform?: string; label?: string; url?: string };
 export type NavbarContent = {
-  ordering?: { mode?: "cart" | "redirect" };
   logo?: { imageUrl?: string; alt?: string };
-  navigation?: { links?: NavLink[]; showLanguage?: boolean; menuLabel?: string; closeLabel?: string };
-  socials?: { show?: boolean; links?: SocialLink[] };
 };
 
 const LOCALE_LABEL: Record<AppLocale, string> = { en: "EN", ar: "عربي" };
@@ -41,20 +37,20 @@ function LanguageSwitch({ locale, onChange }: { locale: AppLocale; onChange: (va
   );
 }
 
-const DEFAULT_LINKS: Required<NavLink>[] = [
-  { label: "Menu", href: "/menu" },
-  { label: "Locations", href: "/locations" },
-  { label: "Franchise inquiry", href: "/franchise-inquiries" },
+/** Static navigation — labels come from the UI dictionary, never from the CMS. */
+const DEFAULT_LINKS: { labelKey: string; href: string }[] = [
+  { labelKey: "nav.menu", href: "/menu" },
+  { labelKey: "nav.locations", href: "/locations" },
+  { labelKey: "nav.franchise", href: "/franchise-inquiries" },
 ];
-const DEFAULT_SOCIALS: Required<SocialLink>[] = [
-  { platform: "instagram", label: "Instagram", url: "https://instagram.com" },
-  { platform: "facebook", label: "Facebook", url: "https://facebook.com" },
+
+// --- Social icons: the three social icons restored in the navbar rail ---
+const SOCIALS: { platform: string; label: string; url: string }[] = [
+  { platform: "instagram", label: "Instagram", url: "https://www.instagram.com/crispiesuk" },
+  { platform: "facebook", label: "Facebook", url: "https://facebook.com/crispiesuk" },
   { platform: "x", label: "X", url: "https://twitter.com" },
 ];
 
-const SOCIAL_ICONS: Record<string, (props: SVGProps<SVGSVGElement>) => ReactNode> = {};
-
-// --- Social icons ---
 function InstagramIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -144,6 +140,34 @@ function TwitterIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+const SOCIAL_ICONS: Record<string, (props: SVGProps<SVGSVGElement>) => ReactNode> = {
+  instagram: InstagramIcon,
+  facebook: FacebookIcon,
+  x: TwitterIcon,
+};
+
+function SocialRail({ links, className = "" }: { links: { platform: string; label: string; url: string }[]; className?: string }) {
+  return (
+    <div className={`flex items-center gap-2 ${className}`}>
+      {links.map(({ url, label, platform }) => {
+        const Icon = SOCIAL_ICONS[platform] ?? InstagramIcon;
+        return (
+          <Link
+            key={`${platform}-${url}`}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            className="group flex h-6 w-6 shrink-0 items-center justify-center text-white transition-colors duration-200 hover:border-[#FF0931] hover:text-[#FF0931]"
+          >
+            <Icon className="h-full w-full transition-transform duration-200 group-hover:scale-110" />
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 // --- Bag / bike icons: converted to components sized via className, not hardcoded w/h ---
 function BagIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -197,10 +221,6 @@ function BikeDeliveryIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-SOCIAL_ICONS.instagram = InstagramIcon;
-SOCIAL_ICONS.facebook = FacebookIcon;
-SOCIAL_ICONS.x = TwitterIcon;
-
 function OrderIcon({ name, className }: { name?: string; className: string }) {
   if (name === "bike") return <BikeDeliveryIcon className={className} />;
   if (name === "none") return null;
@@ -208,7 +228,7 @@ function OrderIcon({ name, className }: { name?: string; className: string }) {
 }
 
 const navItemClass =
-  "text-white text-[18px] 2xl:text-[20px] font-normal uppercase tracking-[0.4px] " +
+  "text-white text-[18px]  font-normal uppercase tracking-[0.4px] " +
   "[font-family:var(--font-korolev),Korolev,sans-serif] " +
   "transition-colors duration-200 hover:text-[#FF0931]";
 
@@ -228,7 +248,7 @@ function PillButton({
   count?: number;
 }) {
   const base =
-    `btn-press group flex shrink-0 items-center gap-2 rounded-[4px] ${PILL_PADDING} text-left h-[42px] 2xl:h-[48px] ` +
+    `btn-press group flex shrink-0 items-center gap-2 rounded-[4px] ${PILL_PADDING} text-start h-[42px] 2xl:h-[48px] ` +
     " font-semibold capitalize leading-[1.15] tracking-[0.3px] " +
     "[font-family:var(--font-inter),Inter,sans-serif] transition-colors duration-200";
   const variantClass =
@@ -240,7 +260,7 @@ function PillButton({
     <div className={`${base} ${variantClass} ${className} relative`} role="presentation">
       {icon}
       {count > 0 && (
-        <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none text-[#FF0931]">
+        <span className="absolute -end-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold leading-none text-[#FF0931]">
           {count}
         </span>
       )}
@@ -255,55 +275,42 @@ function PillButton({
   );
 }
 
-function SocialRail({ links, className = "" }: { links: Required<SocialLink>[]; className?: string }) {
-  return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      {links.map(({ url, label, platform }) => {
-        const Icon = SOCIAL_ICONS[platform] ?? InstagramIcon;
-        return (
-          <Link
-            key={`${platform}-${url}`}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={label}
-            className="group flex h-6 w-6 shrink-0 items-center justify-center   text-white transition-colors duration-200 hover:border-[#FF0931] hover:text-[#FF0931]"
-          >
-            <Icon className="h-full w-full transition-transform duration-200 group-hover:scale-110" />
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function Navbar({ content, copies }: { content?: NavbarContent; copies?: Partial<Record<AppLocale, NavbarContent | undefined>> }) {
+export default function Navbar({
+  content,
+  copies,
+  ordering: initialOrdering,
+}: {
+  content?: NavbarContent;
+  copies?: Partial<Record<AppLocale, NavbarContent | undefined>>;
+  ordering?: OrderingSeeds;
+}) {
   const [open, setOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const { toggleCart } = useUI();
   const { locale, setLocale, t } = useLocale();
+  const { resolveOrdering, mode } = useStoreOrdering(initialOrdering);
   const activeContent = copies?.[locale] ?? copies?.en ?? content;
-  const links = (activeContent?.navigation?.links?.length ? activeContent.navigation.links : DEFAULT_LINKS)
-    .filter((link): link is Required<NavLink> => Boolean(link.label?.trim() && link.href?.trim()));
-  const showLanguage = activeContent?.navigation?.showLanguage !== false;
-  const menuLabel = activeContent?.navigation?.menuLabel || t("nav.menu");
-  const closeLabel = activeContent?.navigation?.closeLabel || t("nav.close");
-  const socials = (activeContent?.socials?.links?.length ? activeContent.socials.links : DEFAULT_SOCIALS)
-    .filter((link): link is Required<SocialLink> => Boolean(link.url?.trim() && /^https:\/\//i.test(link.url)));
-  const showSocials = activeContent?.socials?.show !== false && socials.length > 0;
+  const links = DEFAULT_LINKS.map((link) => ({ label: t(link.labelKey), href: link.href }));
+  const menuLabel = t("nav.menu");
+  const closeLabel = t("nav.close");
   const logoUrl = activeContent?.logo?.imageUrl?.trim() ?? "";
   const logoAlt = activeContent?.logo?.alt || "Crispies home";
   const itemCount = cartCount(useSelector((state: RootState) => state.cart));
-  const orderSystem = activeContent?.ordering?.mode === "redirect" ? "redirect" : "cart";
+  const orderSystem = mode;
+  // Resolve the mode on click, not on render: a click landing before the mode
+  // has loaded must never fall through to the cart in redirect mode.
   const openOrdering = () => {
     setOpen(false);
-    if (orderSystem === "redirect") {
-      setDeliveryOpen(true);
-      return;
-    }
-    toggleCart();
+    void (async () => {
+      const resolved = await resolveOrdering();
+      if (resolved.mode === "redirect") {
+        setDeliveryOpen(true);
+        return;
+      }
+      toggleCart();
+    })();
   };
   const pillWidth = "w-[150px] 2xl:w-[160px] justify-center";
 
@@ -330,9 +337,9 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
   }, [open]);
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-50 w-full bg-black">
+    <header ref={headerRef} dir="ltr" lang={locale} className="sticky top-0 z-50 w-full bg-black">
       {/* Desktop navbar — fluid width capped at 1422px so it never over-stretches on ultrawide */}
-      <nav className="nav-enter mx-auto hidden w-[90%] items-center justify-between gap-4 px-6 py-4 xl:flex xl:px-8 pr-4">
+      <nav className="nav-enter mx-auto hidden w-[90%] items-center justify-between gap-4 px-6 py-4 xl:flex xl:px-8 pe-4">
         <Link
           href="/"
           className="text-4xl shrink-0 [font-family:var(--font-korolev),Korolev,sans-serif]"
@@ -413,7 +420,7 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
           </div>
 
           <div className=" flex items-center gap-8">
-            {showLanguage && <LanguageSwitch locale={locale} onChange={setLocale} />}
+            <LanguageSwitch locale={locale} onChange={setLocale} />
             {orderSystem === "cart" ? (
               <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
                 <PillButton variant="filled" count={itemCount} icon={<OrderIcon name="bag" className="h-4 w-3.5 2xl:h-5 2xl:w-4" />} lines={[t("nav.pill.cart.1"), t("nav.pill.cart.2")].filter(Boolean)} className={pillWidth} />
@@ -427,9 +434,9 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
               <PillButton variant="filled" icon={<OrderIcon name="bike" className="h-4 w-6 2xl:h-5 2xl:w-7" />} lines={[t("nav.pill.delivery.1"), t("nav.pill.delivery.2")].filter(Boolean)} className={pillWidth} />
             </button>
           </div>
-
-          {showSocials && <SocialRail links={socials} className="flex-col gap-1.5" />}
+        <SocialRail links={SOCIALS} className="flex-col gap-1.5" />
         </div>
+
       </nav>
 
       {/* Mobile navbar */}
@@ -439,7 +446,9 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt="" className="h-12 w-auto object-contain" />
           ) : (
-          <div className="h-20 w-20  flex items-center justify-center">
+          // The bar is h-14, so an h-20 wordmark box spilled 12px above and
+          // below the header and overlapped the hero.
+          <div className="h-14 w-14 flex items-center justify-center">
             {" "}
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -492,7 +501,7 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
           )}
         </Link>
         <div className="flex items-center gap-3">
-          {showLanguage && <LanguageSwitch locale={locale} onChange={setLocale} />}
+          <LanguageSwitch locale={locale} onChange={setLocale} />
           <button
             aria-label={t("nav.toggleMenu")}
             aria-expanded={open}
@@ -507,7 +516,7 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
       {open && (
         <>
           <div
-            className="backdrop-in fixed inset-0 top-16 bg-black/60 xl:hidden"
+            className="backdrop-in fixed inset-0 top-[var(--navbar-h,56px)] bg-black/60 xl:hidden"
             onClick={() => setOpen(false)}
           />
           <div className="menu-drop absolute inset-x-0 top-full border-b border-white/10 bg-black xl:hidden">
@@ -531,8 +540,8 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
                 );
               })}
 
-              {/* Stacked, not a horizontal row — a horizontal row of 3 pill
-                  buttons + social rail cannot fit a phone viewport */}
+              {/* Stacked, not a horizontal row — a horizontal row of 2 pill
+                  buttons cannot fit a phone viewport */}
               <div
                 style={{ animationDelay: `${0.05 + links.length * 0.08}s` }}
                 className="menu-item mt-2 flex flex-col gap-2.5"
@@ -551,14 +560,12 @@ export default function Navbar({ content, copies }: { content?: NavbarContent; c
                 </button>
               </div>
 
-              {showSocials && <div
-                style={{
-                  animationDelay: `${0.05 + (links.length + 1) * 0.08}s`,
-                }}
+              <div
+                style={{ animationDelay: `${0.05 + (links.length + 1) * 0.08}s` }}
                 className="menu-item mt-4 flex justify-center"
               >
-                <SocialRail links={socials} className="flex-row gap-4" />
-              </div>}
+                <SocialRail links={SOCIALS} className="flex-row gap-4" />
+              </div>
             </div>
           </div>
         </>

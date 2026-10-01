@@ -9,6 +9,7 @@ import { createOrder, customerCanView, getOrderById, getOrdersByCustomerId } fro
 import { getCustomerForStaff, getOwnProfile, listCustomers, updateOwnProfile } from "../src/services/customer.service.js";
 import { customerProfileSchema } from "../src/validators/order.schema.js";
 import { NotFoundException } from "../src/utils/app-error.js";
+import { FIRST_PAGE } from "./helpers/page.js";
 
 const prisma = getPrisma();
 const keys: string[] = [];
@@ -66,7 +67,7 @@ describe("customers", { concurrency: 1 }, () => {
     assert.equal(first.customer_id, owner);
     assert.equal(second.customer_id, owner);
     assert.equal(await prisma.customers.count({ where: { id: owner } }), 1);
-    const mine = await getOrdersByCustomerId(owner);
+    const { orders: mine } = await getOrdersByCustomerId(owner, FIRST_PAGE);
     assert.equal(mine.filter((order) => order.id === first.id || order.id === second.id).length, 2);
   });
 
@@ -86,7 +87,7 @@ describe("customers", { concurrency: 1 }, () => {
     const location = await branch("kilburn");
     const order = await place(location.id, owner, "owner@stage11.test");
     await place(location.id, other, "other@stage11.test");
-    const mine = await getOrdersByCustomerId(owner);
+    const { orders: mine } = await getOrdersByCustomerId(owner, FIRST_PAGE);
     assert.ok(mine.some((row) => row.id === order.id));
     assert.equal(mine.some((row) => row.customer_id === other), false);
     assert.equal(customerCanView(order.customer_id, owner), true);
@@ -120,7 +121,7 @@ describe("customers", { concurrency: 1 }, () => {
 
     const adminView = await getCustomerForStaff(admin, owner);
     assert.equal(adminView.order_count, 2);
-    const found = await listCustomers(admin, email);
+    const { customers: found } = await listCustomers(admin, { q: email, ...FIRST_PAGE });
     assert.equal(found.length, 1);
     assert.equal(found[0].order_count, 2);
 
@@ -129,14 +130,14 @@ describe("customers", { concurrency: 1 }, () => {
     assert.deepEqual(local.orders.map((order) => order.id), [harrowOrder.id]);
     assert.equal(local.orders.some((order) => order.id === towerOrder.id), false);
 
-    const hidden = await listCustomers(towerManager, email);
+    const { customers: hidden } = await listCustomers(towerManager, { q: email, ...FIRST_PAGE });
     assert.equal(hidden.length, 1);
     assert.equal(hidden[0].order_count, 1);
     assert.equal(hidden[0].latest_order?.id, towerOrder.id);
 
     const kilburn = await branch("kilburn");
     const outsider = await manager(kilburn.id);
-    assert.equal((await listCustomers(outsider, email)).length, 0);
+    assert.equal((await listCustomers(outsider, { q: email, ...FIRST_PAGE })).customers.length, 0);
     await assert.rejects(() => getCustomerForStaff(outsider, owner), NotFoundException);
   });
 

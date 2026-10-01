@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import {
-  getFullMenu,
+  getCategories,
   getCategoryById,
   createCategory,
   updateCategory,
@@ -9,9 +9,12 @@ import {
 import { sendSuccess } from "../../utils/response.js";
 
 export const CategoriesController = {
+  // Not getFullMenu(): that projection drops categories with no active items,
+  // so the admin list silently swallowed a category the user had just created.
+  // The storefront keeps using the pruned shape.
   async list(_req: Request, res: Response) {
-    const menu = await getFullMenu();
-    sendSuccess(res, menu);
+    const categories = await getCategories();
+    sendSuccess(res, categories);
   },
 
   async getById(req: Request, res: Response) {

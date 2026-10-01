@@ -88,7 +88,7 @@ function AuthCheckingSkeleton({ login = false }: { login?: boolean }) {
 }
 
 function AdminGate({ children }: { children: React.ReactNode }) {
-  const { status, tabs, user } = useAdminSession();
+  const { status, tabs, user, refreshSession } = useAdminSession();
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = splitPanel(pathname).rest === "/login";
@@ -104,6 +104,29 @@ function AdminGate({ children }: { children: React.ReactNode }) {
   if (isLogin) return <>{toaster}{children}</>;
   if (status === "guest") return <AuthCheckingSkeleton />;
 
+  // The session check failed for a reason other than being signed out (a 5xx,
+  // a 502 from the proxy, offline). Sending the user to /login here would be
+  // a false logout, so offer a retry instead.
+  if (status === "unavailable") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-brand-black px-6 text-center text-white">
+        <div>
+          <h1 className="text-xl font-semibold">Could not reach the server</h1>
+          <p className="mt-2 text-sm text-white/60">
+            We could not verify your session. You may still be signed in.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refreshSession(true)}
+            className="btn-press mt-6 rounded-lg bg-brand-red px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {toaster}
@@ -113,9 +136,13 @@ function AdminGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // The admin is English-only and stays left-to-right even when the
+  // storefront switches to Arabic (the root html flips to rtl).
   return (
-    <AdminSessionProvider>
-      <AdminGate>{children}</AdminGate>
-    </AdminSessionProvider>
+    <div dir="ltr">
+      <AdminSessionProvider>
+        <AdminGate>{children}</AdminGate>
+      </AdminSessionProvider>
+    </div>
   );
 }

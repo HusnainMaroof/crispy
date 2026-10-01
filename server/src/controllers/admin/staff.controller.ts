@@ -8,6 +8,7 @@ import {
   updateStaff,
 } from "../../services/staff.service.js";
 import { UnauthorizedException } from "../../utils/app-error.js";
+import { resolvePage, sendPaged } from "../../utils/pagination.js";
 import { sendSuccess } from "../../utils/response.js";
 
 function actor(req: Request) {
@@ -17,7 +18,15 @@ function actor(req: Request) {
 
 export const StaffController = {
   async list(req: Request, res: Response) {
-    sendSuccess(res, await listStaff(actor(req)));
+    const page = resolvePage(req.query as { page?: unknown; limit?: unknown });
+    const { staff, total } = await listStaff(actor(req), {
+      q: typeof req.query.q === "string" ? req.query.q : undefined,
+      role: typeof req.query.role === "string" ? req.query.role : undefined,
+      branch_id: typeof req.query.branch_id === "string" ? req.query.branch_id : undefined,
+      is_active: req.query.is_active === undefined ? undefined : req.query.is_active === "true",
+      ...page,
+    });
+    sendPaged(res, staff, total, page);
   },
 
   async getById(req: Request, res: Response) {

@@ -59,6 +59,24 @@ function resolveContent(section: CmsSection, stored: Record<string, unknown>) {
   return content;
 }
 
+function publishedContent(section: CmsSection, row: SectionRow | undefined, locale: AppLocale) {
+  const english = asObject(publishedCopy(row, DEFAULT_LOCALE)?.content);
+  if (locale === DEFAULT_LOCALE) return english;
+  const requested = row?.translations.find((item) => item.locale === locale && item.is_published);
+  if (!requested) return english;
+  const local = asObject(requested.content);
+  const merged = { ...english };
+  for (const [name, field] of Object.entries(section.fields)) {
+    if (local[name] === undefined) continue;
+    // Links and media are shared. An empty Arabic value must not wipe the
+    // English destination, or the redirect system has nowhere to send people.
+    const shared = field.kind === "url" || field.kind === "link" || field.kind === "image" || field.kind === "video";
+    if (shared && local[name] === "") continue;
+    merged[name] = local[name];
+  }
+  return merged;
+}
+
 function publishedCopy(row: SectionRow | undefined, locale: AppLocale) {
   if (!row) return null;
   const requested = row.translations.find((item) => item.locale === locale && item.is_published);
@@ -85,6 +103,38 @@ async function loadRows(pageId: string): Promise<SectionRow[]> {
   });
 }
 
+type PublicCmsPage = { page: string; locale: AppLocale; order: string[]; sections: Record<string, Record<string, unknown>> };
+
+const PUBLIC_TTL_MS = 15_000;
+const publicCache = new Map<string, { expires: number; value: PublicCmsPage }>();
+const publicInflight = new Map<string, Promise<PublicCmsPage>>();
+const rowCache = new Map<string, { expires: number; rows: SectionRow[] }>();
+const rowInflight = new Map<string, Promise<SectionRow[]>>();
+
+function clearPublicCmsCache(pageId: string) {
+  rowCache.delete(pageId);
+  for (const key of publicCache.keys()) {
+    if (key.startsWith(`${pageId}:`)) publicCache.delete(key);
+  }
+}
+
+async function loadPublicRows(pageId: string): Promise<SectionRow[]> {
+  const hit = rowCache.get(pageId);
+  if (hit && hit.expires > Date.now()) return hit.rows;
+  const pending = rowInflight.get(pageId);
+  if (pending) return pending;
+  const request = loadRows(pageId).then((rows) => {
+    rowCache.set(pageId, { expires: Date.now() + PUBLIC_TTL_MS, rows });
+    return rows;
+  });
+  rowInflight.set(pageId, request);
+  try {
+    return await request;
+  } finally {
+    if (rowInflight.get(pageId) === request) rowInflight.delete(pageId);
+  }
+}
+
 async function ensureSections(page: CmsPage) {
   await getPrisma().cms_sections.createMany({
     data: page.sections.map((section, index) => ({ page: page.id, key: section.key, sort_order: index })),
@@ -92,19 +142,36 @@ async function ensureSections(page: CmsPage) {
   });
 }
 
-export async function getPublicCmsPage(pageId: string, requested?: unknown) {
+export async function getPublicCmsPage(pageId: string, requested?: unknown): Promise<PublicCmsPage> {
   const page = requirePage(pageId);
   const locale = resolveLocale(requested);
-  const rows = await loadRows(page.id);
-  const sections: Record<string, Record<string, unknown>> = {};
-  const order: string[] = [];
-  for (const section of orderedSections(page, rows)) {
-    const row = rows.find((item) => item.key === section.key);
-    if (row && !row.is_active) continue;
-    sections[section.key] = resolveContent(section, asObject(publishedCopy(row, locale)?.content));
-    order.push(section.key);
+  const key = `${page.id}:${locale}`;
+  const hit = publicCache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.value;
+  const pending = publicInflight.get(key);
+  if (pending) return pending;
+
+  const request = (async (): Promise<PublicCmsPage> => {
+    const rows = await loadPublicRows(page.id);
+    const sections: Record<string, Record<string, unknown>> = {};
+    const order: string[] = [];
+    for (const section of orderedSections(page, rows)) {
+      const row = rows.find((item) => item.key === section.key);
+      if (row && !row.is_active) continue;
+      sections[section.key] = resolveContent(section, publishedContent(section, row, locale));
+      order.push(section.key);
+    }
+    return { page: page.id, locale, order, sections };
+  })();
+
+  publicInflight.set(key, request);
+  try {
+    const value = await request;
+    publicCache.set(key, { expires: Date.now() + PUBLIC_TTL_MS, value });
+    return value;
+  } finally {
+    if (publicInflight.get(key) === request) publicInflight.delete(key);
   }
-  return { page: page.id, locale, order, sections };
 }
 
 export async function listCmsPages(actor: Actor) {
@@ -184,6 +251,7 @@ export async function updateCmsSection(actor: Actor, id: string, input: CmsSecti
       },
     });
   }
+  clearPublicCmsCache(row.page);
   return getCmsPageForEditing(actor, row.page, locale);
 }
 
@@ -205,6 +273,7 @@ export async function moveCmsSection(actor: Actor, id: string, direction: "up" |
       data: { sort_order: order },
     })));
   }
+  clearPublicCmsCache(page.id);
   return getCmsPageForEditing(actor, page.id);
 }
 
@@ -213,5 +282,6 @@ export async function resetCmsSection(actor: Actor, id: string, requested: unkno
   const locale = requireLocale(requested);
   const { row } = await requireSection(id);
   await getPrisma().cms_section_translations.deleteMany({ where: { section_id: id, locale } });
+  clearPublicCmsCache(row.page);
   return getCmsPageForEditing(actor, row.page, locale);
 }

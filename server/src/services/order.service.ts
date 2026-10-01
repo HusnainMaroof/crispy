@@ -1,10 +1,12 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
+import { logger } from "../middleware/logger.js";
 import { sendEmail, sendAdminEmail } from "./email.service.js";
 import { BadRequestException, ConflictException, ForbiddenException, InternalServerException, NotFoundException } from "../utils/app-error.js";
 import { assertLocationAccess, isBranchScoped } from "./branch-access.service.js";
 import type { AuthPayload } from "../types/responses.js";
 import { rethrow, serialize } from "../utils/db.js";
+import type { PageRequest } from "../utils/pagination.js";
 import type { Order, OrderItem } from "../types/models.js";
 import {
   orderConfirmationEmail,
@@ -36,8 +38,17 @@ function db() {
   return getPrisma();
 }
 
+/**
+ * orders.id is a BigInt column, so the path segment has to be an integer.
+ * BigInt() throws a bare SyntaxError on anything else ("abc", "1.5"), which the
+ * error handler turns into a 500. A malformed id is a missing record, so it is
+ * rejected as a 404 before it reaches the driver.
+ */
 function orderId(id: string | number): bigint {
-  return BigInt(id);
+  if (typeof id === "bigint") return id;
+  const raw = String(id).trim();
+  if (!/^\d+$/.test(raw)) throw new NotFoundException("Order not found");
+  return BigInt(raw);
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<Order & { items: OrderItem[] }> {
@@ -136,18 +147,23 @@ function lineData(orderId: bigint, item: QuoteLine) {
   };
 }
 
-export async function getOrders(filter?: { status?: string; location_id?: string; location_ids?: string[] }): Promise<(Order & { items: OrderItem[]; location_name: string | null })[]> {
+export async function getOrders(
+  filter: { status?: string; location_id?: string; location_ids?: string[]; fulfilment?: string; q?: string } & PageRequest,
+): Promise<(Order & { items: OrderItem[]; location_name: string | null })[]> {
+  const where = orderWhere(filter);
+
   const rows = await db().orders.findMany({
-    where: {
-      ...(filter?.status ? { status: filter.status } : {}),
-      ...(filter?.location_id ? { location_id: filter.location_id } : {}),
-      ...(filter?.location_ids ? { location_id: { in: filter.location_ids } } : {}),
-    },
+    where,
+    skip: filter.skip,
+    take: filter.limit,
     include: {
       order_items: { orderBy: { id: "asc" } },
       location: { select: { name: true } },
     },
-    orderBy: { created_at: "desc" },
+    // id DESC is the tiebreaker. created_at alone is not a stable sort key:
+    // two orders placed in the same millisecond could swap places between two
+    // page requests, which duplicates one row and drops another.
+    orderBy: [{ created_at: "desc" }, { id: "desc" }],
   });
 
   return rows.map((row) => {
@@ -160,35 +176,98 @@ export async function getOrders(filter?: { status?: string; location_id?: string
   });
 }
 
-export async function getOrderById(id: string | number): Promise<{ order: Order & { location_name: string | null }; items: OrderItem[] }> {
-  const row = await db().orders.findUnique({
-    where: { id: orderId(id) },
-    include: { location: { select: { name: true } } },
-  });
-  if (!row) throw new NotFoundException("Order not found");
+export async function countOrders(filter: {
+  status?: string;
+  location_id?: string;
+  location_ids?: string[];
+  fulfilment?: string;
+  q?: string;
+}): Promise<number> {
+  return db().orders.count({ where: orderWhere(filter) });
+}
 
-  const items = await db().order_items.findMany({ where: { order_id: row.id }, orderBy: { id: "asc" } });
-  const { location, ...order } = row;
+/** One place that builds the list filter, so the page and the count agree. */
+function orderWhere(filter: { status?: string; location_id?: string; location_ids?: string[]; fulfilment?: string; q?: string }) {
+  const q = filter.q?.trim();
+  // A requested branch and an allow-list are both predicates. Putting them on
+  // the same object key let the allow-list replace the requested branch, so a
+  // manager with several branches could not narrow the list to one of them.
+  const location: Prisma.ordersWhereInput[] = [];
+  if (filter.location_id) location.push({ location_id: filter.location_id });
+  if (filter.location_ids) location.push({ location_id: { in: filter.location_ids } });
   return {
-    order: serialize<Order & { location_name: string | null }>({ ...order, location_name: location?.name ?? null }),
-    items: serialize<OrderItem[]>(items),
+    ...(filter.status ? { status: filter.status } : {}),
+    ...(filter.fulfilment ? { fulfilment: filter.fulfilment } : {}),
+    ...(location.length > 0 ? { AND: location } : {}),
+    // Free-text search moves to the database. It used to be impossible to
+    // push down anyway, so it belongs in the where clause rather than in a
+    // filter pass over the page in JavaScript.
+    ...(q
+      ? {
+          OR: [
+            { customer_name: { contains: q, mode: "insensitive" as const } },
+            { email: { contains: q, mode: "insensitive" as const } },
+            { customer_id: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
   };
 }
 
-export async function getOrdersByCustomerId(customerId: string): Promise<Order[]> {
-  const rows = await db().orders.findMany({
-    where: { customer_id: customerId },
-    orderBy: { created_at: "desc" },
+export async function getOrderById(id: string | number): Promise<{ order: Order & { location_name: string | null }; items: OrderItem[] }> {
+  // One query, not two. The line items came back in a second round-trip that
+  // had nothing to wait for.
+  const row = await db().orders.findUnique({
+    where: { id: orderId(id) },
+    include: {
+      location: { select: { name: true } },
+      order_items: { orderBy: { id: "asc" } },
+    },
   });
-  return serialize<Order[]>(rows);
+  if (!row) throw new NotFoundException("Order not found");
+
+  const { location, order_items, ...order } = row;
+  return {
+    order: serialize<Order & { location_name: string | null }>({ ...order, location_name: location?.name ?? null }),
+    items: serialize<OrderItem[]>(order_items),
+  };
 }
 
-export async function getOrdersByEmail(email: string): Promise<Order[]> {
-  const rows = await db().orders.findMany({
-    where: { email },
-    orderBy: { created_at: "desc" },
-  });
-  return serialize<Order[]>(rows);
+export async function getOrdersByCustomerId(customerId: string, page: PageRequest): Promise<{ orders: Order[]; total: number }> {
+  const where = { customer_id: customerId };
+  const [rows, total] = await db().$transaction([
+    db().orders.findMany({
+      where,
+      skip: page.skip,
+      take: page.limit,
+      orderBy: [{ created_at: "desc" }, { id: "desc" }],
+    }),
+    db().orders.count({ where }),
+  ]);
+  return { orders: serialize<Order[]>(rows), total };
+}
+
+/**
+ * Order history lookup for the storefront.
+ *
+ * The caller-supplied email used to select every order with that address and
+ * the ownership check was applied afterwards in JavaScript, so a caller could
+ * make the server pull an arbitrary customer's full order history off the
+ * database. Both predicates are now index-backed and both run in Postgres.
+ * The result set is identical; the discarded rows are never transferred.
+ */
+export async function getOrdersByEmail(email: string, customerId: string, page: PageRequest): Promise<{ orders: Order[]; total: number }> {
+  const where = { email, customer_id: customerId };
+  const [rows, total] = await db().$transaction([
+    db().orders.findMany({
+      where,
+      skip: page.skip,
+      take: page.limit,
+      orderBy: [{ created_at: "desc" }, { id: "desc" }],
+    }),
+    db().orders.count({ where }),
+  ]);
+  return { orders: serialize<Order[]>(rows), total };
 }
 
 const DELIVERY_TRANSITIONS: Record<string, string[]> = {
@@ -264,15 +343,33 @@ export async function updateOrderStatus(id: string | number, status: Order["stat
   return saved;
 }
 
+const TERMINAL_STATUSES = ["delivered", "cancelled"];
+
+/**
+ * Dashboard aggregates, all scoped to the caller's branches.
+ *
+ * The per-status breakdown replaced a client-side count over the loaded order
+ * list. That list is now a single page, so counting it in the browser would
+ * have reported the page size rather than the real number. One groupBy answers
+ * the total, the active count and every per-status tile at once, so this is
+ * fewer queries than the two separate counts it replaces.
+ *
+ * `status_counts` is additive: existing consumers of the four original fields
+ * are unaffected.
+ */
 export async function getDashboardStats(locationIds?: string[] | null) {
   const startOfToday = new Date();
   startOfToday.setUTCHours(0, 0, 0, 0);
   const branch = locationIds ? { location_id: { in: locationIds } } : {};
 
   try {
-    const [totalOrders, activeOrders, revenue, todayRevenue] = await db().$transaction([
-      db().orders.count({ where: branch }),
-      db().orders.count({ where: { ...branch, status: { notIn: ["delivered", "cancelled"] } } }),
+    const [groups, revenue, todayRevenue] = await db().$transaction([
+      db().orders.groupBy({
+        by: ["status"],
+        where: branch,
+        orderBy: { status: "asc" },
+        _count: true,
+      }),
       db().orders.aggregate({ _sum: { total: true }, where: branch }),
       db().orders.aggregate({
         _sum: { total: true },
@@ -280,13 +377,29 @@ export async function getDashboardStats(locationIds?: string[] | null) {
       }),
     ]);
 
+    // Prisma types groupBy's _count as a union of every possible count shape,
+    // so the group rows are narrowed here once rather than at each use.
+    const byStatus = groups as unknown as { status: string; _count: number }[];
+
+    const statusCounts: Record<string, number> = {};
+    let totalOrders = 0;
+    let activeOrders = 0;
+    for (const row of byStatus) {
+      const count = row._count;
+      statusCounts[row.status] = count;
+      totalOrders += count;
+      if (!TERMINAL_STATUSES.includes(row.status)) activeOrders += count;
+    }
+
     return {
       total_orders: totalOrders,
       active_orders: activeOrders,
       revenue: revenue._sum.total ? Number(revenue._sum.total) : 0,
       today_revenue: todayRevenue._sum.total ? Number(todayRevenue._sum.total) : 0,
+      status_counts: statusCounts,
     };
-  } catch {
+  } catch (error) {
+    logger.error({ err: error }, "Failed to fetch dashboard stats");
     throw new InternalServerException("Failed to fetch dashboard stats");
   }
 }

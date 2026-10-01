@@ -58,6 +58,7 @@ export const StoreController = {
   async content(req: Request, res: Response) {
     const query = req.query.locale;
     const requested = resolveLocale(typeof query === "string" ? query : req.cookies?.crispy_locale);
+    res.setHeader("Cache-Control", "public, max-age=15");
     sendSuccess(res, await getPublicCmsPage((req.params.page as string | undefined) ?? "home", requested));
   },
 };

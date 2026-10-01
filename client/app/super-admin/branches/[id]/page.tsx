@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import PageHeader from "@/app/components/admin/ui/page-header";
+import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
 import { api } from "@/lib/api";
 import { usePanel } from "@/lib/admin/use-panel";
 
@@ -41,7 +42,7 @@ export default function BranchDetailPage() {
     }
   }
 
-  if (!branch && !error) return null;
+  if (!branch && !error) return <PageSkeleton />;
 
   return (
     <div className="admin-fade-in">

@@ -13,10 +13,18 @@ import { useLocations } from "@/lib/admin/use-locations";
 import { useAdminSession } from "@/lib/admin/session";
 import { isBranchScoped } from "@/lib/admin/roles";
 import { dietaryTags, type DietaryOption } from "@/lib/dietary";
+import type { MenuItemRedirects } from "@/lib/redux/types";
 import OptimizedImage from "@/app/components/ui/optimized-image";
 
+/** The three delivery platforms, in the order the popup lists them. */
+const REDIRECT_PLATFORMS: { key: keyof MenuItemRedirects; name: string; brand: string }[] = [
+  { key: "uberEats", name: "Uber Eats", brand: "#06BB67" },
+  { key: "deliveroo", name: "Deliveroo", brand: "#00CCBC" },
+  { key: "justEat", name: "Just Eat", brand: "#FF8000" },
+];
+
 export default function MenuPage() {
-  const { items, loading, fetchItems, addItem, updateItem, deleteItem } = useMenu();
+  const { items, loading, error: loadError, fetchItems, addItem, updateItem, deleteItem } = useMenu();
   const { categories, loading: categoriesLoading, fetchCategories, addCategory, deleteCategory } = useCategories();
   const { locations, loading: locationsLoading, fetchLocations } = useLocations();
   const { user } = useAdminSession();
@@ -38,9 +46,9 @@ export default function MenuPage() {
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchItems();
-    fetchCategories();
-    fetchLocations();
+    void fetchItems();
+    void fetchCategories();
+    void fetchLocations();
   }, [fetchItems, fetchCategories, fetchLocations]);
 
   useEffect(() => {
@@ -199,6 +207,12 @@ export default function MenuPage() {
           </div>
         }
       />
+
+      {loadError && (
+        <p role="alert" className="mb-4 rounded-lg border border-brand-red/40 bg-brand-red/10 px-4 py-3 text-sm text-brand-red">
+          {loadError}
+        </p>
+      )}
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <label className="block text-sm text-white/60">
@@ -500,11 +514,11 @@ function MenuForm({
   onClose,
 }: {
   itemId: string | null;
-  items: { id: string; name: string; nameAr?: string; description: string; descriptionAr?: string; price: string; priceValue: number; image: string; categoryId: string; badge?: string; badgeVariant?: "default" | "vegan"; redirectUrl?: string; locations: { id: string; name: string }[] }[];
+  items: { id: string; name: string; nameAr?: string; description: string; descriptionAr?: string; price: string; priceValue: number; image: string; categoryId: string; badge?: string; badgeVariant?: "default" | "vegan"; redirects: MenuItemRedirects; locations: { id: string; name: string }[] }[];
   categories: { id: string; title: string }[];
   locations: { id: string; name: string }[];
   initialCategoryId?: string;
-  onSave: (data: { name: string; nameAr: string; description: string; descriptionAr: string; price: string; priceValue: number; image: string; categoryId: string; badge: string | null; badgeVariant: "vegan" | null; redirectUrl: string; locationIds: string[] }) => void;
+  onSave: (data: { name: string; nameAr: string; description: string; descriptionAr: string; price: string; priceValue: number; image: string; categoryId: string; badge: string | null; badgeVariant: "vegan" | null; redirects: MenuItemRedirects; locationIds: string[] }) => void;
   onClose: () => void;
 }) {
   const existing = itemId ? items.find((i) => i.id === itemId) : null;
@@ -514,7 +528,9 @@ function MenuForm({
   const [description, setDescription] = useState(existing?.description || "");
   const [descriptionAr, setDescriptionAr] = useState(existing?.descriptionAr || "");
   const [price, setPrice] = useState(existing?.priceValue?.toString() || "");
-  const [redirectUrl, setRedirectUrl] = useState(existing?.redirectUrl || "");
+  const [redirects, setRedirects] = useState<MenuItemRedirects>(
+    existing?.redirects ?? { uberEats: "", deliveroo: "", justEat: "" }
+  );
   const [categoryId, setCategoryId] = useState(existing?.categoryId || initialCategoryId || categories[0]?.id || "");
   const [image, setImage] = useState(existing?.image || "");
   const [dietary, setDietary] = useState<DietaryOption[]>(dietaryTags(existing?.badge, existing?.badgeVariant));
@@ -522,8 +538,21 @@ function MenuForm({
     existing ? existing.locations.map((location) => location.id) : locations.map((location) => location.id)
   );
 
+  const [redirectError, setRedirectError] = useState("");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Empty is allowed: the storefront falls back to the site-wide platform
+    // link. A filled link still has to be https so the customer is not sent
+    // to an insecure address.
+    const invalid = REDIRECT_PLATFORMS.filter(({ key }) => {
+      const value = redirects[key].trim();
+      return value !== "" && !/^https:\/\/\S+$/i.test(value);
+    });
+    if (invalid.length > 0) {
+      setRedirectError(`Use a https:// link for ${invalid.map((platform) => platform.name).join(", ")}.`);
+      return;
+    }
     const priceValue = parseFloat(price) || 0;
     onSave({
       name,
@@ -536,7 +565,11 @@ function MenuForm({
       image: image || "/placeholder.jpg",
       badge: dietary.length > 0 ? dietary.join(", ") : null,
       badgeVariant: dietary.includes("Vegan") ? "vegan" : null,
-      redirectUrl: redirectUrl.trim(),
+      redirects: {
+        uberEats: redirects.uberEats.trim(),
+        deliveroo: redirects.deliveroo.trim(),
+        justEat: redirects.justEat.trim(),
+      },
       locationIds,
     });
   };
@@ -616,15 +649,40 @@ function MenuForm({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-white/50">Redirect link (optional)</label>
-            <input
-              type="url"
-              value={redirectUrl}
-              onChange={(e) => setRedirectUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-brand-red/50"
-            />
-            <p className="mt-1 text-xs leading-relaxed text-white/40">For the redirect system: after the customer picks a branch and an app, Continue opens this link instead of the app link. Leave empty to use the app link.</p>
+            <label className="mb-1 block text-sm text-white/50">
+              Redirect links
+            </label>
+            <p className="mb-2 text-xs leading-relaxed text-white/40">
+              Optional. When the store is on the redirect system, a filled link sends the customer to this item
+              on that platform. Leave it empty to use the site-wide link. Each filled link must start with https://.
+            </p>
+            <div className="space-y-3">
+              {REDIRECT_PLATFORMS.map(({ key, name, brand }) => (
+                <div key={key}>
+                  <label className="mb-1 flex items-center gap-2 text-xs text-white/50">
+                    <span
+                      aria-hidden
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                      style={{ backgroundColor: brand }}
+                    >
+                      {name.charAt(0)}
+                    </span>
+                    {name}
+                  </label>
+                  <input
+                    type="url"
+                    value={redirects[key]}
+                    onChange={(e) => {
+                      setRedirects((current) => ({ ...current, [key]: e.target.value }));
+                      setRedirectError("");
+                    }}
+                    placeholder="https://…"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-brand-red/50"
+                  />
+                </div>
+              ))}
+            </div>
+            {redirectError && <p className="mt-2 text-xs text-brand-red">{redirectError}</p>}
           </div>
           <div>
             <label className="mb-1 block text-sm text-white/50">Image</label>

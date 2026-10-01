@@ -25,6 +25,14 @@ export const contactMessageSchema = z.object({
   type: z.enum(["general", "franchise", "careers", "press"]),
 });
 
+/** Public brochure request — only an email is required. */
+export const brochureRequestSchema = z.object({
+  email: z.string().trim().email().max(254),
+  name: z.string().trim().max(200).optional().default(""),
+  phone: z.string().trim().max(40).optional().default(""),
+  locale: z.enum(["en", "ar"]).optional().default("en"),
+});
+
 export const jobPostStatusSchema = z.object({
   status: z.enum(["draft", "active", "closed"]),
 });
@@ -49,8 +57,10 @@ export const jobApplicationStatusSchema = z.object({
   status: z.enum(["pending", "reviewed", "shortlisted", "rejected", "hired"]),
 });
 
-// Only the three current panel roles can be assigned.
-export const staffRoleSchema = z.enum(["superadmin", "branch_manager", "staff"]);
+// Super admin accounts are provisioned out of band (see scripts/reset-superadmin).
+// The client never offers "superadmin" in its role picker, so accepting it here
+// would let a direct API call mint a second super admin with every tab.
+export const staffRoleSchema = z.enum(["branch_manager", "staff"]);
 
 const staffTabSchema = z.enum([
   "dashboard", "menu", "categories", "orders", "customers", "staff", "branches",

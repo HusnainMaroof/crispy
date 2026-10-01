@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, type Pagination } from "@/lib/api";
 
 export type AdminJobPost = {
   id: string;
@@ -16,7 +16,7 @@ export type AdminJobPost = {
   applications: number;
 };
 
-function mapJobPost(raw: Record<string, unknown>): AdminJobPost {
+export function mapJobPost(raw: Record<string, unknown>): AdminJobPost {
   return {
     id: raw.id as string,
     title: raw.title as string,
@@ -33,14 +33,33 @@ function mapJobPost(raw: Record<string, unknown>): AdminJobPost {
 
 export function useJobPosts() {
   const [jobPosts, setJobPosts] = useState<AdminJobPost[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false,
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const fetchJobPosts = useCallback(async (filters?: { status?: string }) => {
+  /**
+   * Filtering and paging happen in the database. The applications tab used to
+   * read the full job-post list to resolve titles and to populate its job
+   * dropdown, so it now asks for a separate unfiltered list for those lookups
+   * instead of relying on whatever page the grid happens to be showing.
+   */
+  const fetchJobPosts = useCallback(async (filters?: { status?: string; q?: string; page?: number; limit?: number }) => {
     setLoading(true);
+    setError("");
     try {
-      const query = filters?.status ? `?status=${filters.status}` : "";
-      const data = await api.get<Record<string, unknown>[]>(`/admin/jobs${query}`);
-      setJobPosts(data.map(mapJobPost));
+      const params = new URLSearchParams();
+      if (filters?.status) params.set("status", filters.status);
+      if (filters?.q) params.set("q", filters.q);
+      if (filters?.page) params.set("page", String(filters.page));
+      if (filters?.limit) params.set("limit", String(filters.limit));
+      const query = params.toString() ? `?${params.toString()}` : "";
+      const { items, pagination: meta } = await api.getPage<Record<string, unknown>>(`/admin/jobs${query}`);
+      setJobPosts(items.map(mapJobPost));
+      setPagination(meta);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load job posts.");
     } finally {
       setLoading(false);
     }
@@ -100,5 +119,5 @@ export function useJobPosts() {
     [jobPosts]
   );
 
-  return { jobPosts, loading, fetchJobPosts, addJobPost, updateJobPost, deleteJobPost, toggleJobStatus, getJobPost };
+  return { jobPosts, pagination, loading, error, fetchJobPosts, addJobPost, updateJobPost, deleteJobPost, toggleJobStatus, getJobPost };
 }

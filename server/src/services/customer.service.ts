@@ -1,6 +1,7 @@
 import { getPrisma } from "../config/prisma.js";
 import { NotFoundException } from "../utils/app-error.js";
 import { serialize } from "../utils/db.js";
+import type { PageRequest } from "../utils/pagination.js";
 import { getAccessibleLocationIds } from "./branch-access.service.js";
 import type { AuthPayload } from "../types/responses.js";
 
@@ -46,33 +47,59 @@ export async function updateOwnProfile(customerId: string, input: ProfileInput) 
   return serialize(row);
 }
 
-export async function listCustomers(admin: Staff, query?: string) {
+/**
+ * The customer list only needs two things per customer: how many orders they
+ * have placed, and their most recent one. It was fetching every order row (and
+ * its location join) for every customer in the result set to derive those,
+ * which grows as orders x customers. _count does the tally in the database and
+ * `take: 1` after the same ordering grabs just the latest.
+ */
+export async function listCustomers(admin: Staff, options: { q?: string } & PageRequest) {
   const allowed = await getAccessibleLocationIds(admin);
-  const q = query?.trim();
-  const rows = await getPrisma().customers.findMany({
-    where: {
-      ...(allowed ? { orders: { some: orderScope(allowed) } } : {}),
-      ...(q
-        ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { email: { contains: q, mode: "insensitive" } },
-              { phone: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      orders: {
-        where: orderScope(allowed),
-        orderBy: { created_at: "desc" },
-        select: orderSelect,
-      },
-    },
-    orderBy: { created_at: "desc" },
-  });
+  const q = options.q?.trim();
+  const scope = orderScope(allowed);
 
-  return rows.map((row) => {
+  const where = {
+    ...(allowed ? { orders: { some: scope } } : {}),
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" as const } },
+            { email: { contains: q, mode: "insensitive" as const } },
+            { phone: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  // Both reads in one transaction so the count and the page describe the same
+  // snapshot. Without it a concurrent order can shift the rows between the two
+  // queries and the page count disagrees with the rows shown.
+  const [rows, total] = await getPrisma().$transaction([
+    getPrisma().customers.findMany({
+      where,
+      skip: options.skip,
+      take: options.limit,
+      orderBy: [{ created_at: "desc" }, { id: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        created_at: true,
+        _count: { select: { orders: { where: scope } } },
+        orders: {
+          where: scope,
+          orderBy: [{ created_at: "desc" }, { id: "desc" }],
+          take: 1,
+          select: orderSelect,
+        },
+      },
+    }),
+    getPrisma().customers.count({ where }),
+  ]);
+
+  const customers = rows.map((row) => {
     const latest = row.orders[0];
     return serialize({
       id: row.id,
@@ -80,7 +107,7 @@ export async function listCustomers(admin: Staff, query?: string) {
       email: row.email,
       phone: row.phone,
       created_at: row.created_at,
-      order_count: row.orders.length,
+      order_count: row._count.orders,
       latest_order: latest
         ? {
             id: latest.id,
@@ -93,6 +120,8 @@ export async function listCustomers(admin: Staff, query?: string) {
         : null,
     });
   });
+
+  return { customers, total };
 }
 
 export async function getCustomerForStaff(admin: Staff, id: string) {
@@ -102,7 +131,7 @@ export async function getCustomerForStaff(admin: Staff, id: string) {
     include: {
       orders: {
         where: orderScope(allowed),
-        orderBy: { created_at: "desc" },
+        orderBy: [{ created_at: "desc" }, { id: "desc" }],
         select: orderSelect,
       },
     },

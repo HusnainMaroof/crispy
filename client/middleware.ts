@@ -45,12 +45,12 @@ export function middleware(request: NextRequest) {
   }
 
   if (parts.length >= 2 && !RESERVED.has(parts[0])) {
-    const rest = parts[1] === "admin" ? parts.slice(2) : parts.slice(2);
+    // Both branches sliced the same way, so the ternary was a no-op that
+    // looked like it distinguished /{branch}/admin from /{branch}/<page>.
+    const rest = parts.slice(2);
     const url = request.nextUrl.clone();
     url.pathname = rest.length > 0 ? `/super-admin/${rest.join("/")}` : "/super-admin";
-    const headers = new Headers(request.headers);
-    headers.set("x-panel-path", pathname);
-    return withDefaultLocale(request, NextResponse.rewrite(url, { request: { headers } }));
+    return withDefaultLocale(request, NextResponse.rewrite(url));
   }
 
   return withDefaultLocale(request, NextResponse.next());

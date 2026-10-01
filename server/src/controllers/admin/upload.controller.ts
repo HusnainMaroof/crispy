@@ -17,8 +17,9 @@ export const UploadController = {
       sendSuccess(res, { url, publicId }, 201);
     } catch (err: unknown) {
       logger.error({ err }, "Cloudinary upload failed");
-      const msg = err instanceof Error ? err.message : "Upload failed";
-      throw new InternalServerException(`Media upload failed: ${msg}`);
+      // The provider's message can name internal buckets and credentials
+      // metadata, so it is logged rather than returned.
+      throw new InternalServerException("Media upload failed. Please try again.");
     }
   },
 };

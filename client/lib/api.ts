@@ -7,6 +7,20 @@ export interface ApiResponse<T = unknown> {
   item?: { kind: "product" | "deal"; id: string };
 }
 
+/**
+ * Mirrors the server's PaginationMeta. Sent as a sibling of `data`, so a
+ * collection endpoint still returns a bare array and every existing caller is
+ * unaffected.
+ */
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -53,6 +67,21 @@ async function readBody<T>(res: Response): Promise<ApiResponse<T>> {
 }
 
 async function request<T>(path: string, init?: RequestInit, _isRetry = false): Promise<T> {
+  const body = await requestEnvelope<T>(path, init, _isRetry);
+  return body.data as T;
+}
+
+/**
+ * Same request path as request(), but hands back the whole envelope so a caller
+ * can read the sibling `pagination` object. Split out rather than added as a
+ * flag on request() so the ~20 existing api.get callers keep their exact
+ * behaviour and types.
+ */
+async function requestEnvelope<T>(
+  path: string,
+  init?: RequestInit,
+  _isRetry = false,
+): Promise<ApiResponse<T>> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...((init?.headers as Record<string, string>) ?? {}),
@@ -73,7 +102,7 @@ async function request<T>(path: string, init?: RequestInit, _isRetry = false): P
   ) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
-      return request<T>(path, init, true);
+      return requestEnvelope<T>(path, init, true);
     }
     if (typeof window !== "undefined") window.dispatchEvent(new Event("admin-session-expired"));
     throw new SessionExpiredError();
@@ -81,7 +110,7 @@ async function request<T>(path: string, init?: RequestInit, _isRetry = false): P
 
   if (res.status === 429 && !_isRetry) {
     await new Promise((r) => setTimeout(r, 1000));
-    return request<T>(path, init, true);
+    return requestEnvelope<T>(path, init, true);
   }
 
   const body = await readBody<T>(res);
@@ -97,11 +126,23 @@ async function request<T>(path: string, init?: RequestInit, _isRetry = false): P
     failure.item = body.item;
     throw failure;
   }
-  return body.data as T;
+  return body;
 }
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  /**
+   * Reads a paginated collection. `data` stays a bare array on the wire, so
+   * this only differs from get() by also returning the sibling metadata.
+   */
+  getPage: async <T>(path: string): Promise<{ items: T[]; pagination: Pagination }> => {
+    const body = await requestEnvelope<T[]>(path);
+    const meta = (body as unknown as { pagination?: Pagination }).pagination;
+    return {
+      items: (body.data ?? []) as T[],
+      pagination: meta ?? { page: 1, limit: body.data?.length ?? 0, total: body.data?.length ?? 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false },
+    };
+  },
   post: <T>(path: string, data: unknown) =>
     request<T>(path, { method: "POST", body: JSON.stringify(data) }),
   put: <T>(path: string, data: unknown) =>

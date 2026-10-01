@@ -1,6 +1,6 @@
 // locations-map.tsx
 // Client-only — imported via next/dynamic({ ssr: false }) from locations.tsx.
-// The Leaflet map is created imperatively (not via react-leaflet's MapContainer)
+// The Leaflet map is created imperatively.
 // so the instance's lifecycle is fully controlled: StrictMode remounts and
 // Turbopack HMR can otherwise leave a stale instance on the DOM node and
 // throw "Map container is being reused by another instance".
@@ -240,7 +240,7 @@ export default function LocationsMap({
     <div className="absolute inset-0 z-0">
       <div ref={hostRef} className="crispy-map h-full w-full" />
 
-      <div className="pointer-events-none absolute top-2 right-2 z-[1000] text-[9px] leading-none text-white/45">
+      <div className="pointer-events-none absolute top-2 end-2 z-[1000] text-[9px] leading-none text-white/45">
         <a
           href="https://www.openstreetmap.org/copyright"
           target="_blank"

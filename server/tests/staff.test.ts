@@ -9,6 +9,7 @@ import { authenticate } from "../src/middleware/auth.js";
 import { AuthController } from "../src/controllers/admin/auth.controller.js";
 import { getAccessibleLocationIds, assertLocationAccess } from "../src/services/branch-access.service.js";
 import { createStaff, listStaff, replaceStaffBranches, setStaffActive, updateStaff } from "../src/services/staff.service.js";
+import { FIRST_PAGE } from "./helpers/page.js";
 import { resolveTabs } from "../src/config/admin-tabs.js";
 import { updateLocation } from "../src/services/admin.service.js";
 import { createOrder } from "../src/services/order.service.js";
@@ -138,7 +139,7 @@ describe("staff and branches", { concurrency: 1 }, () => {
     });
     staffIds.push(created.id);
 
-    const ownerView = await listStaff(superadmin);
+    const { staff: ownerView } = await listStaff(superadmin, FIRST_PAGE);
     assert.equal(ownerView.some((row) => row.id === manager.id), true);
     assert.equal(ownerView.some((row) => row.id === created.id), true);
     assert.equal(JSON.stringify(ownerView).includes("password_hash"), false);
@@ -177,7 +178,7 @@ describe("staff and branches", { concurrency: 1 }, () => {
       branchIds: [harrow.id],
     });
     staffIds.push(teamMember.id);
-    assert.equal((await listStaff(managerActor)).some((row) => row.id === teamMember.id), true);
+    assert.equal((await listStaff(managerActor, FIRST_PAGE)).staff.some((row) => row.id === teamMember.id), true);
     // …never a super admin or another manager…
     for (const role of ["superadmin", "branch_manager"] as const) {
       await assert.rejects(
@@ -207,7 +208,7 @@ describe("staff and branches", { concurrency: 1 }, () => {
 
     // A team member cannot manage anyone at all.
     const memberActor = { sub: teamMember.id, role: "staff" as const };
-    await assert.rejects(() => listStaff(memberActor), ForbiddenException);
+    await assert.rejects(() => listStaff(memberActor, FIRST_PAGE), ForbiddenException);
     await assert.rejects(
       () => createStaff(memberActor, {
         name: "Escalated",

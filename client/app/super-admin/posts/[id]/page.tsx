@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import toast from "react-hot-toast";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
 import Dropdown from "@/app/components/admin/ui/dropdown";
-import { useJobPosts } from "@/lib/admin/use-job-posts";
+import { useJobPosts, mapJobPost, type AdminJobPost } from "@/lib/admin/use-job-posts";
+import { api } from "@/lib/api";
 import { getLocationOptions } from "@/lib/admin/location-options";
 import { usePanel } from "@/lib/admin/use-panel";
 
@@ -37,9 +39,13 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
   );
   const [status, setStatus] = useState<string>(post.status);
   const [requirementsError, setRequirementsError] = useState<string>("");
+  const [saveError, setSaveError] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    getLocationOptions().then(setLocationOpts);
+    // Swallow the failure rather than leaving an unhandled rejection; the
+    // dropdown simply stays empty and the form keeps the saved value.
+    getLocationOptions().then(setLocationOpts).catch(() => {});
   }, []);
 
   const addRequirement = () => {
@@ -59,7 +65,7 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const filteredRequirements = requirements.filter((r) => r.trim() !== "");
     if (filteredRequirements.length === 0) {
@@ -67,22 +73,40 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
       return;
     }
     setRequirementsError("");
-    updateJobPost(post.id, {
-      title,
-      location,
-      type: type as "full-time" | "part-time" | "contract",
-      salary,
-      description,
-      requirements: filteredRequirements,
-      status: status as "active" | "closed" | "draft",
-    });
-    router.push(panel.href("posts"));
+    // Await the write before navigating. Pushing first unmounted this
+    // component, so a validation failure became an unhandled rejection with
+    // no message and the user landed on the list believing it saved.
+    setSubmitting(true);
+    try {
+      await updateJobPost(post.id, {
+        title,
+        location,
+        type: type as "full-time" | "part-time" | "contract",
+        salary,
+        description,
+        requirements: filteredRequirements,
+        status: status as "active" | "closed" | "draft",
+      });
+      toast.success("Job post updated");
+      router.push(panel.href("posts"));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not update the job post.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this job post?")) {
-      deleteJobPost(post.id);
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this job post?")) return;
+    setSubmitting(true);
+    try {
+      await deleteJobPost(post.id);
+      toast.success("Job post deleted");
       router.push(panel.href("posts"));
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not delete the job post.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -93,13 +117,20 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
         description={`Editing: ${post.title}`}
         action={
           <button
-            onClick={handleDelete}
-            className="btn-press rounded-lg border border-brand-red/50 px-4 py-2.5 text-sm text-brand-red transition-colors hover:bg-brand-red/10"
+            onClick={() => void handleDelete()}
+            disabled={submitting}
+            className="btn-press rounded-lg border border-brand-red/50 px-4 py-2.5 text-sm text-brand-red transition-colors hover:bg-brand-red/10 disabled:opacity-50"
           >
             Delete Post
           </button>
         }
       />
+
+      {saveError && (
+        <p role="alert" className="mb-4 rounded-lg border border-brand-red/40 bg-brand-red/10 px-4 py-3 text-sm text-brand-red">
+          {saveError}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="max-w-3xl">
         <div className="rounded-xl border border-white/10 bg-white/5 p-6">
@@ -240,9 +271,10 @@ function EditForm({ post }: { post: NonNullable<ReturnType<ReturnType<typeof use
             </button>
             <button
               type="submit"
-              className="btn-press rounded-lg bg-brand-red px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+              disabled={submitting}
+              className="btn-press rounded-lg bg-brand-red px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
             >
-              Save Changes
+              {submitting ? "Saving…" : "Save Changes"}
             </button>
           </div>
         </div>
@@ -256,19 +288,35 @@ export default function EditJobPostPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  const { getJobPost, fetchJobPosts } = useJobPosts();
+  const [post, setPost] = useState<AdminJobPost | null>(null);
+  // Which id has finished loading. Comparing against it keeps `loading`
+  // derived, which avoids a setState in the effect body.
+  const [resolvedId, setResolvedId] = useState<string | null>(null);
 
-  const [post, setPost] = useState(getJobPost(id));
-  const [loading, setLoading] = useState(!post);
-
+  // Fetch this post directly. Reading it out of the cached list via
+  // getJobPost captured a stale closure that always saw an empty list, and
+  // getJobPost's identity changed after every fetch, so the effect re-ran
+  // forever and refetched in a loop. GET /admin/jobs/:id already exists.
   useEffect(() => {
-    if (post) return;
-    fetchJobPosts().then(() => {
-      const found = getJobPost(id);
-      setPost(found);
-      setLoading(false);
-    });
-  }, [id, post, fetchJobPosts, getJobPost]);
+    let cancelled = false;
+    api
+      .get<Record<string, unknown>>(`/admin/jobs/${id}`)
+      .then((value) => {
+        if (cancelled) return;
+        setPost(mapJobPost(value));
+        setResolvedId(id);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPost(null);
+        setResolvedId(id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const loading = resolvedId !== id;
 
   if (loading) return <PageSkeleton />;
 

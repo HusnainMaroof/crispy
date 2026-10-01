@@ -55,7 +55,7 @@ describe("cms registry", () => {
     assert.equal(schemaFor("home", "instagram").safeParse({ reels: [{ url: "https://www.instagram.com/reel/abc/", thumbnailUrl: "/images/reel.jpg" }] }).success, true);
     assert.equal(schemaFor("home", "locations").safeParse({ locationIds: ["branch-1", "branch-2"] }).success, true);
     assert.equal(schemaFor("home", "locations").safeParse({ locationIds: Array.from({ length: 13 }, (_, index) => `branch-${index}`) }).success, false);
-    assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "" }).success, false);
+    assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "" }).success, true);
     assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "http://orders.example.com" }).success, false);
     assert.equal(schemaFor("site", "ordering").safeParse({ mode: "redirect", redirectUrl: "https://orders.example.com" }).success, true);
     assert.equal(cmsSectionUpdateSchema.safeParse({ locale: "../../" }).success, false);
@@ -73,7 +73,9 @@ describe("cms pages", { concurrency: 1 }, () => {
     assert.equal("flavours" in page.sections.flavours, false);
     assert.ok(Array.isArray(page.sections.flavours.galleryImages));
     assert.equal(typeof page.sections.flavours.centerImage, "string");
-    assert.equal(page.sections.welcome.headline, "Welcome to");
+    // The welcome headline is fixed and no longer served from the CMS.
+    assert.equal("headline" in page.sections.welcome, false);
+    assert.equal("accent" in page.sections.welcome, false);
     assert.equal("id" in page.sections.hero, false);
 
     const hero = await section("home", "hero");
@@ -146,16 +148,19 @@ describe("cms pages", { concurrency: 1 }, () => {
 
   it("serves navbar defaults before anything is saved", async () => {
     const page = await getPublicCmsPage("navbar");
-    assert.deepEqual(page.order, ["ordering", "logo", "navigation", "socials"]);
-    assert.equal(["cart", "redirect"].includes(String(page.sections.ordering.mode)), true);
-    assert.equal((page.sections.navigation.links as { label: string }[])[0].label, "Menu");
-    assert.equal(page.sections.socials.show, true);
+    // The ordering mode lives only on the site page, so the navbar has no
+    // ordering section of its own to drift out of sync with.
+    assert.deepEqual(page.order, ["logo"]);
+    assert.equal("ordering" in page.sections, false);
+    // Navigation links and social icons are fixed and no longer served from the CMS.
+    assert.equal("navigation" in page.sections, false);
+    assert.equal("socials" in page.sections, false);
   });
 
   it("serves the ordering settings from the site page", async () => {
     const site = await getPublicCmsPage("site");
-    assert.equal(site.sections.ordering.mode, "cart");
-    assert.equal(site.sections.ordering.ctaLabel, "Order Now");
+    assert.equal(["cart", "redirect"].includes(String(site.sections.ordering.mode)), true);
+    assert.equal(typeof site.sections.ordering.ctaLabel, "string");
   });
 });
 

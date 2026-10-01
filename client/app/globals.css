@@ -452,6 +452,30 @@ html::-webkit-scrollbar {
 }
 
 /* --- Location list hover (menu-style blur) --- */
+/*
+ * The location row is a 6-column grid. It used to carry its template as an
+ * inline style, which no Tailwind variant could override, so every clamp()
+ * collapsed to its floor on a phone and pushed the status pill, hours and
+ * arrow off the right edge. The template now lives here so a mobile variant
+ * is possible. Desktop above sm is byte-identical to the old inline value.
+ */
+.loc-row-grid {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .loc-row-grid {
+    grid-template-columns:
+      clamp(28px, 3vw, 40px)
+      clamp(140px, 16vw, 220px)
+      minmax(0, 1fr)
+      clamp(100px, 11vw, 140px)
+      minmax(70px, 8vw)
+      38px;
+    column-gap: clamp(8px, 1.2vw, 16px);
+    row-gap: 0;
+  }
+}
 .loc-row {
   transition:
     opacity 0.35s ease,

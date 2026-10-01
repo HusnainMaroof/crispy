@@ -13,7 +13,7 @@ type AdminUser = {
   home?: string;
   branches?: { id: string; name: string; slug: string }[];
 };
-type Status = "checking" | "guest" | "ready";
+type Status = "checking" | "guest" | "ready" | "unavailable";
 
 type SessionValue = {
   status: Status;
@@ -59,7 +59,10 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (requestId !== sessionRequestId.current) return null;
       if (!isSessionExpiredError(error)) {
-        setStatus((current) => current === "checking" ? "guest" : current);
+        // A 500, a 502 from the admin proxy, or an offline blip is not a
+        // logout. Only a real auth failure should clear the session, otherwise
+        // a one-second API hiccup signs the user out with a valid cookie.
+        setStatus((current) => (current === "checking" ? "unavailable" : current));
         return null;
       }
       setUser(null);

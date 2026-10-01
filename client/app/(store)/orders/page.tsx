@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, type Pagination as PageMeta } from "@/lib/api";
 import { formatCurrency } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
+import { Pagination } from "@/app/components/admin/ui/list-toolbar";
 
 type Profile = { name: string | null; email: string | null; phone: string | null };
 type Mine = { id: number; status: string; fulfilment: string; total: number; created_at: string };
+const PAGE_SIZE = 20;
 
 export default function MyOrdersPage() {
   const [profile, setProfile] = useState<Profile>({ name: "", email: "", phone: "" });
   const [orders, setOrders] = useState<Mine[]>([]);
+  const [pagination, setPagination] = useState<PageMeta>({ page: 1, limit: PAGE_SIZE, total: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false });
+  const [page, setPage] = useState(1);
   const [message, setMessage] = useState("");
   const { locale, t } = useLocale();
 
@@ -21,8 +25,26 @@ export default function MyOrdersPage() {
       email: row.email ?? "",
       phone: row.phone ?? "",
     })).catch((err: Error) => setMessage(err.message));
-    api.get<Mine[]>("/orders/mine").then(setOrders).catch((err: Error) => setMessage(err.message));
   }, []);
+
+  // Order history grows without bound, so it is paged by the server rather
+  // than loading every past order into the page.
+  const loadOrders = useCallback(async () => {
+    try {
+      const { items, pagination: meta } = await api.getPage<Mine>(`/orders/mine?page=${page}&limit=${PAGE_SIZE}`);
+      setOrders(items);
+      setPagination(meta);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : t("error.generic"));
+    }
+  }, [page, t]);
+
+  // queueMicrotask, matching the admin pages: it keeps the fetch off the effect
+  // body's synchronous path, which the react-hooks lint rule rejects when
+  // setState is reachable directly from the effect.
+  useEffect(() => {
+    queueMicrotask(() => { void loadOrders(); });
+  }, [loadOrders]);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -61,6 +83,9 @@ export default function MyOrdersPage() {
             </li>
           ))}
         </ul>
+        {pagination.total > 0 && (
+          <Pagination page={pagination.page} total={pagination.total} size={pagination.limit} onChange={setPage} />
+        )}
       </div>
     </main>
   );

@@ -17,10 +17,14 @@ function assertBranchAdmin(role: string | undefined) {
 export const LocationsController = {
   async list(req: Request, res: Response) {
     const allowed = await getAccessibleLocationIds(req.admin!);
-    const locations = await getLocations();
-    const counts = await countStaffByLocation();
-    const visible = allowed ? locations.filter((location) => allowed.includes(location.id)) : locations;
-    sendSuccess(res, visible.map((location) => ({ ...location, staff_count: counts.get(location.id) ?? 0 })));
+    // Two independent reads, so they overlap instead of queueing. The branch
+    // filter moved into the locations query, which previously fetched every
+    // branch row and trimmed the list in JavaScript.
+    const [locations, counts] = await Promise.all([
+      getLocations({ allowedIds: allowed }),
+      countStaffByLocation(),
+    ]);
+    sendSuccess(res, locations.map((location) => ({ ...location, staff_count: counts.get(location.id) ?? 0 })));
   },
 
   async getById(req: Request, res: Response) {

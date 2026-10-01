@@ -114,25 +114,24 @@ export default function HowToGetStarted({
           height: "calc(100dvh - var(--navbar-h, 0px))",
         }}
       >
-        <div className="flex w-full flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
+        <div className="flex w-full flex-col gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-50">
           {heading}
 
           <div className="flex items-center justify-end gap-6 sm:gap-12">
-            <div className="relative w-full h-auto min-h-[420px] sm:h-[550px] sm:min-h-0 rounded-2xl bg-black/10 p-6 sm:p-8 flex">
-              <div className="absolute translate-y-[-50%]  top-[50%] -translate-x-1/2 -left-3 max-sm:-left-2 p-5   rounded-[10px] max-sm:translate-x-0 bg-white  hidden! lg:block!">
+            <div className="relative w-full h-auto min-h-[420px] sm:h-[480px] sm:min-h-0 rounded-2xl bg-black/10 p-6 sm:p-8 flex">
+              <div className="absolute translate-y-[-50%]  top-[50%] -translate-x-1/2 rtl:translate-x-1/2 -start-3 max-sm:-start-2 p-5   rounded-[10px] max-sm:translate-x-0 bg-white  hidden! lg:block!">
                 <FilePenLine
-                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-[162px] lg:h-[162px] text-black "
+                  className="w-16 h-16 sm:w-20 sm:h-20 lg:w-[120px] lg:h-[120px] text-black "
                   strokeWidth={1.5}
                 />
               </div>
 
-              <div className="flex items-center gap-6 sm:gap-8 px-8 sm:px-20 lg:px-40">
+              <div className="flex items-center gap-6 sm:gap-8 px-4 sm:px-20 lg:px-40">
                 <div className="min-w-0">
                   <h3
                     key={`t-${active}`}
-                    className={`overlay-fade-up stagger-1 m-0 ${KOROLEV} capitalize text-white`}
+                    className={`overlay-fade-up stagger-1 m-0 ${KOROLEV} capitalize text-white  text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[60px]`}
                     style={{
-                      fontSize: "clamp(36px, 6vw, 80px)",
                       fontWeight: 900,
                       lineHeight: "100%",
                     }}
@@ -141,7 +140,7 @@ export default function HowToGetStarted({
                   </h3>
                   <p
                     key={`d-${active}`}
-                    className={`overlay-fade-up stagger-2 m-0 mt-3 ${INTER} capitalize text-white max-w-[480px]   text-[10px] sm:text-[14px]  lg:text-[25px] `}
+                    className={`overlay-fade-up stagger-2 m-0 mt-3 ${INTER} capitalize text-white max-w-[480px]   text-[13px] sm:text-[14px]  lg:text-[20px] `}
                     style={{
                       fontWeight: 400,
                       lineHeight: "150%",
@@ -154,7 +153,7 @@ export default function HowToGetStarted({
               </div>
             </div>
 
-            <div className="ml-auto absolute shrink-0 flex-col gap-6 flex right-5">
+            <div className="ms-auto absolute shrink-0 flex-col gap-6 flex end-5">
               {items.map((item, i) => (
                 <span
                   key={item.title}

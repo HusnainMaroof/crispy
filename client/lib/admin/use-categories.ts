@@ -26,12 +26,16 @@ function mapCategory(raw: Record<string, unknown>): AdminCategory {
 export function useCategories() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const data = await api.get<Record<string, unknown>[]>("/admin/categories");
       setCategories(data.map(mapCategory));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load categories.");
     } finally {
       setLoading(false);
     }
@@ -72,5 +76,5 @@ export function useCategories() {
     setCategories((prev) => prev.filter((cat) => cat.id !== id));
   }, []);
 
-  return { categories, loading, fetchCategories, addCategory, updateCategory, deleteCategory };
+  return { categories, loading, error, fetchCategories, addCategory, updateCategory, deleteCategory };
 }

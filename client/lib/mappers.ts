@@ -1,4 +1,5 @@
 import type { MenuItem, MenuCategory, Location, Settings } from "./redux/types";
+import { mapMenuItemRedirects } from "./menu-redirects";
 
 export function mapMenuItem(raw: Record<string, unknown>): MenuItem {
   const price = Number(raw.price) || 0;
@@ -13,7 +14,7 @@ export function mapMenuItem(raw: Record<string, unknown>): MenuItem {
     image: raw.image as string,
     badge: (raw.badge as string) ?? undefined,
     badgeVariant: (raw.badge_variant as "default" | "vegan") ?? undefined,
-    redirectUrl: (raw.redirect_url as string) ?? undefined,
+    redirects: mapMenuItemRedirects(raw),
   };
 }
 

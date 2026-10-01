@@ -5,7 +5,7 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import { envConfig } from "./config/env.js";
 import { httpLogger, logger } from "./middleware/logger.js";
-import { globalLimiter, authLimiter, adminLimiter } from "./middleware/rate-limiter.js";
+import { globalLimiter, authLimiter, adminLimiter, quoteLimiter, checkoutLimiter } from "./middleware/rate-limiter.js";
 import { identifyCustomer } from "./middleware/identify-customer.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import routes from "./routes/index.js";
@@ -31,9 +31,11 @@ app.use(cookieParser());
 // Anonymous customer identification (cookie-based)
 app.use(identifyCustomer);
 
-// Body parsing
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+// Body parsing. 10mb matched nothing this API accepts: the largest legitimate
+// payload is a CMS section with a list of media links. Media goes through
+// multer, not this parser.
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 // Structured logging
 app.use(httpLogger);
@@ -46,6 +48,16 @@ app.get("/health", (_req, res) => {
 // Global rate limiting (skip admin routes — they're auth-protected)
 app.use((req, res, next) => {
   if (req.path.startsWith("/api/admin")) return next();
+  // Public store reads are what the homepage and menu need. The global cap
+  // was treating a normal page load as abuse and then the branch list 429'd.
+  if (req.method === "GET" && req.path.startsWith("/api/store/")) return next();
+  // Cart quoting and checkout were counted against the same per-IP budget as
+  // contact forms. Both are small, idempotent reads/writes that a page can
+  // legitimately repeat, and a shared mobile or office IP exhausting the cap
+  // locked out real customers instead of abusers. They get their own, much
+  // higher allowance instead.
+  if (req.path === "/api/menu/quote") return quoteLimiter(req, res, next);
+  if (req.path === "/api/orders") return checkoutLimiter(req, res, next);
   globalLimiter(req, res, next);
 });
 
@@ -58,11 +70,32 @@ app.use("/api/admin", adminLimiter);
 // All routes
 app.use("/api", routes);
 
+// Unknown paths still get a response, so a missing route is not a hung request.
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Not found",
+    code: "ERR_NOT_FOUND",
+  });
+});
+
 // Error handling (must be last)
 app.use(errorHandler);
 
 const server = app.listen(SERVER.PORT, () => {
   logger.info({ port: SERVER.PORT, env: SERVER.NODE_ENV }, "Server started");
+});
+
+server.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    logger.error(
+      { port: SERVER.PORT },
+      `Port ${SERVER.PORT} is already in use. Another server is still running, so this process did not start.`,
+    );
+  } else {
+    logger.error({ err: error }, "Server failed to start");
+  }
+  process.exit(1);
 });
 
 // Graceful shutdown

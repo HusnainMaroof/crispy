@@ -91,7 +91,7 @@ export default function Footer() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-8 lg:gap-0">
           {/* Logo */}
           <div
-            className="fade-up flex items-start justify-start lg:justify-center lg:border-r lg:border-white/10 lg:pr-8"
+            className="fade-up flex items-start justify-start lg:justify-center lg:border-e lg:border-white/10 lg:pe-8"
             data-reveal="lift"
           >
             <a
@@ -110,7 +110,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div
-            className="fade-up lg:border-r lg:border-white/10 lg:px-8 xl:px-10"
+            className="fade-up lg:border-e lg:border-white/10 lg:px-8 xl:px-10"
             data-reveal="lift"
             data-delay="0.06"
           >
@@ -128,7 +128,7 @@ export default function Footer() {
                 <li key={link.key}>
                   <a
                     href={link.href}
-                    className="inline-block text-white/80 font-normal leading-none transition-all duration-300 hover:text-white hover:translate-x-1"
+                    className="inline-block text-white/80 font-normal leading-none transition-all duration-300 hover:text-white hover:translate-x-1 rtl:hover:-translate-x-1"
                     style={{
                       fontFamily: "var(--font-korolev), 'Korolev', sans-serif",
                       fontSize: "clamp(14px, 1.4vw, 16px)",
@@ -143,7 +143,7 @@ export default function Footer() {
 
           {/* Get In Touch */}
           <div
-            className="fade-up lg:border-r lg:border-white/10 lg:px-8 xl:px-10"
+            className="fade-up lg:border-e lg:border-white/10 lg:px-8 xl:px-10"
             data-reveal="lift"
             data-delay="0.12"
           >
@@ -186,7 +186,7 @@ export default function Footer() {
 
           {/* Socials */}
           <div
-            className="fade-up lg:pl-8 xl:pl-10"
+            className="fade-up lg:ps-8 xl:ps-10"
             data-reveal="lift"
             data-delay="0.18"
           >

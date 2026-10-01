@@ -15,6 +15,8 @@ type DashboardStats = {
   active_orders: number;
   revenue: number;
   today_revenue: number;
+  /** Per-status totals, so the tiles describe the whole set rather than one page. */
+  status_counts?: Record<string, number>;
 };
 
 const statusColors: Record<string, string> = {
@@ -43,6 +45,8 @@ export default function AdminDashboard() {
   const { items, loading: menuLoading, fetchItems } = useMenu();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   useEffect(() => {
+    // Both hooks now record their own failures instead of rejecting, so a 403
+    // or 502 no longer becomes an unhandled rejection here.
     if (tabs.includes("orders")) void fetchOrders();
     if (tabs.includes("menu")) void fetchItems();
     api.get<DashboardStats>("/admin/dashboard/stats").then(setStats).catch((err) => {
@@ -52,11 +56,11 @@ export default function AdminDashboard() {
 
   const loading = (tabs.includes("orders") && ordersLoading) || (tabs.includes("menu") && menuLoading);
 
-  const activeOrders = orders.filter(
-    (o) => o.status === "pending" || o.status === "preparing" || o.status === "ready" || o.status === "out-for-delivery"
-  );
-  const preparingCount = orders.filter((o) => o.status === "preparing").length;
-  const readyCount = orders.filter((o) => o.status === "ready").length;
+  // The order list is a single page now, so per-status counts come from the
+  // aggregate endpoint rather than from counting the rows on screen. The
+  // fallbacks keep the previous behaviour if that request fails.
+  const preparingCount = stats?.status_counts?.preparing ?? orders.filter((o) => o.status === "preparing").length;
+  const readyCount = stats?.status_counts?.ready ?? orders.filter((o) => o.status === "ready").length;
 
   const statCards = [
     {
@@ -83,7 +87,7 @@ export default function AdminDashboard() {
     },
     {
       title: "Active Orders",
-      value: (stats?.active_orders ?? activeOrders.length).toString(),
+      value: (stats?.active_orders ?? orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled").length).toString(),
       change: `${preparingCount} preparing, ${readyCount} ready`,
       changeType: "neutral" as const,
       icon: (

@@ -50,14 +50,14 @@ export default function Partner({
       <div className="mx-auto ">
         <div className="flex flex-col lg:flex-row items-center lg:items-center gap-10 sm:gap-12 lg:gap-14 xl:gap-20">
           {/* Left — copy + CTA */}
-          <div className="flex-1 min-w-0 w-full text-left">
+          <div className="flex-1 min-w-0 w-full text-start">
             {/* Headline — Koulen */}
             <h2
               className="fade-up m-0 text-[#FFF] capitalize font-bold leading-[100%] tracking-[0.02em]"
               style={{
                 fontFamily:
                   "var(--font-korolev), Korolev, sans-serif",
-                fontSize: "clamp(36px, 7vw, 150px)",
+                fontSize: "clamp(30px, 5.5vw, 120px)",
               }}
             >
               {lines.map((line, index) => (
@@ -74,7 +74,7 @@ export default function Partner({
               data-delay="0.08"
               style={{
                 fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize: "clamp(14px, 2.5vw, 30px)",
+                fontSize: "clamp(12px, 2vw, 24px)",
               }}
             >
               {description}
@@ -85,7 +85,7 @@ export default function Partner({
               href={ctaUrl || "/franchise-inquiries"}
               target={externalCta ? "_blank" : undefined}
               rel={externalCta ? "noopener noreferrer" : undefined}
-              className="group micro-elevate fade-up mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] pl-6 sm:pl-8 md:pl-10 pr-3 sm:pr-4 py-4 sm:py-5"
+              className="group micro-elevate fade-up mt-7 sm:mt-8 md:mt-10 w-full max-w-[992px] flex items-center justify-between gap-4 rounded-[12px] sm:rounded-[14px] bg-black hover:bg-[#111] ps-6 sm:ps-8 md:ps-10 pe-3 sm:pe-4 py-4 sm:py-5"
               data-delay="0.14"
             >
               <span
@@ -93,7 +93,7 @@ export default function Partner({
                 style={{
                   fontFamily:
                     "var(--font-korolev), Korolev, sans-serif",
-                  fontSize: "clamp(22px, 2.8vw, 50px)",
+                  fontSize: "clamp(18px, 2.2vw, 40px)",
                 }}
               >
                 {ctaLabel}

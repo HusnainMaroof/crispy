@@ -50,8 +50,8 @@ function OrderSystemPreview({ mode }: { mode: string }) {
       </p>
       <p className="mt-2 text-sm text-white/70">
         {redirect
-          ? "The navbar shows Click & Collect and Get It Delivered. Both open the branch popup, then the delivery platforms."
-          : "The navbar shows Cart and Get It Delivered. Both open the cart popup."}
+          ? "The navbar shows Click & Collect and Get It Delivered. Both open the branch popup, then the delivery platforms. The cart and the checkout page are switched off, and ordering any product opens the popup instead of a cart."
+          : "The navbar shows Your Cart and Get It Delivered. Both open the cart popup, and the checkout page stays live."}
       </p>
       <div className="mt-4 flex flex-wrap gap-3">
         {buttons.map(([first, second]) => (
@@ -369,7 +369,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
 
               {section.key === "ordering" && (
                 <div className="mb-5">
-                  <OrderSystemPreview mode={String(draft.content.mode ?? "cart")} />
+                  <OrderSystemPreview mode={String(draft.content.mode ?? "redirect")} />
                 </div>
               )}
 

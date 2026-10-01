@@ -6,6 +6,17 @@ const redirectUrl = z
   .max(500)
   .refine((value) => value === "" || /^https:\/\/\S+$/i.test(value), "Redirect link must start with https://");
 
+/**
+ * The redirect system needs a destination for every platform, so a link is
+ * required once it is supplied and must be secure. The admin form requires all
+ * three; the API keeps them optional so existing catalogue rows stay valid.
+ */
+const platformRedirects = {
+  redirect_uber_eats: redirectUrl.optional(),
+  redirect_deliveroo: redirectUrl.optional(),
+  redirect_just_eat: redirectUrl.optional(),
+};
+
 export const menuCategorySchema = z.object({
   number: z.string().min(1).max(4),
   title: z.string().min(1).max(100),
@@ -22,7 +33,7 @@ export const menuItemSchema = z.object({
   name_ar: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
   description_ar: z.string().max(500).optional(),
-  redirect_url: redirectUrl.optional(),
+  ...platformRedirects,
   price: z.number().positive(),
   image: z.string().min(1),
   badge: z.string().max(50).nullable().optional(),

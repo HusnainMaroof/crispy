@@ -18,12 +18,14 @@ import translateRoutes from "./translate.js";
 import publicMenuRoutes from "./menu.js";
 import storeRoutes from "./store.js";
 import actionRoutes from "./actions.js";
+import franchiseRoutes from "./franchise.js";
 
 const router = Router();
 
 // Public routes
 router.use("/menu", publicMenuRoutes);
 router.use("/store", storeRoutes);
+router.use("/franchise", franchiseRoutes);
 router.use("/", actionRoutes);
 
 // Admin routes (auth-protected)

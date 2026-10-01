@@ -26,12 +26,19 @@ function mapLocation(raw: Record<string, unknown>): AdminLocation {
 export function useLocations() {
   const [locations, setLocations] = useState<AdminLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  // Records the failure instead of rejecting: most callers fire this from a
+  // mount effect without a .catch, so a rejected promise became an unhandled
+  // rejection and the page silently rendered an empty list.
   const fetchLocations = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const data = await api.get<Record<string, unknown>[]>("/admin/locations");
       setLocations(data.map(mapLocation));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load locations.");
     } finally {
       setLoading(false);
     }
@@ -70,5 +77,5 @@ export function useLocations() {
     setLocations((prev) => prev.filter((loc) => loc.id !== id));
   }, []);
 
-  return { locations, loading, fetchLocations, addLocation, updateLocation, deleteLocation };
+  return { locations, loading, error, fetchLocations, addLocation, updateLocation, deleteLocation };
 }

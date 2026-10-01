@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { createOrder, getOrdersByCustomerId, getOrdersByEmail, getOrderById, customerCanView } from "../../services/order.service.js";
 import { NotFoundException } from "../../utils/app-error.js";
+import { resolvePage, sendPaged } from "../../utils/pagination.js";
 import { createContactMessage, createJobApplication } from "../../services/admin.service.js";
 import { sendSuccess } from "../../utils/response.js";
 
@@ -16,19 +17,27 @@ export const ActionsController = {
   },
 
   async applyForJob(req: Request, res: Response) {
-    const application = await createJobApplication({ ...req.body, job_post_id: req.params.id });
+    // Same rule as the public job page: draft and closed posts are not found.
+    const application = await createJobApplication(
+      { ...req.body, job_post_id: req.params.id },
+      { activeOnly: true },
+    );
     sendSuccess(res, application, 201);
   },
 
   async myOrders(req: Request, res: Response) {
-    const orders = await getOrdersByCustomerId(req.customerId);
-    sendSuccess(res, orders);
+    const page = resolvePage(req.query as { page?: unknown; limit?: unknown });
+    const { orders, total } = await getOrdersByCustomerId(req.customerId, page);
+    sendPaged(res, orders, total, page);
   },
 
   async lookupOrder(req: Request, res: Response) {
     const { email } = req.body;
-    const orders = await getOrdersByEmail(email);
-    sendSuccess(res, orders.filter((order) => customerCanView(order.customer_id, req.customerId)));
+    const page = resolvePage(req.query as { page?: unknown; limit?: unknown });
+    // The ownership check is a second where clause now, not a JavaScript
+    // filter over whatever the email happened to match.
+    const { orders, total } = await getOrdersByEmail(email, req.customerId, page);
+    sendPaged(res, orders, total, page);
   },
 
   async getOrder(req: Request, res: Response) {

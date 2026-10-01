@@ -29,7 +29,7 @@ Customer / staff browser
 Next.js app (client/)  ──fetch /api──►  Express API (server/)  ──Prisma──►  Neon Postgres
                                               │
                                               ├─ Cloudinary (image/video uploads)
-                                              └─ Brevo (emails)
+                                              └─ Resend (emails)
 ```
 
 **The ideas that matter most.**
@@ -46,7 +46,7 @@ Next.js app (client/)  ──fetch /api──►  Express API (server/)  ──P
 | Homepage CMS | Homepage copy, images, video, and Instagram reels are edited in admin, in English or Arabic |
 | Fixed design | The storefront look is fixed. New data is fed into the existing components, never a redesign |
 
-**What is not real yet.** The menu is development mock data (fictional prices, stock photos). Payment is only a "card/cash" label. Delivery fees are not added. Brevo emails currently fail with an invalid key. Details are in [Known gaps](#known-gaps).
+**What is not real yet.** The menu is development mock data (fictional prices, stock photos). Payment is only a "card/cash" label. Delivery fees are not added. Resend sends currently fail with an invalid API key. Details are in [Known gaps](#known-gaps).
 
 **Where to look in the code.**
 
@@ -200,7 +200,7 @@ Browser
         │
         ├─ Prisma 7 → Neon Postgres
         ├─ Cloudinary            image and video uploads
-        └─ Brevo                 order and status emails
+        └─ Resend                 order and status emails
 ```
 
 The Next app never opens a database connection. Every read and write goes through Express. There is no Supabase anywhere in the running system; older notes that mention Supabase Auth, service-role keys, RLS, Postgres enums, or `get_dashboard_stats()` are out of date.
@@ -230,7 +230,7 @@ The Next app never opens a database connection. Every read and write goes throug
 | `NODE_ENV` | No | `development`, `production`, `test` |
 | `CORS_ORIGIN` | No | Default `*`. Development always allows any origin |
 | `RATE_LIMIT_MAX` | No | Default 100 per 15 minutes |
-| `BREVO_SMTP_SDK_KEY`, `EMAIL_FROM`, `ADMIN_EMAIL` | Yes | Transactional email |
+| `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_EMAIL` | Yes | Transactional email. `EMAIL_FROM` must be a sender verified in Resend |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Yes | Uploads |
 | `LOG_LEVEL` | No | Pino, default `info` |
 
@@ -347,7 +347,7 @@ client/
 
 ### Server
 
-**Stack:** Node (ESM), Express 4, TypeScript (strict), Prisma 7 with `@prisma/adapter-pg`, Zod, Pino, Helmet, CORS, compression, cookie-parser, express-rate-limit, multer, Cloudinary, Brevo, jsonwebtoken.
+**Stack:** Node (ESM), Express 4, TypeScript (strict), Prisma 7 with `@prisma/adapter-pg`, Zod, Pino, Helmet, CORS, compression, cookie-parser, express-rate-limit, multer, Cloudinary, Resend, jsonwebtoken.
 
 #### Request pipeline (`src/index.ts`)
 
@@ -395,7 +395,7 @@ Named exceptions in `utils/app-error.ts`: `BadRequestException` (400), `Unauthor
 | `branch-access.service.ts` | Which branches a staff member may touch |
 | `cms.service.ts` | Public CMS page payloads and CMS editing (superadmin only) |
 | `store.service.ts`, `admin.service.ts` | Locations, settings, jobs, applications, contact |
-| `email.service.ts`, `email-templates.ts` | Brevo send and HTML |
+| `email.service.ts`, `email-templates.ts` | Resend send and HTML |
 | `upload.service.ts` | Cloudinary image and video upload |
 
 ---
@@ -491,7 +491,7 @@ The server is the only place that decides the next status. Every admin order pay
 
 `cancelled` is allowed from `pending`, `preparing`, and `ready`. `delivered` and `cancelled` are terminal. The write is `updateMany` on id + current status, so a lost race returns 409.
 
-#### Emails (Brevo)
+#### Emails (Resend)
 
 | Trigger | Recipient |
 |---|---|
@@ -499,6 +499,7 @@ The server is the only place that decides the next status. Every admin order pay
 | Status `cancelled` | Customer cancellation |
 | Status `delivered` | Customer delivered |
 | Any other status | Customer status update |
+| `POST /api/franchise/brochure` | Customer brochure link, plus a lead notice to `ADMIN_EMAIL` |
 
 ---
 
@@ -604,7 +605,7 @@ The nine branches: Harrow Road, Tower Hill, Kilburn, Harrow, Elephant & Castle, 
 
 - Delivery fee and the free-delivery threshold are not applied. `delivery_fee` is 0 and `total` equals the food subtotal.
 - No payment processing. Card and cash are labels.
-- Brevo sends currently fail with `401 Key not found`; orders and status changes still save.
+- Resend sends currently fail with `401 API key is invalid`; orders and status changes still save.
 - `GET /api/admin/dashboard/stats` is not branch-scoped, so a branch manager sees company totals.
 - Login for an unknown email returns slightly faster than a wrong password (same message).
 - Catalogue rows without Arabic names (`name_ar`, `title_ar`) show their English names in the Arabic store.

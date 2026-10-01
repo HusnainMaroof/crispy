@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_LOCALE, isSupportedLocale, LOCALE_COOKIE, resolveLocale, translate, type AppLocale, type TranslateParams } from "@/lib/i18n";
+import { DEFAULT_LOCALE, isSupportedLocale, localeDir, LOCALE_COOKIE, resolveLocale, translate, type AppLocale, type TranslateParams } from "@/lib/i18n";
 
 const LocaleContext = createContext<{ locale: AppLocale; setLocale: (value: string) => void; t: (key: string, params?: TranslateParams) => string }>({
   locale: DEFAULT_LOCALE,
@@ -30,6 +30,7 @@ export function LocaleProvider({ initial, children }: { initial?: string; childr
       const safe = resolveLocale(next);
       writeLocaleCookie(safe);
       document.documentElement.lang = safe;
+      document.documentElement.dir = localeDir(safe);
       setLocaleState(safe);
       router.refresh();
     },

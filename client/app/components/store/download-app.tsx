@@ -13,19 +13,20 @@ export default function DownloadApp() {
       <img
         src="/images/downloadApp.png"
         alt="Crispies app on phone"
-        className="absolute    left-[100px] md:left-[180px] xl:left-[250px]   h-[110%] lg:h-[120%] xl:h-[130%]  -top-2  md:-top-5 xl:-top-10 w-auto object-contain z-50"
+        className="absolute    start-[100px] md:start-[180px] xl:start-[250px]   h-[110%] lg:h-[120%] xl:h-[130%]  -top-2  md:-top-5 xl:-top-10 w-auto object-contain z-50"
       />
       {/* Left — overlapping food + phone images */}
      
         <img
           src="/images/orderOnimage.png"
           alt="Crispies food"
-          className="absolute bottom-0 left-0 h-[60%] xl:h-[100%] w-auto object-contain"
+          className="absolute bottom-0 start-0 h-[60%] xl:h-[100%] w-auto object-contain"
         />
       
 
-      {/* Center — text */}
-      <div className="flex flex-1   gap-2 md:gap-5 absolute  left-[40%] xl:left-[35%] top-1/2 -translate-y-1/2 flex-col">
+      {/* Center — text. pe-16 on mobile reserves the arrow button's column,
+          which the text was otherwise running underneath. */}
+      <div className="flex flex-1   gap-2 md:gap-5 absolute  start-[40%] xl:start-[35%] top-1/2 -translate-y-1/2 flex-col max-sm:pe-16">
         <h2 className="m-0 leading-[100%] tracking-[3px]! uppercase font-bold  text-2xl md:text-6xl 2xl:text-[100px] ">
           <span
             className="text-white"
@@ -58,7 +59,7 @@ export default function DownloadApp() {
       </div>
 
       {/* Right — arrow button */}
-      <div className="absolute right-5 md:right-20 top-1/2 -translate-y-1/2">
+      <div className="absolute end-5 md:end-20 top-1/2 -translate-y-1/2">
         <button
           type="button"
           className="flex cursor-pointer items-center justify-center rounded-[15px] border-none bg-white transition-transform hover:scale-105 w-[50px] h-[50px] md:w-[84px] md:h-[84px]"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useStoreLocations } from "@/lib/use-store-locations";
 import { useBranchSelection } from "@/lib/branch-selection";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
@@ -28,32 +28,32 @@ const platforms = [
   },
 ];
 
+/** Which CMS link each platform card redirects to. */
+const PLATFORM_URL_FIELDS: Record<string, "uberEatsUrl" | "deliverooUrl" | "justEatUrl"> = {
+  "uber-eats": "uberEatsUrl",
+  deliveroo: "deliverooUrl",
+  "just-eat": "justEatUrl",
+};
+
 export default function DeliveryPage() {
   const { locale, t } = useLocale();
   const { locations } = useStoreLocations();
   const { selectBranch } = useBranchSelection();
-  const { ordering, redirect } = useStoreOrdering();
+  const { resolveOrdering } = useStoreOrdering();
   const [selected, setSelected] = useState<string | null>(null);
   const [step, setStep] = useState<"branch" | "platform" | "redirect">("branch");
   const [platform, setPlatform] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState("");
 
   const selectedName = locations.find((l) => l.id === selected)?.name ?? "";
   const selectedPlatform = platforms.find((p) => p.id === platform);
-  const redirectAttempted = useRef(false);
-
-  useEffect(() => {
-    if (ordering.mode === "redirect" && !redirectAttempted.current) {
-      redirectAttempted.current = true;
-      void redirect();
-    }
-  }, [ordering.mode, redirect]);
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center px-4 py-16 md:py-24">
+    // relative: the back button is absolute and was resolving against the
+    // document, so it rendered behind the sticky navbar.
+    <main className="relative min-h-screen bg-black flex flex-col items-center px-4 py-16 md:py-24">
       {/* Step 1: Branch Selection */}
-      {ordering.mode === "redirect" ? (
-        <div className="text-center text-white" role="status">{t("delivery.redirecting")}</div>
-      ) : step === "branch" && (
+      {step === "branch" && (
         <>
           <h1
             className="text-center uppercase leading-normal max-w-[70%]"
@@ -140,7 +140,7 @@ export default function DeliveryPage() {
                     </span>
                   </div>
 
-                  <div className="flex-shrink-0 ml-4">
+                  <div className="flex-shrink-0 ms-4">
                     {isSelected ? (
                       <div
                         className="flex items-center justify-center"
@@ -209,7 +209,7 @@ export default function DeliveryPage() {
         <>
           <button
             onClick={() => setStep("branch")}
-            className="absolute left-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
+            className="absolute start-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5" />
@@ -339,9 +339,24 @@ export default function DeliveryPage() {
           <button
             disabled={!platform}
             onClick={() => {
-              if (platform) {
+              if (!platform) return;
+              // Same destination order as the popup: the platform link first,
+              // then the external order URL. Without this the step 3 spinner
+              // never resolves and the page dead-ends.
+              void (async () => {
+                const resolved = await resolveOrdering();
+                const field = PLATFORM_URL_FIELDS[platform];
+                const target = [field ? resolved[field] : "", resolved.redirectUrl].find(
+                  (value) => Boolean(value) && /^https:\/\//i.test(value ?? ""),
+                );
+                if (!target) {
+                  setLinkError(t("delivery.missingLink"));
+                  return;
+                }
+                setLinkError("");
                 setStep("redirect");
-              }
+                window.location.assign(target);
+              })();
             }}
             className="mt-12 w-full cursor-pointer transition-all duration-200"
             style={{
@@ -364,6 +379,11 @@ export default function DeliveryPage() {
           >
             Continue to {selectedPlatform?.name ?? "platform"}
           </button>
+          {linkError && (
+            <p className="mt-4 text-center text-sm text-[#FF0931]" role="alert" style={{ maxWidth: "70%" }}>
+              {linkError}
+            </p>
+          )}
         </>
       )}
 

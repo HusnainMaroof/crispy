@@ -1,10 +1,19 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
 import { isAdminTab, resolveTabs, tabsForRole, type AdminTabId } from "../config/admin-tabs.js";
-import { canManageRole, isBranchScoped, isTeamMemberRole, normalizeRole, type AdminRole } from "../config/admin-roles.js";
+import {
+  canManageRole,
+  isBranchScoped,
+  isTeamMemberRole,
+  manageableRoleValues,
+  normalizeRole,
+  storedRolesFor,
+  type AdminRole,
+} from "../config/admin-roles.js";
 import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error.js";
 import { hashPassword } from "../utils/password.js";
 import { serialize } from "../utils/db.js";
+import type { PageRequest } from "../utils/pagination.js";
 import type { AuthPayload } from "../types/responses.js";
 
 type Actor = Pick<AuthPayload, "sub" | "role">;
@@ -92,17 +101,82 @@ async function assertTargetInScope(actor: Actor, row: { admin_branch_access: { l
   if (!sharesBranch(row, mine)) throw new NotFoundException("Staff member not found");
 }
 
-export async function listStaff(actor: Actor) {
+/**
+ * The visibility rule, expressed as a Prisma where clause.
+ *
+ * This used to be applied in JavaScript: every admin_profiles row was fetched,
+ * then filtered with canManageRole and sharesBranch. Server-side paging
+ * requires the row set to be narrowed before it is counted and sliced, so the
+ * same predicate now runs in the database:
+ *
+ *   role IN (...)          the tiers the actor may manage, alias-aware, so a
+ *                          legacy "branch_admin" row is still visible
+ *   admin_branch_access    a branch manager sees only team members whose every
+ *     some/every           branch is one of their own, matching sharesBranch
+ */
+async function staffVisibility(actor: Actor) {
+  const roleFilter = { role: { in: manageableRoleValues(actor.role) } };
+
+  if (normalizeRole(actor.role) !== "branch_manager") return roleFilter;
+
+  const mine = await actorBranchIds(actor);
+  return {
+    ...roleFilter,
+    role: { in: storedRolesFor("staff") },
+    AND: [
+      { admin_branch_access: { some: {} } },
+      { admin_branch_access: { every: { location_id: { in: mine } } } },
+    ],
+  };
+}
+
+export async function listStaff(
+  actor: Actor,
+  options: {
+    q?: string;
+    role?: string;
+    is_active?: boolean;
+    branch_id?: string;
+  } & PageRequest,
+) {
   assertCanManageStaff(actor);
-  const rows = await getPrisma().admin_profiles.findMany({
-    select: publicSelect,
-    orderBy: { name: "asc" },
-  });
-  const mine = normalizeRole(actor.role) === "branch_manager" ? await actorBranchIds(actor) : null;
-  return rows
-    .filter((row) => canManageRole(actor.role, row.role))
-    .filter((row) => !mine || (isTeamMemberRole(row.role) && sharesBranch(row, mine)))
-    .map(present);
+  const visibility = await staffVisibility(actor);
+  const q = options.q?.trim();
+
+  const where = {
+    AND: [
+      visibility,
+      ...(options.role
+        ? [{ role: { in: storedRolesFor(normalizeRole(options.role)) } }]
+        : []),
+      ...(options.is_active !== undefined ? [{ is_active: options.is_active }] : []),
+      ...(options.branch_id ? [{ admin_branch_access: { some: { location_id: options.branch_id } } }] : []),
+      ...(q
+        ? [{
+            OR: [
+              { name: { contains: q, mode: "insensitive" as const } },
+              { email: { contains: q, mode: "insensitive" as const } },
+              { position: { contains: q, mode: "insensitive" as const } },
+            ],
+          }]
+        : []),
+    ],
+  };
+
+  const [rows, total] = await getPrisma().$transaction([
+    getPrisma().admin_profiles.findMany({
+      where,
+      select: publicSelect,
+      skip: options.skip,
+      take: options.limit,
+      // id ASC is the tiebreaker so two people with the same name cannot swap
+      // places between two page requests.
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    }),
+    getPrisma().admin_profiles.count({ where }),
+  ]);
+
+  return { staff: rows.map(present), total };
 }
 
 export async function getStaff(actor: Actor, id: string) {
@@ -219,7 +293,10 @@ export async function updateStaff(actor: Actor, id: string, input: {
   let branchIds: string[] | undefined;
   if (isBranchScoped(role)) {
     const requested = input.branchIds ?? current.admin_branch_access.map((access) => access.location_id);
-    if (requested.length === 0 && (input.role || input.branchIds || input.is_active === true)) throw new BadRequestException("Choose at least one branch");
+    // Only a role or branch reassignment demands a branch. A bare
+    // is_active flip (reactivation) must not 400, or an account whose
+    // branches were cleared can never be switched back on.
+    if (requested.length === 0 && (input.role || input.branchIds)) throw new BadRequestException("Choose at least one branch");
     if (normalizeRole(actor.role) === "branch_manager") {
       const mine = await actorBranchIds(actor);
       if (requested.some((branchId) => !mine.includes(branchId))) throw new ForbiddenException("You can only assign your branches");

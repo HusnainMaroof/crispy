@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import toast from "react-hot-toast";
 import { api } from "@/lib/api";
+import { clearCart } from "@/lib/redux/slices/cartSlice";
+import type { AppDispatch } from "@/lib/redux/store";
 import { useAdminSession } from "@/lib/admin/session";
 import { NAV_SECTIONS, adminTab, tabHref, type AdminTabId } from "@/lib/admin/tabs";
 import { splitPanel } from "@/lib/admin/paths";
@@ -43,7 +47,16 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
   const router = useRouter();
   const { prefix } = splitPanel(pathname);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // Adjusting state during render is the documented way to reset on a prop
+  // change; doing it in the effect body caused a cascading render, and not
+  // doing it at all left a group opened on one panel expanded on the next.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    setOpenGroups({});
+  }
   const { clearSession, user } = useAdminSession();
+  const dispatch = useDispatch<AppDispatch>();
   const logoHref = allowed?.includes("dashboard") ? prefix : (user?.home ?? prefix);
 
   useEffect(() => {
@@ -65,9 +78,16 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
     try {
       await api.logout();
       clearSession();
+      dispatch(clearCart());
       router.replace("/super-admin/login");
     } catch {
-      // Keep the protected session active if the server could not clear its cookie.
+      // The cookie may still be live server-side, but this is the only sign-out
+      // control in the panel. Staying put with no feedback and no other way out
+      // left the user stuck, so clear the local session and say what happened.
+      clearSession();
+      dispatch(clearCart());
+      router.replace("/super-admin/login");
+      toast.error("Signed out locally. If the server was unreachable, your session may still be active.");
     }
   };
 

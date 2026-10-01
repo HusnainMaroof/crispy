@@ -7,13 +7,13 @@ import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useSettings } from "@/lib/admin/use-settings";
 
 export default function SettingsPage() {
-  const { settings, loading, fetchSettings, updateSettings } = useSettings();
+  const { settings, loading, error, fetchSettings, updateSettings } = useSettings();
   const [deliveryFee, setDeliveryFee] = useState<string>("");
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchSettings();
+    void fetchSettings();
   }, [fetchSettings]);
 
   const feeValue = deliveryFee !== "" ? deliveryFee : settings.deliveryFee.toString();
@@ -44,7 +44,11 @@ export default function SettingsPage() {
       />
 
       <div className="max-w-2xl">
-        {loading ? <TableSkeleton rows={3} /> : <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+        {error ? (
+          <p role="alert" className="rounded-lg border border-brand-red/40 bg-brand-red/10 px-4 py-3 text-sm text-brand-red">
+            {error}
+          </p>
+        ) : loading ? <TableSkeleton rows={3} /> : <div className="rounded-xl border border-white/10 bg-white/5 p-6">
           <h2 className="mb-6 font-display text-xl tracking-wide text-white">
             Delivery Settings
           </h2>

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import styles from "./welcome.module.css";
+import { localizedText } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 const PARAGRAPH =
   "Crispies was founded with a mission to serve the best burgers & chicken around. Our aim has always been to serve fresh, handmade food, bursting with flavours from around the globe.";
@@ -47,6 +49,7 @@ export default function Welcome({
   backImage?: string;
   frontImage?: string;
 }) {
+  const { locale } = useLocale();
   const back = backImage.trim() || BACK_IMAGE;
   const front = frontImage.trim() || FRONT_IMAGE;
   const words = (description.trim() || PARAGRAPH).split(/\s+/);
@@ -118,20 +121,20 @@ export default function Welcome({
     <div ref={outerRef} className={styles.outer}>
       <div
         ref={panelRef}
-        className={`${styles.panel} flex w-full items-center overflow-hidden rounded-3xl bg-white px-6 sm:px-10 md:px-14 lg:rounded-[50px] lg:px-20`}
+        className={`${styles.panel} flex w-full items-center overflow-hidden rounded-3xl bg-white px-6 sm:px-10  md:px-14 lg:px-20 lg:rounded-[50px] `}
         // Falls back to the finished design when JS is unavailable, so the
         // section is never left half-revealed for no-JS visitors.
         style={{ "--p": "1" } as React.CSSProperties}
       >
-        <div className="relative z-10 mx-auto flex w-full flex-col items-center gap-10 md:flex-row md:items-center md:gap-16 lg:gap-24">
+        <div className="relative z-10 mx-auto flex w-full flex-col items-center gap-10 md:flex-row md:items-center md:gap-16 lg:gap-24 ">
           {/* Text Content */}
 
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(40px,10vw,150px)] font-black capitalize leading-[1] tracking-[0.54px] text-black">
-              {headline}{" "}
-              {accent && <span className="text-nowrap text-[#FF0931]">{accent}</span>}
+          <div className="flex-1 text-center md:text-start">
+            <h2 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(32px,8vw,120px)] font-black capitalize leading-[1] tracking-[0.54px] text-black">
+              {localizedText(locale, headline)}{" "}
+              {accent && <span className="text-nowrap text-[#FF0931]">{localizedText(locale, accent)}</span>}
             </h2>
-            <p className="mt-6 max-w-lg font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(16px,3vw,30px)] font-normal capitalize leading-[1.5] tracking-[0.54px] text-black md:mt-8">
+            <p className="mt-6 max-w-lg font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(14px,2.5vw,24px)] font-normal capitalize leading-[1.5] tracking-[0.54px] text-black md:mt-8">
               {words.map((word, i) => {
                 const start = (i * wordStep).toFixed(4);
                 const span = wordWindow.toFixed(4);
@@ -161,7 +164,7 @@ export default function Welcome({
           <div className="w-full   flex-1 md:w-auto">
             {/* Width is capped by the viewport height too, so the taller image
                 can never overflow the pinned panel on short laptop screens. */}
-            <div className="relative mx-auto     w-[280px] h-[280px] sm:w-[360px] sm:h-[360px]  md:w-[380px] md:h-[380px]   lg:w-[420px] lg:h-[420px]  2xl:w-[620px] 2xl:h-[620px] my-20  md:mx-0">
+            <div className="relative mx-auto     w-[280px] h-[280px] sm:w-[360px] sm:h-[360px]  md:w-[380px] md:h-[380px]   lg:w-[420px] lg:h-[420px] xl:w-[460px] @max-3xl:w-[520px] xl:h-[460px] @max-3xl:h-[520px] my-8 sm:my-20  md:mx-0">
               <div
                 className="absolute inset-0 overflow-hidden rounded-2xl ring-1 ring-black/5 lg:rounded-3xl"
                 style={{

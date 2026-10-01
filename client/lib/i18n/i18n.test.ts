@@ -42,8 +42,8 @@ describe("stage 14 locale", () => {
     assert.match(formatDate("2026-09-27T12:00:00.000Z", "ar"), /٢٠٢٦|2026/);
   });
 
-  it("keeps the page left-to-right for every language", () => {
-    assert.equal(localeDir("ar"), "ltr");
+  it("flips the page right-to-left for Arabic only", () => {
+    assert.equal(localeDir("ar"), "rtl");
     assert.equal(localeDir("en"), "ltr");
     assert.equal(localeDir("xx"), "ltr");
   });

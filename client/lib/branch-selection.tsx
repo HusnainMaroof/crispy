@@ -13,6 +13,7 @@ import { cartCount } from "@/lib/cart-model";
 import { formatCurrency, localizedName } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { updateQuantity, removeItem, clearCart } from "@/lib/redux/slices/cartSlice";
+import { useStoreOrdering } from "@/lib/use-store-ordering";
 
 type BranchSelectionValue = {
   selectBranch: (locationId: string, locationName: string) => boolean;
@@ -30,13 +31,25 @@ export function BranchChrome({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
   const cart = useSelector((state: RootState) => state.cart);
   const locations = useSelector((state: RootState) => state.locations.locations);
-  const { isCartOpen, closeCart } = useUI();
+  const { isCartOpen, closeCart, setCartEnabled } = useUI();
   const { t } = useLocale();
+  const { isRedirect } = useStoreOrdering();
   const [pending, setPending] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    setCartEnabled(!isRedirect);
+  }, [isRedirect, setCartEnabled]);
 
   useEffect(() => {
     dispatch(hydrateCart());
   }, [dispatch]);
+
+  // In redirect mode there is no cart to keep. A stale localStorage cart from
+  // before the switch would otherwise keep a phantom count in the navbar and
+  // survive if the admin flips back to Cart.
+  useEffect(() => {
+    if (isRedirect && cart.items.length > 0) dispatch(clearCart());
+  }, [dispatch, isRedirect, cart.items.length]);
 
   const commit = async (locationId: string, replaceCart: boolean) => {
     await api.patch("/store/location", { location_id: locationId });
@@ -91,7 +104,7 @@ export function BranchChrome({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
-      <CartDrawer open={isCartOpen} onClose={closeCart} />
+      {!isRedirect && <CartDrawer open={isCartOpen} onClose={closeCart} />}
     </BranchSelectionContext.Provider>
   );
 }
@@ -158,7 +171,7 @@ function CartDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
     <div role="dialog" aria-modal="true" aria-label={t("cart.title")} className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto p-4 sm:p-6">
       <div className="fixed inset-0 bg-black/85" onClick={onClose} aria-hidden />
       <div className="relative my-auto flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-[#242424] bg-black text-white shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
-        <button type="button" onClick={onClose} aria-label={t("nav.close")} className="absolute right-4 top-4 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]">
+        <button type="button" onClick={onClose} aria-label={t("nav.close")} className="absolute end-4 top-4 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />

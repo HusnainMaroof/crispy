@@ -158,3 +158,46 @@ export function orderCancelledEmail(order: Order): { subject: string; html: stri
   `;
   return { subject: `Order #${order.id} cancelled — Crispies`, html: wrap(content) };
 }
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export type BrochureLead = { name: string; email: string; phone?: string; locale?: "en" | "ar" };
+
+/** Sent to the visitor with the brochure link, after they give us an email. */
+export function brochureEmail(lead: BrochureLead, brochureUrl: string): { subject: string; html: string } {
+  const greeting = lead.name ? `Hi ${escapeHtml(lead.name)},` : "Hi there,";
+  const content = `
+    <h2 style="margin:0 0 4px;font-size:22px;color:#fff;font-weight:700">Your Crispies franchise brochure</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6)">${greeting} here it is — everything you need to grow with us.</p>
+    ${button(brochureUrl, "Download the brochure")}
+    <p style="margin:24px 0 0;font-size:13px;color:rgba(255,255,255,0.5)">
+      Prefer a conversation? Send us a note and our franchise team will get back to you.
+    </p>
+    ${button(`${BRAND.SITE}/franchise-inquiries`, "Start your application")}
+  `;
+  return { subject: "Your Crispies franchise brochure", html: wrap(content) };
+}
+
+/** Internal alert so the franchise team knows who asked. */
+export function brochureLeadAdminEmail(lead: BrochureLead): { subject: string; html: string } {
+  const content = `
+    <h2 style="margin:0 0 4px;font-size:22px;color:#fff;font-weight:700">New brochure request</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6)">Someone requested the franchise brochure from the website.</p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding:4px 0;color:rgba(255,255,255,0.5);font-size:13px">Name</td><td style="padding:4px 0;color:#fff;font-size:13px;text-align:right">${escapeHtml(lead.name) || "—"}</td></tr>
+      <tr><td style="padding:4px 0;color:rgba(255,255,255,0.5);font-size:13px">Email</td><td style="padding:4px 0;color:#fff;font-size:13px;text-align:right"><a href="mailto:${escapeHtml(lead.email)}" style="color:#DC2626;text-decoration:none">${escapeHtml(lead.email)}</a></td></tr>
+      <tr><td style="padding:4px 0;color:rgba(255,255,255,0.5);font-size:13px">Phone</td><td style="padding:4px 0;color:#fff;font-size:13px;text-align:right">${escapeHtml(lead.phone ?? "") || "—"}</td></tr>
+      <tr><td style="padding:4px 0;color:rgba(255,255,255,0.5);font-size:13px">Language</td><td style="padding:4px 0;color:#fff;font-size:13px;text-align:right;text-transform:uppercase">${escapeHtml(lead.locale ?? "en")}</td></tr>
+    </table>
+    ${divider()}
+    ${button(`${BRAND.SITE}/franchise-inquiries`, "Open the franchise page")}
+  `;
+  return { subject: `Brochure request from ${lead.email}`, html: wrap(content) };
+}

@@ -21,7 +21,7 @@ type RateLimitConfig = {
 };
 
 type EmailConfig = {
-  BREVO_SMTP_SDK_KEY: string;
+  RESEND_API_KEY: string;
   EMAIL_FROM: string;
   ADMIN_EMAIL: string;
 };
@@ -30,6 +30,12 @@ type CloudinaryConfig = {
   CLOUD_NAME: string;
   API_KEY: string;
   API_SECRET: string;
+};
+
+type FranchiseConfig = {
+  /** Where the emailed brochure link points. Must be an absolute https URL. */
+  BROCHURE_URL: string;
+  SITE_URL: string;
 };
 
 type LogConfig = {
@@ -69,8 +75,8 @@ export const envConfig = {
   } satisfies RateLimitConfig,
 
   EMAIL: {
-    BREVO_SMTP_SDK_KEY: required("BREVO_SMTP_SDK_KEY"),
-    EMAIL_FROM: required("EMAIL_FROM"),
+    RESEND_API_KEY: required("RESEND_API_KEY"),
+    EMAIL_FROM: required("EMAIL_FROM", "onboarding@resend.dev"),
     ADMIN_EMAIL: required("ADMIN_EMAIL", process.env.superADMIN_EMAIL),
   } satisfies EmailConfig,
 
@@ -79,6 +85,11 @@ export const envConfig = {
     API_KEY: required("CLOUDINARY_API_KEY"),
     API_SECRET: required("CLOUDINARY_API_SECRET"),
   } satisfies CloudinaryConfig,
+
+  FRANCHISE: {
+    BROCHURE_URL: process.env.FRANCHISE_BROCHURE_URL || "https://crispies.co.uk/brochure.pdf",
+    SITE_URL: process.env.PUBLIC_SITE_URL || "https://crispies.co.uk",
+  } satisfies FranchiseConfig,
 
   LOG: {
     LEVEL: (process.env.LOG_LEVEL as LogConfig["LEVEL"]) || "info",

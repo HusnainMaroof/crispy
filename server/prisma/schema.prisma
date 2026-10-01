@@ -27,7 +27,12 @@ model menu_items {
   name_ar       String           @default("")
   description   String           @default("")
   description_ar String          @default("")
-  redirect_url  String           @default("")
+  // One redirect link per delivery platform. The Get It Delivered popup uses
+  // the link for whichever platform the customer picked. Empty means fall back
+  // to that platform's site-wide link.
+  redirect_uber_eats  String        @default("")
+  redirect_deliveroo  String        @default("")
+  redirect_just_eat   String        @default("")
   price         Decimal          @db.Decimal(10, 2)
   image         String           @default("")
   badge         String?
@@ -112,7 +117,15 @@ model orders {
 
   @@index([status, location_id])
   @@index([created_at])
-  @@index([customer_id])
+  // customer_id alone is not indexed separately. (customer_id, created_at)
+  // leads with customer_id, so customer-history lookups use that index.
+  // Filtering by branch or customer and ordering by date is the shape of every
+  // paginated order list. With only (status, location_id) and a bare
+  // (created_at), Postgres walks the date index backwards and filters, which
+  // degrades to a near-full scan once the table grows.
+  @@index([location_id, created_at])
+  @@index([status, created_at])
+  @@index([customer_id, created_at])
 }
 
 model order_items {
@@ -130,6 +143,9 @@ model order_items {
   created_at   DateTime    @default(now())
 
   @@index([order_id])
+  // Postgres has no index for this foreign key, so deleting a menu item
+  // seq-scans the whole order_items table to find the rows to detach.
+  @@index([menu_item_id])
 }
 
 model customers {
@@ -140,6 +156,10 @@ model customers {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   orders     orders[]
+
+  // The customer list pages on created_at DESC, id DESC. Without this the sort
+  // has no index to read from at all.
+  @@index([created_at, id])
 }
 
 model business_settings {
@@ -250,6 +270,9 @@ model admin_branch_access {
   created_at  DateTime       @default(now())
 
   @@id([admin_id, location_id])
+  // The primary key leads with admin_id, so grouping by location for the
+  // branch staff-count has to sort the whole table on every locations request.
+  @@index([location_id])
 }
 
 model homepage_content {

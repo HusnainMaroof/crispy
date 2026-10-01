@@ -264,7 +264,7 @@ export default function Menu() {
                 }}
                 onMouseEnter={(e) => handleEnter(cat, e.currentTarget)}
                 onMouseLeave={handleLeave}
-                className={`${itemClass} text-center md:text-left`}
+                className={`${itemClass} text-center md:text-start`}
                 style={itemStyle}
               >
                 <span
@@ -289,7 +289,7 @@ export default function Menu() {
                 }}
                 onMouseEnter={(e) => handleEnter(cat, e.currentTarget)}
                 onMouseLeave={handleLeave}
-                className={`${itemClass} text-center md:text-left`}
+                className={`${itemClass} text-center md:text-start`}
                 style={itemStyle}
               >
                 <span
@@ -309,7 +309,7 @@ export default function Menu() {
               change, so there's no unmount/remount flash between items. */}
           <div
             ref={floatImageRef}
-            className="hidden lg:block absolute top-0 left-0 w-[300px] xl:w-[340px] pointer-events-none will-change-transform transform-gpu"
+            className="hidden lg:block absolute top-0 start-0 w-[300px] xl:w-[340px] pointer-events-none will-change-transform transform-gpu"
             style={{ opacity: 0, scale: 0.85 }}
           >
             {lastCat && (

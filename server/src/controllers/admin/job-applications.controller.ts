@@ -1,21 +1,26 @@
 import type { Request, Response } from "express";
 import {
   getJobApplications,
+  countJobApplications,
   getJobApplicationById,
   createJobApplication,
   updateJobApplication,
   deleteJobApplication,
 } from "../../services/admin.service.js";
+import { resolvePage, sendPaged } from "../../utils/pagination.js";
 import { sendSuccess } from "../../utils/response.js";
 
 export const JobApplicationsController = {
   async list(req: Request, res: Response) {
     const { job_post_id, status } = req.query;
-    const applications = await getJobApplications({
-      job_post_id: job_post_id as string | undefined,
-      status: status as string | undefined,
-    });
-    sendSuccess(res, applications);
+    const q = req.query.q as string | undefined;
+    const page = resolvePage(req.query as { page?: unknown; limit?: unknown });
+    const filter = { job_post_id: job_post_id as string | undefined, status: status as string | undefined, q };
+    const [applications, total] = await Promise.all([
+      getJobApplications({ ...filter, ...page }),
+      countJobApplications(filter),
+    ]);
+    sendPaged(res, applications, total, page);
   },
 
   async getById(req: Request, res: Response) {
