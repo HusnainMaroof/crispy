@@ -71,8 +71,8 @@ jobs:
              cd ../server && \
              pnpm migrate && \
              cd .. && \
-             pm2 restart crispies-api crispies-web && \
-             pm2 save && \
+             /home/deploy/.npm-global/bin/pm2 restart crispies-api crispies-web && \
+             /home/deploy/.npm-global/bin/pm2 save && \
              sleep 5 && \
              curl --fail --silent --show-error https://api.crispiesuk.com/health && \
              curl --fail --silent --show-error https://crispiesuk.com"
