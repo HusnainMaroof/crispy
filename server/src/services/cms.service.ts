@@ -1,5 +1,6 @@
 import { Prisma } from "../generated/prisma/client.js";
-import { getPrisma } from "../config/prisma.js";
+import { getPrisma, getReadPrisma } from "../config/prisma.js";
+import { cachedJson, invalidateCmsCache, TTL_CMS_SECONDS } from "../utils/cache.js";
 import { DEFAULT_LOCALE, resolveLocale, strictLocale, SUPPORTED_LOCALES, type AppLocale } from "../config/locales.js";
 import {
   CMS_PAGES,
@@ -95,8 +96,9 @@ function orderedSections(page: CmsPage, rows: SectionRow[]) {
   return page.sortable ? [...pinned, ...movable] : page.sections;
 }
 
-async function loadRows(pageId: string): Promise<SectionRow[]> {
-  return getPrisma().cms_sections.findMany({
+/** Public reads may use the read replica; editing always uses the primary. */
+async function loadRows(pageId: string, read?: boolean): Promise<SectionRow[]> {
+  return (read ? getReadPrisma() : getPrisma()).cms_sections.findMany({
     where: { page: pageId },
     orderBy: [{ sort_order: "asc" }, { id: "asc" }],
     include: { translations: true },
@@ -112,6 +114,8 @@ const rowCache = new Map<string, { expires: number; rows: SectionRow[] }>();
 const rowInflight = new Map<string, Promise<SectionRow[]>>();
 
 function clearPublicCmsCache(pageId: string) {
+  // Also drop the shared (multi-instance) cms: keys on every write.
+  void invalidateCmsCache();
   rowCache.delete(pageId);
   for (const key of publicCache.keys()) {
     if (key.startsWith(`${pageId}:`)) publicCache.delete(key);
@@ -123,7 +127,8 @@ async function loadPublicRows(pageId: string): Promise<SectionRow[]> {
   if (hit && hit.expires > Date.now()) return hit.rows;
   const pending = rowInflight.get(pageId);
   if (pending) return pending;
-  const request = loadRows(pageId).then((rows) => {
+  // Primary read. This result is cached, so a replica fill would keep lag for the TTL.
+  const request = loadRows(pageId, false).then((rows) => {
     rowCache.set(pageId, { expires: Date.now() + PUBLIC_TTL_MS, rows });
     return rows;
   });
@@ -145,6 +150,12 @@ async function ensureSections(page: CmsPage) {
 export async function getPublicCmsPage(pageId: string, requested?: unknown): Promise<PublicCmsPage> {
   const page = requirePage(pageId);
   const locale = resolveLocale(requested);
+  // Outer shared cache (utils/cache.ts), invalidated by every CMS write. The
+  // inner maps below still coalesce concurrent requests and hold a shorter copy.
+  return cachedJson(`cms:${page.id}:${locale}`, TTL_CMS_SECONDS, () => loadPublicCmsPage(page, locale));
+}
+
+async function loadPublicCmsPage(page: CmsPage, locale: AppLocale): Promise<PublicCmsPage> {
   const key = `${page.id}:${locale}`;
   const hit = publicCache.get(key);
   if (hit && hit.expires > Date.now()) return hit.value;

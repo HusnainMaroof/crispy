@@ -15,13 +15,16 @@ const COOKIE_OPTIONS = {
 };
 
 export const StoreController = {
+  // Anonymous public reads: lag-tolerant, so the replica and short cache are
+  // allowed. The cookie-based routes below stay on the primary so a branch a
+  // visitor just picked is readable immediately.
   async locations(_req: Request, res: Response) {
-    const locations = await getLocations();
+    const locations = await getLocations({ read: true, cache: true });
     sendSuccess(res, locations);
   },
 
   async locationById(req: Request, res: Response) {
-    const location = await getLocationById(req.params.id as string);
+    const location = await getLocationById(req.params.id as string, { read: true });
     sendSuccess(res, location);
   },
 
@@ -51,14 +54,16 @@ export const StoreController = {
   },
 
   async settings(_req: Request, res: Response) {
-    const settings = await getSettings();
+    const settings = await getSettings({ read: true, cache: true });
     sendSuccess(res, settings);
   },
 
   async content(req: Request, res: Response) {
     const query = req.query.locale;
     const requested = resolveLocale(typeof query === "string" ? query : req.cookies?.crispy_locale);
-    res.setHeader("Cache-Control", "public, max-age=15");
+    // Cache-Control and Vary: Cookie are set in index.ts for this path and
+    // for /api/store/homepage. Setting them again here overwrote the shorter
+    // cookie-bound max-age.
     sendSuccess(res, await getPublicCmsPage((req.params.page as string | undefined) ?? "home", requested));
   },
 };

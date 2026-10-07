@@ -8,7 +8,7 @@ import Modal from "@/app/components/admin/ui/modal";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import { TimePicker } from "@/app/components/ui/time-picker";
 import { useLocations, type AdminLocation } from "@/lib/admin/use-locations";
-import { WEEKDAYS, formatWeekHours, parseWeekHours, type DayHours } from "@/lib/admin/shop-hours";
+import { WEEKDAYS, formatWeekHours, isComingSoonHours, parseWeekHours, type DayHours } from "@/lib/admin/shop-hours";
 
 export default function LocationsPage() {
   const { locations, loading, error, fetchLocations, addLocation, updateLocation } = useLocations();
@@ -24,6 +24,17 @@ export default function LocationsPage() {
     try {
       await updateLocation(location.id, { status });
       toast.success(status === "active" ? `${location.name} is active` : `${location.name} is disabled`);
+    } catch {
+      toast.error("Could not update branch status");
+    }
+  };
+
+  const setComingSoon = async (location: AdminLocation) => {
+    try {
+      // A coming soon branch stays listed (status active), it just shows as
+      // Coming Soon until real hours are set.
+      await updateLocation(location.id, { hours: "Coming Soon", status: "active" });
+      toast.success(`${location.name} is marked Coming Soon`);
     } catch {
       toast.error("Could not update branch status");
     }
@@ -54,7 +65,7 @@ export default function LocationsPage() {
     <div className="admin-fade-in">
       <PageHeader
         title="Branches"
-        description="Address, opening hours, and whether the branch is taking orders. Disabled is for maintenance and is separate from the hours."
+        description="Address, opening hours, and whether the branch is taking orders. Coming soon branches are listed but shown as Coming Soon. Disabled is for maintenance and is separate from the hours."
         action={
           <button
             type="button"
@@ -88,6 +99,7 @@ export default function LocationsPage() {
             <tbody className="divide-y divide-white/5">
               {locations.map((location) => {
                 const active = location.status !== "inactive";
+                const comingSoon = active && isComingSoonHours(location.hours);
                 return (
                   <tr key={location.id} className="text-sm">
                     <td className="px-4 py-3 font-medium text-white">{location.name}</td>
@@ -96,16 +108,32 @@ export default function LocationsPage() {
                     <td className="px-4 py-3 text-white/70">{location.phone || "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className={`h-2 w-2 rounded-full ${active ? "bg-green-400" : "bg-white/30"}`} aria-hidden="true" />
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            comingSoon ? "bg-amber-300" : active ? "bg-green-400" : "bg-white/30"
+                          }`}
+                          aria-hidden="true"
+                        />
                         <Dropdown
-                          value={active ? "active" : "inactive"}
+                          value={active ? (comingSoon ? "coming_soon" : "active") : "inactive"}
                           onChange={(value) => {
+                            if (value === "coming_soon") {
+                              if (!comingSoon) void setComingSoon(location);
+                              return;
+                            }
+                            if (value === "active" && comingSoon) {
+                              // Opening a branch needs real hours, so finish in the edit form.
+                              toast("Set the opening hours to open this branch");
+                              setEditing(location);
+                              return;
+                            }
                             const next = value === "inactive" ? "inactive" : "active";
                             if (next === location.status) return;
                             void setStatus(location, next);
                           }}
                           options={[
                             { value: "active", label: "Active" },
+                            { value: "coming_soon", label: "Coming soon" },
                             { value: "inactive", label: "Disabled" },
                           ]}
                           className="h-11 min-w-32"
@@ -157,6 +185,9 @@ function ShopForm({
   const [address, setAddress] = useState(shop?.address ?? "");
   const [phone, setPhone] = useState(shop?.phone ?? "");
   const [week, setWeek] = useState<DayHours[]>(() => parseWeekHours(shop?.hours ?? ""));
+  const [comingSoon, setComingSoon] = useState(() =>
+    shop ? isComingSoonHours(shop.hours) : false,
+  );
 
   const setDay = (day: number, next: DayHours) => {
     setWeek((current) => current.map((hours, index) => index === day ? next : hours));
@@ -164,6 +195,10 @@ function ShopForm({
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (comingSoon) {
+      onSave({ name, address, phone, hours: "Coming Soon" });
+      return;
+    }
     if (week.every((hours) => hours === null)) {
       toast.error("Open at least one weekday");
       return;
@@ -183,6 +218,37 @@ function ShopForm({
         <label className="block text-sm text-white/50">Phone
           <input required value={phone} onChange={(event) => setPhone(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#FF0931]" />
         </label>
+        <fieldset>
+          <legend className="text-sm text-white">Branch status</legend>
+          <p className="mt-1 text-xs text-white/45">Active branches are open and take orders. Coming soon branches stay on the site but show as Coming Soon until their hours are set.</p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              aria-pressed={!comingSoon}
+              onClick={() => setComingSoon(false)}
+              className={`h-11 cursor-pointer rounded-full px-4 text-xs ${
+                !comingSoon ? "bg-green-500/20 text-green-300" : "bg-white/10 text-white/55"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              type="button"
+              aria-pressed={comingSoon}
+              onClick={() => setComingSoon(true)}
+              className={`h-11 cursor-pointer rounded-full px-4 text-xs ${
+                comingSoon ? "bg-amber-500/20 text-amber-300" : "bg-white/10 text-white/55"
+              }`}
+            >
+              Coming soon
+            </button>
+          </div>
+        </fieldset>
+        {comingSoon ? (
+          <div className="rounded-xl border border-white/10 px-4 py-4 text-sm text-white/60">
+            This branch saves with the hours <span className="text-white">Coming Soon</span>. Set its hours later to open it.
+          </div>
+        ) : (
         <fieldset>
           <legend className="text-sm text-white">Opening hours</legend>
           <p className="mt-1 text-xs text-white/45">Set each weekday, the same way a map lists hours. Matching days are saved as a range, such as Fri–Sat. This does not disable the branch.</p>
@@ -215,6 +281,7 @@ function ShopForm({
             })}
           </ul>
         </fieldset>
+        )}
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="h-11 rounded-full border border-white/10 px-4 text-sm text-white/60">Cancel</button>
           <button type="submit" className="h-11 rounded-full bg-[#FF0931] px-4 text-sm text-white">{shop ? "Save branch" : "Add branch"}</button>

@@ -42,9 +42,17 @@ export function useJobApplications() {
     page: 1, limit: 20, total: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false,
   });
   const [loading, setLoading] = useState(true);
+  // True once the first read finished, so the grid can tell an initial load
+  // (skeleton) from a refetch (rows stay, dimmed).
+  const [hasLoaded, setHasLoaded] = useState(false);
+  // The list used to let a failed read escape as an unhandled rejection and
+  // then render an empty grid as if there were no applications. Same shape as
+  // `useJobPosts`: the message is shown instead.
+  const [error, setError] = useState("");
 
   const fetchApplications = useCallback(async (filters?: { job_post_id?: string; status?: string; q?: string; page?: number; limit?: number }) => {
     setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams();
       if (filters?.job_post_id) params.set("job_post_id", filters.job_post_id);
@@ -56,8 +64,11 @@ export function useJobApplications() {
       const { items, pagination: meta } = await api.getPage<Record<string, unknown>>(`/admin/job-applications${query}`);
       setApplications(items.map(mapApplication));
       setPagination(meta);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load applications.");
     } finally {
       setLoading(false);
+      setHasLoaded(true);
     }
   }, []);
 
@@ -92,6 +103,8 @@ export function useJobApplications() {
     applications,
     pagination,
     loading,
+    hasLoaded,
+    error,
     fetchApplications,
     updateApplicationStatus,
     updateApplicationNotes,

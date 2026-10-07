@@ -10,6 +10,8 @@ Everything about this project in one place: what it is, how it was built stage b
 4. [API](#api) — every endpoint
 5. [Frontend design](#frontend-design) — colour, type, pages, motion
 
+Standalone docs: [architecture.md](./architecture.md) (system design) and [backend.md](./backend.md) (the API in one file).
+
 ---
 
 ## Start here
@@ -46,7 +48,7 @@ Next.js app (client/)  ──fetch /api──►  Express API (server/)  ──P
 | Homepage CMS | Homepage copy, images, video, and Instagram reels are edited in admin, in English or Arabic |
 | Fixed design | The storefront look is fixed. New data is fed into the existing components, never a redesign |
 
-**What is not real yet.** The menu is development mock data (fictional prices, stock photos). Payment is only a "card/cash" label. Delivery fees are not added. Resend sends currently fail with an invalid API key. Details are in [Known gaps](#known-gaps).
+**What is not real yet.** Payment is only a card/cash label, and the site does not charge a card. Delivery fees are not added. Email needs a real Resend key and a verified sender. The store menu is whatever staff save in admin. `pnpm seed:catalogue` can still load a development catalogue, and it refuses to run when `NODE_ENV=production`. Details are in [Known gaps](#known-gaps).
 
 **Where to look in the code.**
 
@@ -183,6 +185,12 @@ The menu, location list, locations page, delivery page, and delivery overlay sto
 - Homepage sections after hero and welcome follow the saved order.
 - The old `/api/admin/content/homepage` routes were removed.
 
+### Coming soon branches and the location search
+
+- The Branches form in super admin gained a `Coming soon` status. It saves `hours: "Coming Soon"` and keeps the branch listed; setting real hours opens the branch. The row dropdown is now Active / Coming soon / Disabled.
+- `hours: "Coming Soon"` is the single marker for a branch that is not open yet. The storefront badges and `lib/storefront-locations.ts` treat it as its own `coming_soon` state instead of closed.
+- `lib/location-search.ts` prefers open branches for distance and postcode searches, keeps coming soon branches findable by name, and labels any coming soon match as `Coming Soon`.
+
 ---
 ## Architecture
 
@@ -275,6 +283,8 @@ Pages under `app/(store)/` share `layout.tsx`: Lenis smooth scroll, a toast host
 | `/locations` | Branch list, search, and map |
 | `/delivery` | Branch picker for delivery, or an external redirect when the CMS says so |
 | `/franchise-inquiries` | Franchise form |
+| `/career` | Open roles from `GET /api/store/jobs`, with a branch filter |
+| `/career/[id]` | One role and the application form, posting to `/api/jobs/:id/apply` |
 | `/checkout` | Server-quoted cart review and order form, then confirmation |
 | `/orders` | Guest profile and order history for this browser |
 | `/orders/[id]` | One order, only for the browser that placed it |
@@ -415,8 +425,9 @@ Named exceptions in `utils/app-error.ts`: `BadRequestException` (400), `Unauthor
 | Create, edit, deactivate branches | Yes | No | No |
 | Branch menu and deals | All | Assigned branches | View assigned branch menu |
 | Orders and customers | All | Assigned branches, if granted the area | Assigned branches, if granted the area |
+| Job posts and applications | All branches | Assigned branches | No |
 | Manage team accounts | All | Staff in assigned branches only | No |
-| Site content, jobs, settings, shared catalogue | Yes | No | No |
+| Site content, settings, shared catalogue | Yes | No | No |
 | Edit own name | Yes | Yes | Yes |
 
 Only three account roles can be assigned: `superadmin`, `branch_manager`, and `staff`. Staff accounts have a job position such as Cashier or Kitchen staff; the position is descriptive, while tab permissions control access. The Team form uses branch and access selectors instead of a wall of checkboxes. Existing `admin` accounts become branch managers in the migration. Accounts with no branch assignment are deactivated until the super admin assigns a branch and reactivates them.
@@ -549,9 +560,12 @@ Postgres on Neon, accessed only through Prisma (`server/prisma/schema.prisma`). 
 | `order_items.menu_item_id` / `deal_id` | `menu_items` / `deals` | Set null |
 | `branch_menu_items`, `branch_deals`, `admin_branch_access` | parent rows | Cascade |
 | `job_applications.job_post_id` | `job_posts` | Cascade |
+| `job_posts.location_id` | `locations` | Set null |
 | `cms_section_translations.section_id` | `cms_sections` | Cascade |
 
 Branch "delete" in the admin sets `status = inactive` instead, so orders keep their branch.
+
+A job post belongs to one branch. `job_posts.location_id` is the relation used for filtering and permission checks, while `job_posts.location` is a display copy of the branch name taken on write. Reads prefer the live branch name, so renaming a branch does not leave its posts showing the old name. `location_id` is nullable so posts created before branch scoping, and posts whose branch was removed, keep existing instead of disappearing; branch-scoped admins cannot see an unbound post.
 
 #### Migrations (`server/prisma/migrations/`)
 
@@ -570,9 +584,9 @@ Branch "delete" in the admin sets `status = inactive` instead, so orders keep th
 
 #### Seed data
 
-The nine branches: Harrow Road, Tower Hill, Kilburn, Harrow, Elephant & Castle, Edgware Road, Stockwell, Wembley Central, Ruislip. Wembley Central and Ruislip are `active` with hours `Coming Soon`, which the storefront shows as closed.
+The nine branches: Harrow Road, Tower Hill, Kilburn, Harrow, Elephant & Castle, Edgware Road, Stockwell, Wembley Central, Ruislip. Wembley Central and Ruislip are `active` with hours `Coming Soon`, so the storefront shows them with the `Coming Soon` badge (their own state, not closed).
 
-`pnpm seed:catalogue` loads a **development mock catalogue** (10 categories, 38 products, 6 deals, Unsplash photos, fictional prices) and branch rows for every branch, with a few deliberate differences for testing. It is not the real Crispies menu.
+`pnpm seed:catalogue` loads a development catalogue (10 categories, 38 products, 6 deals, Unsplash photos, fictional prices) and branch rows for every branch. It is for local testing. It refuses to run when `NODE_ENV=production`. Remove those products later with `pnpm tsx scripts/remove-mock-menu.ts`.
 
 ---
 
@@ -798,7 +812,7 @@ Active branches only.
 ]
 ```
 
-`hours: "Coming Soon"` is how the storefront marks a branch as not yet open.
+`hours: "Coming Soon"` is how a branch that is not open yet is marked. The storefront shows those with a `Coming Soon` badge, and the location search keeps them findable by name while distance search prefers open branches.
 
 #### `GET /api/store/locations/:id`
 
@@ -857,11 +871,11 @@ Inactive sections are left out of `order` and `sections`. Every other section is
 
 #### `GET /api/store/jobs`
 
-Job posts with `status: "active"`.
+Job posts with `status: "active"`. Optional `?location_id=` narrows to one branch. Feeds the storefront `/career` page.
 
 #### `GET /api/store/jobs/:id`
 
-One active job. 404 if missing or not active.
+One active job. 404 if missing or not active. Feeds `/career/:id`.
 
 ---
 
@@ -1065,6 +1079,8 @@ Global brand catalogue. Any authenticated staff role. Ids are generated by the s
 
 Location body: `name`, `address`, `hours`, `phone` required; optional `slug` (lowercase-hyphen), `postcode`, `city`, `lat`, `lng`, `status` (`active` | `inactive`), `delivery_enabled`, `collection_enabled`, `delivery_fee`, `free_delivery_threshold` (null inherits company settings), `sort_order`.
 
+The Branches form in super admin offers a `Coming soon` status, which saves `hours: "Coming Soon"` and keeps the branch listed. The storefront badge and the location search treat coming soon branches as their own state: they stay searchable by name, but distance search prefers open branches and labels any coming soon match as `Coming Soon`.
+
 Branch menu write:
 
 ```json
@@ -1180,22 +1196,27 @@ These values are editable but not yet applied at checkout.
 
 ### Admin — Jobs and applications
 
+Every route below is limited to `superadmin` and `branch_manager`, and a branch manager only sees and writes their own assigned branches. A branch manager's branch is re-checked server-side on create and on any change of branch, so a request naming a branch they do not manage is rejected rather than trusted.
+
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/admin/jobs` | Optional `?status=` |
-| GET | `/api/admin/jobs/:id` | |
-| POST | `/api/admin/jobs` | `title`, `location`, `type`, `salary`, `description`, `requirements` (non-empty string array), optional `status` (`draft` | `active` | `closed`). `applications` starts at 0 |
-| PUT | `/api/admin/jobs/:id` | Partial |
+| GET | `/api/admin/jobs` | Optional `?status=`, `?q=`, `?location_id=`. Scoped to the caller's branches |
+| GET | `/api/admin/jobs/field-values` | `{ branches: [{ id, name }], types: string[] }`. Branch picker and free-text type suggestions for the create/edit forms |
+| GET | `/api/admin/jobs/:id` | 404 for a post outside the caller's branches |
+| POST | `/api/admin/jobs` | `title`, `location_id`, `type`, `salary`, `description`, `requirements` (non-empty string array), optional `status` (`draft` \| `active` \| `closed`). `location` is written by the server from the branch name; `applications` starts at 0 |
+| PUT | `/api/admin/jobs/:id` | Partial. Send `location_id` only to move the post to another branch |
 | PATCH | `/api/admin/jobs/:id/status` | `{ "status": "closed" }` |
 | DELETE | `/api/admin/jobs/:id` | Cascades applications |
-| GET | `/api/admin/job-applications` | Optional `?job_post_id=`, `?status=` |
+| GET | `/api/admin/job-applications` | Optional `?job_post_id=`, `?status=`, `?q=`. Scoped to the caller's branches through the post |
 | GET | `/api/admin/job-applications/:id` | |
-| POST | `/api/admin/job-applications` | Staff-created. `job_post_id` plus the public apply fields |
+| POST | `/api/admin/job-applications` | Manual entry. `job_post_id` plus the public apply fields |
 | PUT | `/api/admin/job-applications/:id` | `status`, `notes` |
 | PATCH | `/api/admin/job-applications/:id/status` | `{ "status": "reviewed" }` |
 | DELETE | `/api/admin/job-applications/:id` | |
 
-Application status: `pending`, `reviewed`, `shortlisted`, `rejected`, `hired`.
+Job status: `draft`, `active`, `closed`. Only `active` posts are public.
+
+`type` is free text, not an enum, so a manager can introduce a type nobody uses yet. `GET /api/admin/jobs/field-values` returns the values already in use, which the form offers as suggestions.
 
 ---
 
@@ -1257,7 +1278,7 @@ Red is the only brand accent. These functional exceptions are intentional:
 | `#434343` | Navbar vertical divider |
 | `#414040` | Secondary text on white (Instagram profile) |
 | `#1A1A1A` and nearby greys | Location map card |
-| Green / brown pills | Open and closed status on locations |
+| Green / brown / grey pills | Open, closed, and coming soon status on locations |
 | `#4ade80` / `#dc2626` | Admin toast success and error icons |
 
 Raw values when a hex is needed (inline style, SVG fill, `shadow-[...]`): accent glow `rgba(255,9,49,0.4)` / `rgba(255,9,49,0.7)`, focus ring `rgba(255,9,49,0.15)`.
@@ -1307,7 +1328,7 @@ Lenis smooth scroll (`components/providers/smooth-scroll.tsx`) wraps the store l
 | 2 | `hero.tsx` + `hero.module.css` | Full-bleed looping video. Two-line Korolev headline. Words focus in from a 6px blur, 90 ms apart | Headline lines, video URL |
 | 3 | `welcome.tsx` + `welcome.module.css` | Pinned scroll. The paragraph reveals word by word while a second food image slides over the first. A progress variable `--p` drives blur and opacity together | Paragraph |
 | 4 | `flavours.tsx` | Black block with rounded bottom. "Discover Your Crispy Flavor" heading, red-dot dividers, a row of five white-outlined flavour tiles, a heat scale with a red track up to "Mild", and an endless image marquee with a white order card pinned in the centre | Titles, flavour and scale labels, tile and scale icons, gallery, CTA label and link |
-| 5 | `locations.tsx` | "Find your nearest" list with open/closed pills and a Leaflet map card (`client-locations-map.tsx`). Shows the first `cardLimit` branches, or a single link in redirect mode | Heading, CTA, display mode, card limit |
+| 5 | `locations.tsx` | "Find your nearest" list with open/closed/coming soon pills and a Leaflet map card (`client-locations-map.tsx`). Shows the first `cardLimit` branches, or a single link in redirect mode | Heading, CTA, display mode, card limit |
 | 6 | `partner.tsx` | Franchise pitch on red. Korolev headline, Poppins subcopy, black CTA bar, image on the right | Title, description, CTA label, image |
 | 7 | `instagram.tsx` | White rounded card on a red base. Profile header (logo, username, counts, bio, red Follow button) and a reel marquee that pauses on hover | Username, counts, bio, profile URL, reels |
 | 8 | `footer.tsx` | Black footer, red top rule, link columns | — |
@@ -1325,9 +1346,11 @@ These use `(store)/layout.tsx`, so they already have smooth scroll, toasts, and 
 | Route | Component | Role |
 |---|---|---|
 | `/menu` | `menu-page.tsx` | Branch menu and deals from the API in the existing cards, search, filters, add to cart |
-| `/locations` | `locations-page.tsx` | Full branch list and map. Search uses `lib/location-search.ts` (postcodes.io, Nominatim) and `location-coverage.json` |
+| `/locations` | `locations-page.tsx` | Full branch list and map. Search uses `lib/location-search.ts` (postcodes.io, Nominatim) and `location-coverage.json`. Coming soon branches stay searchable by name; distance search prefers open branches and labels coming soon matches |
 | `/delivery` | `delivery-page.tsx` | Pick a branch, then a platform. In redirect mode it goes straight to the external URL |
 | `/franchise-inquiries` | `contact-page.tsx` | Franchise form, with `franchise-application-overlay.tsx` |
+| `/career` | `career-page.tsx` | Active job posts, branch filter built from the posts themselves. "Applied" badges from `lib/applied-jobs.ts` (localStorage) |
+| `/career/[id]` | `career-detail-page.tsx` | Role detail plus apply form. `cv_url` is a link, not an upload, because the apply schema is a URL |
 | `/checkout` | `(store)/checkout/page.tsx` | Server-quoted review, collection or delivery, contact details, cash/card label, confirmation |
 | `/orders`, `/orders/[id]` | `(store)/orders/` | Guest profile, order history, one order with status |
 
@@ -1432,7 +1455,7 @@ Surfaces stay `bg-black` with `border-white/10` and `bg-white/5` hovers.
 Screen notes:
 
 - **Orders:** the status dropdown lists only the current status plus `allowed_statuses` from the server. Detail shows stored line prices and totals.
-- **Branch Menu:** per-branch price override (empty clears it) and an on/off availability toggle per row. It labels the catalogue as development mock data.
+- **Branch Menu:** per-branch price override (empty clears it) and an on/off availability toggle per row.
 - **CMS** (`/admin/cms/[page]`, superadmin only): forms are drawn from the server's field definitions (`cms-fields.tsx`), so a new registry field needs no editor code. One English/Arabic selector with `translated/total` coverage; per section a show/hide toggle, a publish toggle for that language, up/down ordering on sortable pages, save, discard, and reset. Lists can add, remove, and reorder items. Every image field uploads (5 MB) and every video field uploads up to 50 MB via `/api/admin/upload-media`. Unsaved changes are flagged and leaving the page warns. The editor never sets fonts, spacing, or colours.
 - Forms that take images upload through `POST /api/admin/upload` and store the returned Cloudinary URL.
 
@@ -1440,7 +1463,7 @@ Screen notes:
 
 ### Localisation in the UI
 
-English is the default; Arabic is the second language, and choosing it flips the storefront to right-to-left (`dir="rtl"` on `<html>`). Navbar labels, cart, checkout, and order pages read the dictionary in `client/lib/i18n/`, falling back to English for any missing key. Menu categories, items, and deals carry Arabic names (`title_ar`, `name_ar`, `description_ar`) edited in admin and shown in the Arabic store with English fallback; cart lines and order items are stored in the customer's language. Order status codes stay English in the API and are translated only when rendered. Money always uses `formatCurrency` (GBP, `en-GB`). Switching language sets `crispy_locale` and refreshes the page; it never clears the cart. The admin interface stays English.
+English is the default; Arabic is the second language, and choosing it flips the storefront to right-to-left (`dir="rtl"` on `<html>`). Navbar labels, cart, checkout, and order pages read the dictionary in `client/lib/i18n/`, falling back to English for any missing key. Menu categories, items, and deals carry Arabic names (`title_ar`, `name_ar`, `description_ar`) edited in admin and shown in the Arabic store with English fallback. Job posts follow the same convention (`title_ar`, `description_ar`, `requirements_ar` on `job_posts`, edited in the job form); job type and branch names translate through the phrase map in `client/lib/i18n`, and salary stays as written; cart lines and order items are stored in the customer's language. Order status codes stay English in the API and are translated only when rendered. Money always uses `formatCurrency` (GBP, `en-GB`). Switching language sets `crispy_locale` and refreshes the page; it never clears the cart. The admin interface stays English.
 
 ---
 

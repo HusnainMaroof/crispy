@@ -7,7 +7,7 @@ export type StoreLocationCard = {
   name: string;
   address: string;
   postcode: string;
-  status: "open" | "closed";
+  status: "open" | "closed" | "coming_soon";
   hours: string;
   lat: number | null;
   lng: number | null;
@@ -38,14 +38,22 @@ function coord(value: unknown): number | null {
 export function toStoreLocationCard(location: Location): StoreLocationCard {
   const hours = location.hours?.trim() ?? "";
   const address = typeof location.address === "string" ? location.address : "";
-  const closed = location.status === "inactive" || hours.length === 0 || /coming soon/i.test(hours);
+  // "Coming Soon" in the hours is how a branch that is not open yet is marked.
+  // It is its own state: the branch still shows on the site, just not as open.
+  const comingSoon = /coming soon/i.test(hours);
+  const status =
+    location.status === "inactive" || hours.length === 0
+      ? "closed"
+      : comingSoon
+        ? "coming_soon"
+        : "open";
   const match = address.toUpperCase().match(EMBEDDED_POSTCODE);
   return {
     id: location.id,
     name: location.name,
     address,
     postcode: match ? `${match[1]} ${match[2]}` : "",
-    status: closed ? "closed" : "open",
+    status,
     hours: hours || "—",
     lat: location.lat,
     lng: location.lng,

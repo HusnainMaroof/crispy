@@ -20,7 +20,9 @@ export type AdminTabId = (typeof ADMIN_TABS)[number]["id"];
 
 export const ADMIN_TAB_IDS = ADMIN_TABS.map((tab) => tab.id);
 
-const MANAGER_TABS: AdminTabId[] = ["dashboard", "orders", "customers", "menu", "branch-menu", "staff"];
+// Job posts and applications are per-branch, so a branch manager holds the tab
+// and is limited to their own branches by the job controllers.
+const MANAGER_TABS: AdminTabId[] = ["dashboard", "orders", "customers", "menu", "branch-menu", "staff", "posts"];
 const STAFF_TABS: AdminTabId[] = ["dashboard", "orders", "customers", "menu"];
 
 /**

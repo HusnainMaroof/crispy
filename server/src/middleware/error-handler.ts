@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { MulterError } from "multer";
-import { logger } from "./logger.js";
+import { reportError } from "../utils/error-tracker.js";
 import { AppError, ItemUnavailableException } from "../utils/app-error.js";
 
 export function errorHandler(err: Error, _req: Request, res: Response, next: NextFunction) {
@@ -32,7 +32,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, next: Nex
     return;
   }
 
-  logger.error({ err, name: err.name }, "Unhandled error");
+  reportError(err, { name: err.name });
   res.status(500).json({
     success: false,
     error: "Internal server error",

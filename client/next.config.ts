@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
+if (process.env.NODE_ENV === "production" && (!apiBase || /localhost|127\.0\.0\.1/i.test(apiBase))) {
+  throw new Error("NEXT_PUBLIC_API_BASE_URL must be the public API origin in production");
+}
 
 const nextConfig: NextConfig = {
   images: {
@@ -56,13 +59,16 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const target = apiBase || "http://localhost:4000";
+    const target = apiBase || "http://127.0.0.1:4000";
     return {
-      fallback: [
+      // afterFiles, not fallback: Next 16 never applies fallback rewrites here,
+      // which left every store /api call 404ing into the not-found page.
+      // The /api/admin prefix is excluded so its route handler still runs and
+      // can forward the admin session cookie.
+      afterFiles: [
         {
-          // After the admin route handler, so it can forward the session cookie.
-          source: "/api/:path*",
-          destination: `${target}/api/:path*`,
+          source: "/api/:path((?!admin/).*)",
+          destination: `${target}/api/:path`,
         },
       ],
     };

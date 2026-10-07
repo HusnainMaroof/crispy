@@ -106,11 +106,19 @@ export interface BusinessSettings {
 export interface JobPost {
   id: string;
   title: string;
+  /** Arabic display copy. Empty falls back to `title` in the Arabic store. */
+  title_ar: string;
+  /** Display copy of the branch name. */
   location: string;
+  /** Null only for posts created before job posts became branch-scoped. */
+  location_id: string | null;
   type: string;
   salary: string;
   description: string;
+  description_ar: string;
   requirements: string[];
+  /** Arabic requirements list. Empty falls back to `requirements`. */
+  requirements_ar: string[];
   status: "draft" | "active" | "closed";
   applications: number;
   created_at: string;

@@ -181,6 +181,7 @@ export default function CheckoutPage() {
             <input required placeholder={t("checkout.city")} value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} className="h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm" />
           </>
         )}
+        <p className="text-sm text-white/60">{t("checkout.notCharged")}</p>
         <label className="text-xs uppercase tracking-widest text-white/50">{t("checkout.payment")}
           <select value={payment} onChange={(event) => setPayment(event.target.value as "cash" | "card")} className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm">
             <option value="cash">{t("checkout.cash")}</option>

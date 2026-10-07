@@ -14,12 +14,29 @@ export function uploadVideo(buffer: Buffer, folder = "uploads"): Promise<UploadR
   return uploadMedia(buffer, folder, "video");
 }
 
-function uploadMedia(buffer: Buffer, folder: string, resourceType: "image" | "video"): Promise<UploadResult> {
+/** Documents (CVs) go up as `raw`, which is how Cloudinary serves non-image
+ * files like PDFs and Word documents unchanged. The extension is part of the
+ * public id because a raw upload keeps that id verbatim: without it the
+ * "View CV" link would point at a URL no browser can preview.
+ */
+export function uploadDocument(buffer: Buffer, extension = "pdf", folder = "cvs"): Promise<UploadResult> {
+  return uploadMedia(buffer, folder, "raw", {
+    public_id: `${folder}/cv-${crypto.randomUUID()}.${extension}`,
+  });
+}
+
+function uploadMedia(
+  buffer: Buffer,
+  folder: string,
+  resourceType: "image" | "video" | "raw",
+  extra: UploadApiOptions = {},
+): Promise<UploadResult> {
   const options: UploadApiOptions = {
     resource_type: resourceType,
     folder,
     overwrite: false,
     unique_filename: true,
+    ...extra,
   };
 
   return new Promise((resolve, reject) => {

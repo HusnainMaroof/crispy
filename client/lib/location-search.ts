@@ -9,6 +9,8 @@ export type SearchBranch = {
   lat: number;
   lng: number;
   postcode?: string;
+  /** Branch is listed but not open yet (hours say "Coming Soon"). */
+  comingSoon?: boolean;
 };
 
 type GeocodeResult = {
@@ -395,16 +397,29 @@ export function findNearestBranchWithinRadius(
 ) {
   let best: SearchBranch | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
+  let bestComingSoon: SearchBranch | null = null;
+  let bestComingSoonDistance = Number.POSITIVE_INFINITY;
 
   for (const branch of branches) {
     const distance = haversineMiles(lat, lng, branch.lat, branch.lng);
-    if (distance <= radiusMiles && distance < bestDistance) {
+    if (distance > radiusMiles) continue;
+    if (branch.comingSoon) {
+      if (distance < bestComingSoonDistance) {
+        bestComingSoon = branch;
+        bestComingSoonDistance = distance;
+      }
+    } else if (distance < bestDistance) {
       best = branch;
       bestDistance = distance;
     }
   }
 
-  if (!best) return null;
+  // A branch that is not open yet only wins when no open branch is in range.
+  if (!best) {
+    return bestComingSoon
+      ? { branch: bestComingSoon, distanceMiles: bestComingSoonDistance }
+      : null;
+  }
   return { branch: best, distanceMiles: bestDistance };
 }
 
@@ -424,9 +439,26 @@ function resultFromTextMatch(
 function resultFromLocalOutcode(
   branches: SearchBranch[],
   parsed: ParsedPostcode,
+  radiusMiles: number,
 ): Exclude<NearestBranchResult, { error: string }> | null {
   const hit = outcodeIndex[parsed.outcode];
   if (!hit) return null;
+  // The index stores the outcode centre, so the nearest branch is resolved from
+  // the live list. That keeps open branches ahead of coming soon ones.
+  const nearest = findNearestBranchWithinRadius(
+    branches,
+    hit.lat,
+    hit.lng,
+    radiusMiles,
+  );
+  if (nearest) {
+    return {
+      branch: nearest.branch,
+      distanceMiles: nearest.distanceMiles,
+      searchedLabel: parsed.formatted,
+      via: "postcode",
+    };
+  }
   const branch = branchById(branches, hit.branchId);
   if (!branch) return null;
   return {
@@ -503,16 +535,16 @@ export async function resolveNearestBranch(
 
   if (parsed?.full) {
     const exact = exactPostcodes[parsed.compact];
-    if (exact) {
-      const branch = branchById(branches, exact.branchId);
-      if (branch) {
-        return {
-          branch,
-          distanceMiles: 0,
-          searchedLabel: exact.postcode,
-          via: "postcode",
-        };
-      }
+    const exactBranch = exact ? branchById(branches, exact.branchId) : null;
+    // A postcode inside a coming soon branch answers right away only when that
+    // branch is open. Otherwise the search first looks for an open branch.
+    if (exactBranch && !exactBranch.comingSoon) {
+      return {
+        branch: exactBranch,
+        distanceMiles: 0,
+        searchedLabel: exact.postcode,
+        via: "postcode",
+      };
     }
 
     try {
@@ -525,10 +557,20 @@ export async function resolveNearestBranch(
       /* fall through to the local outcode index */
     }
 
-    const local = resultFromLocalOutcode(branches, parsed);
+    const local = resultFromLocalOutcode(branches, parsed, radiusMiles);
     if (local) return local;
 
     if (textMatch) return resultFromTextMatch(textMatch, trimmed);
+
+    // Nothing open nearby: the branch for this postcode is still the answer.
+    if (exact && exactBranch) {
+      return {
+        branch: exactBranch,
+        distanceMiles: 0,
+        searchedLabel: exact.postcode,
+        via: "postcode",
+      };
+    }
 
     return {
       error: `No Crispies within ${radiusMiles} miles of ${parsed.formatted}. Try another area or postcode.`,
@@ -536,7 +578,7 @@ export async function resolveNearestBranch(
   }
 
   if (parsed && !parsed.full) {
-    const local = resultFromLocalOutcode(branches, parsed);
+    const local = resultFromLocalOutcode(branches, parsed, radiusMiles);
     if (local) return local;
 
     try {

@@ -4,6 +4,11 @@ const DAY_INDEX = Object.fromEntries(DAY_LABELS.map((label, index) => [label.toL
 
 export type DayHours = { open: string; close: string } | null;
 
+/** "Coming Soon" in the hours text marks a branch that is listed but not open yet. */
+export function isComingSoonHours(hours: string): boolean {
+  return /coming soon/i.test(hours);
+}
+
 export function to24Hour(value: string): string | null {
   const match = value.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
   if (!match) return null;
@@ -37,7 +42,7 @@ function rangeDays(start: number, end: number): number[] {
 
 export function parseWeekHours(hours: string): DayHours[] {
   const week = blankWeek();
-  if (/coming soon/i.test(hours)) return Array.from({ length: 7 }, () => null);
+  if (isComingSoonHours(hours)) return Array.from({ length: 7 }, () => null);
 
   const chunks = [...hours.matchAll(/(?:Every day|(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:[–-](Mon|Tue|Wed|Thu|Fri|Sat|Sun))?)\s*·\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*[–-]\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/gi)];
   if (chunks.length === 0) {

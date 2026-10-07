@@ -9,6 +9,9 @@ const RESERVED = new Set([
   "checkout",
   "delivery",
   "franchise-inquiries",
+  // Single-segment, so the branch rewrite below never sees it. Listed anyway so
+  // a nested /career/:id route cannot be rewritten to /super-admin/:id.
+  "career",
   "orders",
   "super-admin",
   "api",

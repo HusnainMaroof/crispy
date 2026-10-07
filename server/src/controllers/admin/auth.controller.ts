@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { getPrisma } from "../../config/prisma.js";
 import { envConfig } from "../../config/env.js";
 import { UnauthorizedException } from "../../utils/app-error.js";
-import { verifyPassword } from "../../utils/password.js";
+import { checkPassword } from "../../utils/password.js";
 import { serialize } from "../../utils/db.js";
 import { sendSuccess } from "../../utils/response.js";
 import { resolveTabs } from "../../config/admin-tabs.js";
@@ -80,7 +80,7 @@ export const AuthController = {
     const { email, password } = req.body;
     const profile = await getPrisma().admin_profiles.findUnique({ where: { email } });
 
-    const passwordMatches = profile ? await verifyPassword(password, profile.password_hash) : false;
+    const passwordMatches = await checkPassword(password, profile?.password_hash);
     if (!profile || !passwordMatches || !profile.is_active) {
       throw new UnauthorizedException("Invalid email or password");
     }

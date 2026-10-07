@@ -44,7 +44,9 @@ export function roleLabel(role: string): string {
 
 export const ROLE_ACCESS: Record<AdminRole, string[]> = {
   superadmin: ["dashboard", "orders", "customers", "menu", "categories", "deals", "branch-menu", "branches", "locations", "posts", "staff", "content", "settings"],
-  branch_manager: ["dashboard", "orders", "customers", "menu", "branch-menu", "staff"],
+  // Job posts and applications are per-branch, so a branch manager gets the tab
+  // and is limited to their own branches by the server.
+  branch_manager: ["dashboard", "orders", "customers", "menu", "branch-menu", "staff", "posts"],
   staff: ["dashboard", "orders", "customers", "menu", "branch-menu"],
 };
 export const ROLE_DEFAULTS: Record<AdminRole, string[]> = { ...ROLE_ACCESS, staff: ["dashboard", "orders", "customers", "menu"] };

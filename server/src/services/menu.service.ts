@@ -1,28 +1,30 @@
 import { Prisma } from "../generated/prisma/client.js";
-import { getPrisma } from "../config/prisma.js";
+import { getPrisma, getReadPrisma } from "../config/prisma.js";
 import { NotFoundException } from "../utils/app-error.js";
 import { rethrow, serialize } from "../utils/db.js";
+import { cachedJson, invalidateCatalogueCache, TTL_MENU_SECONDS } from "../utils/cache.js";
 import type { MenuCategory, MenuItem, Deal } from "../types/models.js";
 
 export interface CategoryWithItems extends MenuCategory {
   items: MenuItem[];
 }
 
-function db() {
-  return getPrisma();
+/** `read` routes lag-tolerant public reads to the replica. Default: primary. */
+function db(read?: boolean) {
+  return read ? getReadPrisma() : getPrisma();
 }
 
 /** Only the two columns the menu needs to decide scope — not the whole row. */
-async function findActiveLocation(locationId: string) {
-  return db().locations.findUnique({
+async function findActiveLocation(locationId: string, read?: boolean) {
+  return db(read).locations.findUnique({
     where: { id: locationId },
     select: { id: true, status: true },
   });
 }
 
-async function resolveBranch(scope?: { locationId: string; required: boolean }) {
+async function resolveBranch(scope?: { locationId: string; required: boolean }, read?: boolean) {
   if (!scope) return null;
-  const location = await findActiveLocation(scope.locationId);
+  const location = await findActiveLocation(scope.locationId, read);
   if (!location || location.status !== "active") {
     if (scope.required) throw new NotFoundException("Location not found");
     return null;
@@ -96,19 +98,55 @@ function toCategories(rows: CategoryRow[]): CategoryWithItems[] {
   });
 }
 
-export async function getFullMenu(scope?: { locationId: string; required: boolean }): Promise<CategoryWithItems[]> {
-  if (!scope) return globalMenu();
+/**
+ * Options for anonymous public reads only.
+ *
+ * `read`: the call may use the read replica. Safe here because a menu render is
+ * lag-tolerant (a just-changed item can take a few seconds to appear), and the
+ * order path re-prices everything on the primary regardless.
+ * `cache`: the short-lived anonymous cache may serve the response. Admin and
+ * personalised reads pass neither, so they always hit the primary, uncached.
+ */
+export type PublicReadOptions = { read?: boolean; cache?: boolean };
+
+/**
+ * A missing branch id means two different responses: the query-string path
+ * (`required`) is a 404, the cookie path falls back to the global catalogue.
+ * Those must not share a cache entry, or a stale cookie would hide the 404.
+ */
+export function catalogueCacheKey(
+  kind: "menu:full" | "deals",
+  scope?: { locationId: string; required: boolean },
+): string {
+  if (!scope) return `${kind}:global`;
+  return `${kind}:${scope.locationId}:${scope.required ? "strict" : "fallback"}`;
+}
+
+export async function getFullMenu(
+  scope?: { locationId: string; required: boolean },
+  options?: PublicReadOptions,
+): Promise<CategoryWithItems[]> {
+  // Cache fills always use the primary. A replica read must not be stored for the TTL.
+  const load = () => loadFullMenu(scope, options?.cache ? false : options?.read);
+  if (options?.cache) {
+    return cachedJson(catalogueCacheKey("menu:full", scope), TTL_MENU_SECONDS, load);
+  }
+  return load();
+}
+
+async function loadFullMenu(scope?: { locationId: string; required: boolean }, read?: boolean): Promise<CategoryWithItems[]> {
+  if (!scope) return globalMenu(read);
 
   // One lookup, not two: this used to read the location here and then read it
   // again inside resolveBranch on every single request.
-  const location = await findActiveLocation(scope.locationId);
+  const location = await findActiveLocation(scope.locationId, read);
   if (location && location.status !== "active") return [];
   if (!location) {
     if (scope.required) throw new NotFoundException("Location not found");
-    return globalMenu();
+    return globalMenu(read);
   }
 
-  const rows = await db().menu_categories.findMany({
+  const rows = await db(read).menu_categories.findMany({
     orderBy: { sort_order: "asc" },
     select: {
       ...CATEGORY_SELECT,
@@ -134,8 +172,8 @@ export async function getFullMenu(scope?: { locationId: string; required: boolea
   return toCategories(rows as CategoryRow[]);
 }
 
-async function globalMenu(): Promise<CategoryWithItems[]> {
-  const rows = await db().menu_categories.findMany({
+async function globalMenu(read?: boolean): Promise<CategoryWithItems[]> {
+  const rows = await db(read).menu_categories.findMany({
     orderBy: { sort_order: "asc" },
     select: {
       ...CATEGORY_SELECT,
@@ -156,8 +194,14 @@ async function globalMenu(): Promise<CategoryWithItems[]> {
  * a freshly created category does not vanish, and `items` is included because
  * the admin maps it to an item count. Unlike `getFullMenu`, nothing is pruned.
  */
-export async function getCategories(): Promise<MenuCategory[]> {
-  const rows = await db().menu_categories.findMany({
+export async function getCategories(options?: PublicReadOptions): Promise<MenuCategory[]> {
+  const load = () => loadCategories(options?.cache ? false : options?.read);
+  if (options?.cache) return cachedJson("menu:categories", TTL_MENU_SECONDS, load);
+  return load();
+}
+
+async function loadCategories(read?: boolean): Promise<MenuCategory[]> {
+  const rows = await db(read).menu_categories.findMany({
     orderBy: [{ sort_order: "asc" }, { id: "asc" }],
     // Bounded reference data (a menu tree), capped rather than paginated.
     take: 500,
@@ -183,6 +227,7 @@ export async function createCategory(input: Record<string, unknown>): Promise<Me
     const row = await db().menu_categories.create({
       data: { id: crypto.randomUUID(), ...input } as Prisma.menu_categoriesUncheckedCreateInput,
     });
+    void invalidateCatalogueCache();
     return serialize(row);
   } catch (error) {
     rethrow(error, "Category not found");
@@ -195,6 +240,7 @@ export async function updateCategory(id: string, input: Record<string, unknown>)
       where: { id },
       data: input as Prisma.menu_categoriesUncheckedUpdateInput,
     });
+    void invalidateCatalogueCache();
     return serialize(row);
   } catch (error) {
     rethrow(error, "Category not found");
@@ -204,6 +250,7 @@ export async function updateCategory(id: string, input: Record<string, unknown>)
 export async function deleteCategory(id: string): Promise<void> {
   try {
     await db().menu_categories.delete({ where: { id } });
+    void invalidateCatalogueCache();
   } catch (error) {
     rethrow(error, "Category not found");
   }
@@ -236,7 +283,25 @@ function withBranches<T extends { branch_menu_items?: { location: { id: string; 
 export async function getMenuItems(
   categoryId?: string,
   activeOnly = true,
-  options?: { limit?: number; includeBranches?: boolean },
+  options?: { limit?: number; includeBranches?: boolean } & PublicReadOptions,
+): Promise<MenuItem[]> {
+  const load = () => loadMenuItems(categoryId, activeOnly, options?.cache ? { ...options, read: false } : options);
+  if (options?.cache && options.includeBranches === false) {
+    // The public projection omits branch availability. Never share that entry
+    // with an admin-shaped list.
+    return cachedJson(
+      `menu:items:${categoryId ?? "all"}:${activeOnly ? "active" : "all"}:plain`,
+      TTL_MENU_SECONDS,
+      load,
+    );
+  }
+  return load();
+}
+
+async function loadMenuItems(
+  categoryId?: string,
+  activeOnly = true,
+  options?: { limit?: number; includeBranches?: boolean } & PublicReadOptions,
 ): Promise<MenuItem[]> {
   const where = {
     ...(activeOnly ? { active: true } : {}),
@@ -246,7 +311,7 @@ export async function getMenuItems(
   const take = options?.limit ?? 1000;
 
   if (options?.includeBranches === false) {
-    const rows = await db().menu_items.findMany({
+    const rows = await db(options?.read).menu_items.findMany({
       where,
       orderBy: [{ sort_order: "asc" }, { id: "asc" }],
       take,
@@ -254,7 +319,7 @@ export async function getMenuItems(
     return serialize(rows);
   }
 
-  const rows = await db().menu_items.findMany({
+  const rows = await db(options?.read).menu_items.findMany({
     where,
     orderBy: [{ sort_order: "asc" }, { id: "asc" }],
     take,
@@ -274,6 +339,7 @@ export async function createMenuItem(input: Record<string, unknown>): Promise<Me
     const row = await db().menu_items.create({
       data: { id: crypto.randomUUID(), ...input } as Prisma.menu_itemsUncheckedCreateInput,
     });
+    void invalidateCatalogueCache();
     return serialize(row);
   } catch (error) {
     rethrow(error, "Menu item not found");
@@ -286,6 +352,7 @@ export async function updateMenuItem(id: string, input: Record<string, unknown>)
       where: { id },
       data: input as Prisma.menu_itemsUncheckedUpdateInput,
     });
+    void invalidateCatalogueCache();
     return serialize(row);
   } catch (error) {
     rethrow(error, "Menu item not found");
@@ -295,6 +362,7 @@ export async function updateMenuItem(id: string, input: Record<string, unknown>)
 export async function deleteMenuItem(id: string): Promise<void> {
   try {
     await db().menu_items.delete({ where: { id } });
+    void invalidateCatalogueCache();
   } catch (error) {
     rethrow(error, "Menu item not found");
   }
@@ -309,11 +377,23 @@ export async function getDealById(id: string): Promise<Deal> {
 export async function getDeals(
   activeOnly = true,
   scope?: { locationId: string; required: boolean },
-  options?: { limit?: number },
+  options?: { limit?: number } & PublicReadOptions,
 ): Promise<Deal[]> {
-  const location = await resolveBranch(scope);
+  const load = () => loadDeals(activeOnly, scope, options?.cache ? { ...options, read: false } : options);
+  if (activeOnly && options?.cache) {
+    return cachedJson(catalogueCacheKey("deals", scope), TTL_MENU_SECONDS, load);
+  }
+  return load();
+}
+
+async function loadDeals(
+  activeOnly = true,
+  scope?: { locationId: string; required: boolean },
+  options?: { limit?: number } & PublicReadOptions,
+): Promise<Deal[]> {
+  const location = await resolveBranch(scope, options?.read);
   if (!location) {
-    const rows = await db().deals.findMany({
+    const rows = await db(options?.read).deals.findMany({
       where: activeOnly ? { active: true } : undefined,
       orderBy: [{ created_at: "desc" }, { id: "desc" }],
       take: options?.limit ?? 500,
@@ -321,7 +401,7 @@ export async function getDeals(
     return serialize(rows);
   }
 
-  const rows = await db().branch_deals.findMany({
+  const rows = await db(options?.read).branch_deals.findMany({
     where: { location_id: location.id, available: true, ...(activeOnly ? { deal: { active: true } } : {}) },
     include: { deal: true },
     orderBy: { id: "asc" },
@@ -335,6 +415,7 @@ export async function createDeal(input: Record<string, unknown>): Promise<Deal> 
     const row = await db().deals.create({
       data: { id: crypto.randomUUID(), ...input } as Prisma.dealsUncheckedCreateInput,
     });
+    void invalidateCatalogueCache();
     return serialize(row);
   } catch (error) {
     rethrow(error, "Deal not found");
@@ -347,6 +428,7 @@ export async function updateDeal(id: string, input: Record<string, unknown>): Pr
       where: { id },
       data: input as Prisma.dealsUncheckedUpdateInput,
     });
+    void invalidateCatalogueCache();
     return serialize(row);
   } catch (error) {
     rethrow(error, "Deal not found");
@@ -356,6 +438,7 @@ export async function updateDeal(id: string, input: Record<string, unknown>): Pr
 export async function deleteDeal(id: string): Promise<void> {
   try {
     await db().deals.delete({ where: { id } });
+    void invalidateCatalogueCache();
   } catch (error) {
     rethrow(error, "Deal not found");
   }

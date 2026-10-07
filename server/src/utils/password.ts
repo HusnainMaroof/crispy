@@ -9,6 +9,22 @@ export async function hashPassword(password: string): Promise<string> {
   return `${salt}:${derived.toString("hex")}`;
 }
 
+let dummyHash: Promise<string> | null = null;
+
+function timingPad(): Promise<string> {
+  dummyHash ??= hashPassword("timing-pad");
+  return dummyHash;
+}
+
+/**
+ * Unknown emails still pay for one scrypt compare, so login timing does not
+ * reveal whether the address exists.
+ */
+export async function checkPassword(password: string, stored: string | null | undefined): Promise<boolean> {
+  const hash = stored && stored.includes(":") ? stored : await timingPad();
+  return verifyPassword(password, hash);
+}
+
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;

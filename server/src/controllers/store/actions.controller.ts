@@ -1,9 +1,19 @@
 import type { Request, Response } from "express";
 import { createOrder, getOrdersByCustomerId, getOrdersByEmail, getOrderById, customerCanView } from "../../services/order.service.js";
-import { NotFoundException } from "../../utils/app-error.js";
+import { BadRequestException, InternalServerException, NotFoundException } from "../../utils/app-error.js";
 import { resolvePage, sendPaged } from "../../utils/pagination.js";
 import { createContactMessage, createJobApplication } from "../../services/admin.service.js";
 import { sendSuccess } from "../../utils/response.js";
+import { uploadDocument } from "../../services/upload.service.js";
+import { compressCv } from "../../services/cv-compress.js";
+import { logger } from "../../middleware/logger.js";
+
+/** The multer filter admits exactly these three types, so the map is total. */
+const CV_EXTENSIONS: Record<string, string> = {
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+};
 
 export const ActionsController = {
   async createOrder(req: Request, res: Response) {
@@ -23,6 +33,31 @@ export const ActionsController = {
       { activeOnly: true },
     );
     sendSuccess(res, application, 201);
+  },
+
+  /**
+   * Stores the CV a job applicant picked on the careers page and hands back its
+   * URL, which the apply call then sends as `cv_url`. Kept separate from the
+   * application write so the multipart upload never shares a schema with the
+   * JSON body.
+   */
+  async uploadCv(req: Request, res: Response) {
+    const file = req.file;
+    if (!file) throw new BadRequestException("No file provided");
+
+    try {
+      // Shrunk before it leaves the server, see `compressCv`. The extension
+      // goes into the stored name so the admin's "View CV" link opens a file
+      // the browser can preview.
+      const buffer = await compressCv(file.mimetype, file.buffer);
+      const { url } = await uploadDocument(buffer, CV_EXTENSIONS[file.mimetype] ?? "pdf");
+      sendSuccess(res, { url }, 201);
+    } catch (err: unknown) {
+      logger.error({ err }, "Cloudinary CV upload failed");
+      // The provider's message can name internal buckets and credential
+      // metadata, so it is logged rather than returned.
+      throw new InternalServerException("CV upload failed. Please try again.");
+    }
   },
 
   async myOrders(req: Request, res: Response) {

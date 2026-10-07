@@ -1,7 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
 import { envConfig } from "../config/env.js";
 
+// Express adds fields to Request by merging this namespace. The lint rule
+// rejects namespaces everywhere else.
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       customerId: string;

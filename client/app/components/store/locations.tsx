@@ -211,17 +211,21 @@ export default function Locations({
                   ? "text-[#6B6B6B]"
                   : "text-[#B0B0B0]";
                 const statusBg =
-                  loc.status === "closed"
-                    ? "bg-[#8B6F5E]"
-                    : isActive
-                      ? "bg-[#1F5C2E]"
-                      : "bg-[#6FA06A]";
+                  loc.status === "coming_soon"
+                    ? "bg-[#6B6B6B]"
+                    : loc.status === "closed"
+                      ? "bg-[#8B6F5E]"
+                      : isActive
+                        ? "bg-[#1F5C2E]"
+                        : "bg-[#6FA06A]";
                 const statusDot =
-                  loc.status === "closed"
-                    ? "bg-[#C9A892]"
-                    : isActive
-                      ? "bg-[#7CFF8A]"
-                      : "bg-[#C8F0C0]";
+                  loc.status === "coming_soon"
+                    ? "bg-[#D9D9D9]"
+                    : loc.status === "closed"
+                      ? "bg-[#C9A892]"
+                      : isActive
+                        ? "bg-[#7CFF8A]"
+                        : "bg-[#C8F0C0]";
                 const displayNum = String(i + 1).padStart(2, "0");
 
                 return (
@@ -298,7 +302,9 @@ export default function Locations({
                         />
                         {loc.status === "open"
                           ? t("locations.openNow")
-                          : t("locations.closed")}
+                          : loc.status === "coming_soon"
+                            ? t("locations.comingSoon")
+                            : t("locations.closed")}
                       </span>
 
                       {/* Hours */}

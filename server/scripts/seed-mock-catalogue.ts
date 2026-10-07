@@ -16,6 +16,11 @@ if (!connectionString) {
   process.exit(1);
 }
 
+if (process.env.NODE_ENV === "production") {
+  console.error("Refusing to seed the mock catalogue when NODE_ENV=production.");
+  process.exit(1);
+}
+
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 async function seedMockCatalogue() {

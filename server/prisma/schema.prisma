@@ -44,7 +44,8 @@ model menu_items {
   order_items        order_items[]
   branch_menu_items  branch_menu_items[]
 
-  @@index([category_id, active])
+  /// getFullMenu reads items per category with active = true ordered by sort_order.
+  @@index([category_id, active, sort_order])
 }
 
 model deals {
@@ -89,6 +90,7 @@ model locations {
   branch_menu_items        branch_menu_items[]
   branch_deals             branch_deals[]
   admin_branch_access      admin_branch_access[]
+  job_posts                job_posts[]
 }
 
 model orders {
@@ -172,11 +174,21 @@ model business_settings {
 model job_posts {
   id            String             @id
   title         String
+  /// Arabic display copy, same convention as `menu_items.name_ar`: shown in
+  /// the Arabic store when set, English otherwise. Edited in the job form.
+  title_ar        String             @default("")
+  /// Branch label, copied from `locations.name` on every write so the public
+  /// careers list can render it without a join. `location_id` is the relation
+  /// that filtering and permission checks use; this column is display only.
   location      String
+  location_id   String?
+  location_ref  locations?         @relation(fields: [location_id], references: [id], onDelete: SetNull)
   type          String
   salary        String
   description   String
+  description_ar String            @default("")
   requirements  Json               @default("[]")
+  requirements_ar Json             @default("[]")
   status        String             @default("draft")
   applications  Int                @default(0)
   created_at    DateTime           @default(now())
@@ -184,6 +196,12 @@ model job_posts {
   job_applications job_applications[]
 
   @@index([status])
+  /// The create form offers every type already in use, so this is read often.
+  @@index([type])
+  /// Branch-scoped lists always sort by date, so the branch leads the index.
+  @@index([location_id, created_at])
+  /// Branch-scoped lists filtered by status, e.g. ?status=active.
+  @@index([location_id, status])
 }
 
 model job_applications {
@@ -202,6 +220,8 @@ model job_applications {
 
   @@index([job_post_id])
   @@index([status])
+  /// The applications grid filters by post and status together.
+  @@index([job_post_id, status])
 }
 
 model contact_messages {
@@ -260,6 +280,8 @@ model branch_deals {
   updated_at  DateTime  @updatedAt
 
   @@unique([location_id, deal_id])
+  /// getDeals filters location_id + available, matching branch_menu_items.
+  @@index([location_id, available])
 }
 
 model admin_branch_access {

@@ -3,20 +3,24 @@ import { getCategories, getMenuItems, getDeals, getFullMenu } from "../../servic
 import { quoteCart } from "../../services/quote.service.js";
 import { sendSuccess } from "../../utils/response.js";
 
+// Anonymous public reads: lag-tolerant, so they may use the read replica and
+// the short cache. Pricing (quote/checkout) never uses either.
+const PUBLIC_READ = { read: true, cache: true } as const;
+
 export const MenuController = {
   async full(req: Request, res: Response) {
     const queryId = req.query.location_id;
     const cookieId = req.cookies?.crispy_location_id;
     const menu = typeof queryId === "string" && queryId
-      ? await getFullMenu({ locationId: queryId, required: true })
+      ? await getFullMenu({ locationId: queryId, required: true }, PUBLIC_READ)
       : typeof cookieId === "string" && cookieId
-        ? await getFullMenu({ locationId: cookieId, required: false })
-        : await getFullMenu();
+        ? await getFullMenu({ locationId: cookieId, required: false }, PUBLIC_READ)
+        : await getFullMenu(undefined, PUBLIC_READ);
     sendSuccess(res, menu);
   },
 
   async categories(_req: Request, res: Response) {
-    const categories = await getCategories();
+    const categories = await getCategories(PUBLIC_READ);
     sendSuccess(res, categories);
   },
 
@@ -24,7 +28,7 @@ export const MenuController = {
     const categoryId = req.query.category_id as string | undefined;
     // Public read: the branch availability map is an admin concern, so it is
     // left out of this projection.
-    const items = await getMenuItems(categoryId, true, { includeBranches: false });
+    const items = await getMenuItems(categoryId, true, { includeBranches: false, ...PUBLIC_READ });
     sendSuccess(res, items);
   },
 
@@ -37,10 +41,10 @@ export const MenuController = {
     const queryId = req.query.location_id;
     const cookieId = req.cookies?.crispy_location_id;
     const deals = typeof queryId === "string" && queryId
-      ? await getDeals(true, { locationId: queryId, required: true })
+      ? await getDeals(true, { locationId: queryId, required: true }, PUBLIC_READ)
       : typeof cookieId === "string" && cookieId
-        ? await getDeals(true, { locationId: cookieId, required: false })
-        : await getDeals();
+        ? await getDeals(true, { locationId: cookieId, required: false }, PUBLIC_READ)
+        : await getDeals(true, undefined, PUBLIC_READ);
     sendSuccess(res, deals);
   },
 };

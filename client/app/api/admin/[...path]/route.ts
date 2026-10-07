@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, "");
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "")
+  || (process.env.NODE_ENV === "production" ? "" : "http://127.0.0.1:4000");
 const OMIT_HEADERS = new Set([
   "connection",
   "content-encoding",
@@ -16,6 +17,9 @@ async function proxyAdminRequest(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ): Promise<Response> {
+  if (!API_BASE) {
+    return Response.json({ success: false, error: "API is not configured" }, { status: 500 });
+  }
   const { path } = await context.params;
   const endpoint = path.map((segment) => encodeURIComponent(segment)).join("/");
   const search = request.nextUrl.search;

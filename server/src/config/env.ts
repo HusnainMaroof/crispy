@@ -45,6 +45,14 @@ type LogConfig = {
 type NeonConfig = {
   DATABASE_URL: string;
   DIRECT_URL: string;
+  /** Optional Neon read replica. Unset means every read uses the primary. */
+  READ_REPLICA_URL?: string;
+  /** Per-instance pg pool ceiling. Total connections = instances x POOL_MAX. */
+  POOL_MAX: number;
+  IDLE_TIMEOUT_MS: number;
+  CONNECT_TIMEOUT_MS: number;
+  /** Log queries slower than this many ms. 0 (default) disables the logging. */
+  SLOW_QUERY_MS: number;
 };
 
 function required(key: string, fallback?: string): string {
@@ -98,5 +106,32 @@ export const envConfig = {
   NEON: {
     DATABASE_URL: required("NEON_DATABASE_URL"),
     DIRECT_URL: process.env.NEON_DIRECT_URL || required("NEON_DATABASE_URL"),
+    READ_REPLICA_URL: process.env.NEON_READ_REPLICA_URL || undefined,
+    POOL_MAX: Number(process.env.DB_POOL_MAX) || 10,
+    IDLE_TIMEOUT_MS: Number(process.env.DB_IDLE_TIMEOUT_MS) || 30000,
+    CONNECT_TIMEOUT_MS: Number(process.env.DB_CONNECT_TIMEOUT_MS) || 10000,
+    SLOW_QUERY_MS: Number(process.env.SLOW_QUERY_MS) || 0,
   } satisfies NeonConfig,
 };
+
+const WEAK_SECRETS = new Set([
+  "secret",
+  "changeme",
+  "change-me",
+  "change-me-to-a-long-random-string",
+]);
+
+/** Called from server startup. Tests import env without taking this path. */
+export function assertProductionConfig(): void {
+  if (envConfig.SERVER.NODE_ENV !== "production") return;
+
+  const secret = envConfig.JWT.SECRET;
+  if (secret.length < 32 || WEAK_SECRETS.has(secret)) {
+    throw new Error("JWT_SECRET must be a long random value in production");
+  }
+
+  const origin = envConfig.CORS.ORIGIN.trim();
+  if (!origin || origin === "*" || origin.split(",").some((item) => item.trim() === "*" || item.trim() === "")) {
+    throw new Error("CORS_ORIGIN must be an explicit origin list in production, not *");
+  }
+}

@@ -2,6 +2,7 @@ import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
 import { NotFoundException } from "../utils/app-error.js";
 import { rethrow, serialize } from "../utils/db.js";
+import { invalidateCatalogueCache } from "../utils/cache.js";
 
 function db() {
   return getPrisma();
@@ -39,6 +40,7 @@ export async function setItemBranches(menuItemId: string, locationIds: string[])
       }),
     ),
   ]);
+  void invalidateCatalogueCache();
 }
 
 export async function getBranchMenu(locationId: string) {
@@ -80,7 +82,10 @@ export async function upsertBranchMenuItems(
         },
       });
     }
-    if (items.length === 0) return [];
+    if (items.length === 0) {
+      void invalidateCatalogueCache();
+      return [];
+    }
     const saved = await db().$transaction(
       items.map((item) =>
         db().branch_menu_items.upsert({
@@ -100,6 +105,7 @@ export async function upsertBranchMenuItems(
         }),
       ),
     );
+    void invalidateCatalogueCache();
     return serialize(saved);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
@@ -155,6 +161,7 @@ export async function upsertBranchDeals(
         }),
       ),
     );
+    void invalidateCatalogueCache();
     return serialize(saved);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {

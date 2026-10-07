@@ -47,21 +47,6 @@ async function seed() {
     ],
   });
 
-  await prisma.menu_items.createMany({
-    data: [
-      { id: "item-wings-5", category_id: "cat-wings", name: "5 Wings", name_ar: "5 أجنحة", description: "Five crispy golden wings tossed in your choice of house sauce.", description_ar: "خمسة أجنحة ذهبية مقرمشة مع صلصة البيت من اختيارك.", price: 5.99, image: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&q=80&w=800&h=600", sort_order: 0 },
-      { id: "item-wings-7", category_id: "cat-wings", name: "7 Wings", name_ar: "7 أجنحة", description: "Seven wings, more crunch, more flavour — pick your heat level.", description_ar: "سبعة أجنحة، مقرمشة أكثر ونكهة أقوى — اختر مستوى الحرارة.", price: 7.99, image: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&q=80&w=800&h=600", sort_order: 1 },
-      { id: "item-wings-10", category_id: "cat-wings", name: "10 Wings", name_ar: "10 أجنحة", description: "The full ten — perfect for sharing or going solo on a big day.", description_ar: "العشرة كاملة — مثالية للمشاركة أو لوجبتك الكبيرة.", price: 10.99, image: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&q=80&w=800&h=600", sort_order: 2 },
-      { id: "item-tenders-3", category_id: "cat-tenders", name: "Trio-Tastic", name_ar: "تريو لذيذ", description: "Three juicy hand-breaded tenders, crisp outside, tender all the way through.", description_ar: "ثلاث قطع دجاج طرية مغلفة يدوياً، مقرمشة من الخارج وطرية من الداخل.", price: 5.49, image: "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&q=80&w=800&h=600", badge: "3 Tenders", sort_order: 0 },
-      { id: "item-tenders-5", category_id: "cat-tenders", name: "Five Easy Pieces", name_ar: "خمس قطع سهلة", description: "Five golden tenders served with your choice of dipping sauce.", description_ar: "خمس قطع ذهبية مقرمشة مع صلصة غمس من اختيارك.", price: 7.99, image: "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&q=80&w=800&h=600", badge: "5 Tenders", sort_order: 1 },
-      { id: "item-tenders-10", category_id: "cat-tenders", name: "Ten Steps to Heaven", name_ar: "عشر خطوات إلى الجنة", description: "Ten tenders — the real deal. Share if you must.", description_ar: "عشر قطع — الوجبة الحقيقية. شاركها إن أردت.", price: 12.99, image: "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&q=80&w=800&h=600", badge: "10 Tenders", sort_order: 2 },
-      { id: "item-burger-classic", category_id: "cat-burgers", name: "Classic Crispies Burger", name_ar: "برجر كريسبيز الكلاسيكي", description: "Our OG crispy chicken burger — house slaw, pickles, signature mayo on a toasted brioche bun.", description_ar: "برجر الدجاج المقرمش الأصلي — كولسلو، مخلل، ومايونيز كريسبيز المميز على خبز بريوش محمص.", price: 7.99, image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=800&h=600", sort_order: 0 },
-      { id: "item-burger-plant", category_id: "cat-burgers", name: "Plant Based Burger", name_ar: "برجر نباتي", description: "A plant-based patty with all the crunch. Lettuce, tomato, vegan mayo. Zero compromise.", description_ar: "قرص نباتي بكل القرمشة. خس، طماطم، ومايونيز نباتي. بدون تنازلات.", price: 7.99, image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=800&h=600", badge: "V", badge_variant: "vegan", sort_order: 1 },
-      { id: "item-burger-smoked", category_id: "cat-burgers", name: "Smoked Grill Burger", name_ar: "برجر المشواة المدخن", description: "Chargrilled chicken breast, smoked cheddar, caramelised onions, smoky BBQ glaze.", description_ar: "صدر دجاج مشوي، شيدر مدخن، بصل مكرمل، وصلصة باربكيو مدخنة.", price: 8.99, image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=800&h=600", sort_order: 2 },
-      { id: "item-burger-quarter", category_id: "cat-burgers", name: "Quarter Pounder", name_ar: "ربع رطل", description: "A thick, seasoned beef-style patty stacked with fresh lettuce, tomato, and special sauce.", description_ar: "قرص سميك متبل مع خس طازج، طماطم، وصلصة خاصة.", price: 8.49, image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=800&h=600", sort_order: 3 },
-    ],
-  });
-
   await prisma.deals.createMany({
     data: [
       { id: "deal-wing-side", name: "Wing + Side Combo", name_ar: "كومبو جناح + إضافة", description: "7 crispy wings paired with loaded fries and a dipping sauce of your choice.", description_ar: "7 أجنحة مقرمشة مع بطاطس محملة وصلصة غمس من اختيارك.", price: 9.99, image: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&q=80&w=800&h=600", badge: "Popular", active: true },
@@ -72,53 +57,24 @@ async function seed() {
   });
 
   const branches = await prisma.locations.findMany({ where: { status: "active" }, select: { id: true } });
-  const items = await prisma.menu_items.findMany({ where: { active: true }, select: { id: true } });
   const dealRows = await prisma.deals.findMany({ where: { active: true }, select: { id: true } });
-  if (branches.length && items.length) {
-    await prisma.branch_menu_items.createMany({
-      data: branches.flatMap((branch) => items.map((item) => ({ location_id: branch.id, menu_item_id: item.id, available: true }))),
-    });
-  }
   if (branches.length && dealRows.length) {
     await prisma.branch_deals.createMany({
       data: branches.flatMap((branch) => dealRows.map((deal) => ({ location_id: branch.id, deal_id: deal.id, available: true }))),
     });
   }
 
+  // Branch scoped, so these have to name branches that exist above. The ids match
+  // scripts/seed-jobs.ts so a full seed and the jobs seed converge on one set.
   await prisma.job_posts.createMany({
     data: [
-      { id: "job-kitchen", title: "Kitchen Team Member", location: "Brixton", type: "Full-time / Part-time", salary: "£11.50/hr", description: "Work the line, prep fresh ingredients, and deliver orders that meet our quality standards. No experience needed — we train you properly.", requirements: ["Reliable and punctual", "Team player", "Willing to learn"], status: "active" },
-      { id: "job-shift", title: "Shift Leader", location: "Stratford", type: "Full-time", salary: "£28,000/yr", description: "Lead shifts, manage the kitchen flow, and ensure every customer leaves happy.", requirements: ["Previous leadership experience", "Food safety certification", "Flexible schedule"], status: "active" },
-      { id: "job-manager", title: "Store Manager", location: "Peckham", type: "Full-time", salary: "£38,000/yr", description: "Run a full Crispies location. P&L ownership, team development, and ops management.", requirements: ["3+ years management experience", "P&L experience", "Passion for food"], status: "active" },
+      { id: "job-harrow-road-kitchen", title: "Kitchen Team Member", location: "Harrow Road", location_id: "6f8c2a14-0b31-4d5e-9a72-11c0ffee0001", type: "Full-time / Part-time", salary: "£11.50/hr", description: "Work the line, prep fresh ingredients, and deliver orders that meet our quality standards. No experience needed — we train you properly.", requirements: ["Reliable and punctual", "Team player", "Willing to learn"], status: "active" },
+      { id: "job-tower-hill-shift", title: "Shift Supervisor", location: "Tower Hill", location_id: "7a9d3b25-1c42-4e6f-8b83-22c0ffee0002", type: "Full-time", salary: "£28,000/yr", description: "Lead shifts, manage the kitchen flow, and ensure every customer leaves happy.", requirements: ["Previous leadership experience", "Food safety certification", "Flexible schedule"], status: "active" },
+      { id: "job-kilburn-manager", title: "Store Manager", location: "Kilburn", location_id: "8b0e4c36-2d53-4f70-9c94-33c0ffee0003", type: "Full-time", salary: "£38,000/yr", description: "Run a full Crispies location. P&L ownership, team development, and ops management.", requirements: ["3+ years management experience", "P&L experience", "Passion for food"], status: "active" },
     ],
   });
 
-  const sampleOrder = await prisma.orders.create({
-    data: {
-      customer_name: "Jane Sample",
-      email: "jane@example.com",
-      phone: "+44 20 7946 0000",
-      address: "1 Main Street",
-      postcode: "SW1A 1AA",
-      city: "London",
-      fulfilment: "delivery",
-      payment_method: "card",
-      subtotal: 15.98,
-      delivery_fee: 2.99,
-      total: 18.97,
-      status: "delivered",
-      location_id: "loc-brixton",
-    },
-  });
-
-  await prisma.order_items.createMany({
-    data: [
-      { order_id: sampleOrder.id, menu_item_id: "item-wings-10", name: "10 Wings", price: 10.99, quantity: 1 },
-      { order_id: sampleOrder.id, menu_item_id: "item-tenders-3", name: "Trio-Tastic", price: 5.49, quantity: 1 },
-    ],
-  });
-
-  console.log("Seed completed.");
+  console.log("Seed completed. No menu products were inserted.");
 }
 
 seed()

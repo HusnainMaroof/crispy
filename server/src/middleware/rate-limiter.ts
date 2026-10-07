@@ -40,6 +40,19 @@ export const quoteLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * A public CV upload writes several MB to Cloudinary per request, so it gets a
+ * small budget of its own instead of spending the general per-IP cap that a
+ * normal browse of the careers page also draws from.
+ */
+export const cvUploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, error: "Too many CV uploads from this connection, please try again shortly", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const checkoutLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,

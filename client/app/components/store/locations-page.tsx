@@ -371,7 +371,14 @@ export default function Locations() {
         query,
         locations.flatMap((location) =>
           location.lat != null && location.lng != null
-            ? [{ ...location, lat: location.lat, lng: location.lng }]
+            ? [
+                {
+                  ...location,
+                  lat: location.lat,
+                  lng: location.lng,
+                  comingSoon: location.status === "coming_soon",
+                },
+              ]
             : [],
         ),
       );
@@ -385,6 +392,10 @@ export default function Locations() {
           ? t("locations.milesAway", { miles: result.distanceMiles.toFixed(1) })
           : "";
 
+      // A branch that is not open yet is still a match, so say so instead of
+      // letting it read like a branch you can order from today.
+      const comingSoonNote = result.branch.comingSoon ? ` · ${t("locations.comingSoon")}` : "";
+
       const prefix =
         result.via === "suggest"
           ? t("locations.suggest")
@@ -394,7 +405,7 @@ export default function Locations() {
 
       setSearchMessage({
         type: "success",
-        text: `${localizedText(locale, result.branch.name)} — ${localizedText(locale, result.branch.address)}${distanceText}`,
+        text: `${localizedText(locale, result.branch.name)} — ${localizedText(locale, result.branch.address)}${distanceText}${comingSoonNote}`,
         branchId: result.branch.id,
         prefix,
       });
@@ -782,15 +793,25 @@ export default function Locations() {
                             </span>
                             <span
                               className={`inline-flex items-center gap-2  rounded-full px-[12px] py-[4px] text-[14px] font-medium text-white sm:text-[14px] ${
-                                isActive ? "bg-[#1F5C2E]" : "bg-[#A9C4AE]"
+                                loc.status === "coming_soon"
+                                  ? "bg-[#6B6B6B]"
+                                  : isActive
+                                    ? "bg-[#1F5C2E]"
+                                    : "bg-[#A9C4AE]"
                               }`}
                             >
                               <span
                                 className={`h-[6px] w-[6px] rounded-full ${
-                                  isActive ? "bg-[#7CFF8A]" : "bg-white/70"
+                                  isActive && loc.status === "open"
+                                    ? "bg-[#7CFF8A]"
+                                    : "bg-white/70"
                                 }`}
                               />
-                              {loc.status === "open" ? t("locations.openNow") : t("locations.closed")}
+                              {loc.status === "open"
+                                ? t("locations.openNow")
+                                : loc.status === "coming_soon"
+                                  ? t("locations.comingSoon")
+                                  : t("locations.closed")}
                             </span>
                           </div>
 

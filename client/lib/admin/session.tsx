@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, isSessionExpiredError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { visibleTabIds } from "@/lib/admin/tabs";
 
 type AdminUser = {
@@ -13,7 +13,7 @@ type AdminUser = {
   home?: string;
   branches?: { id: string; name: string; slug: string }[];
 };
-type Status = "checking" | "guest" | "ready" | "unavailable";
+type Status = "checking" | "guest" | "ready";
 
 type SessionValue = {
   status: Status;
@@ -56,15 +56,13 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
       setCmsPages(pages);
       setStatus("ready");
       return nextUser;
-    } catch (error) {
+    } catch {
       if (requestId !== sessionRequestId.current) return null;
-      if (!isSessionExpiredError(error)) {
-        // A 500, a 502 from the admin proxy, or an offline blip is not a
-        // logout. Only a real auth failure should clear the session, otherwise
-        // a one-second API hiccup signs the user out with a valid cookie.
-        setStatus((current) => (current === "checking" ? "unavailable" : current));
-        return null;
-      }
+      // Any failure to confirm the session (401, 502 from the admin proxy, 429,
+      // a non-JSON body, offline) leaves us unable to prove the user is signed
+      // in, so we send them to the login screen. Keeping the old behaviour of
+      // stranding them on a dead end just produced an unreachable-looking
+      // "Could not reach the server" page instead of the login form.
       setUser(null);
       setCmsPages([]);
       setStatus("guest");

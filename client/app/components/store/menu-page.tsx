@@ -50,12 +50,13 @@ export default function MenuPage() {
 
   const [collectProduct, setCollectProduct] = useState<MenuCard | null>(null);
 
-  // Only fetch when there is nothing usable cached. Redux lives for the whole
+  // Only fetch while nothing has been loaded yet. Redux lives for the whole
   // session, so coming back to /menu from another page no longer refires the
   // request or flashes the grid. A branch change still refetches, because
-  // selectBranch dispatches fetchFullMenu with the new id.
+  // selectBranch dispatches fetchFullMenu with the new id. A failed load is
+  // not retried here: refiring on `failed` looped the request forever.
   useEffect(() => {
-    if (menu.status === "ready" || menu.status === "loading") return;
+    if (menu.status !== "idle") return;
     void dispatch(fetchFullMenu(cart.locationId ?? undefined));
   }, [dispatch, menu.status, cart.locationId]);
 
@@ -343,13 +344,20 @@ export default function MenuPage() {
 
           {!isFirstLoad && menu.status === "failed" && (
             <div className="py-20 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-[#999]">
-              {t("menu.error")}
+              <p className="m-0">{t("menu.error")}</p>
+              <button
+                type="button"
+                onClick={() => void dispatch(fetchFullMenu(cart.locationId ?? undefined))}
+                className="mt-4 cursor-pointer rounded-full border border-[#E5E5E5] bg-white px-6 py-2.5 text-sm font-medium text-black transition-colors hover:border-[#FF0931] hover:text-[#FF0931]"
+              >
+                {t("menu.retry")}
+              </button>
             </div>
           )}
 
           {!isFirstLoad && menu.status === "ready" && filteredItems.length === 0 && (
             <div className="py-20 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-[#999]">
-              {t("menu.empty")}
+              {menuItems.length === 0 ? t("menu.emptyCatalogue") : t("menu.empty")}
             </div>
           )}
 

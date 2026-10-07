@@ -12,3 +12,4 @@ Read `AGENTS.md` before starting the client or the API.
 - If nothing is listening, start that app with `pnpm dev` in its directory.
 - Never run `pnpm start` in `server` while port 4000 is already taken.
 - When the task or session ends, kill every client or server process you started. Leave processes that were already running. Confirm the port you opened is free.
+cle

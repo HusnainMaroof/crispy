@@ -19,13 +19,32 @@ describe("development mock catalogue", () => {
       prisma.branch_menu_items.count({ where: { menu_item_id: { startsWith: "mock-" } } }),
       prisma.branch_deals.count({ where: { deal_id: { startsWith: "mock-deal-" } } }),
     ]);
-    assert.equal(branches, 9);
     assert.ok(categories > 0);
     assert.ok(products > 0);
     assert.ok(deals > 0);
-    // Every mock product and deal is sold at every branch.
-    assert.equal(menuRows, products * 9);
-    assert.equal(dealRows, deals * 9);
+
+    // Not an exact count. Test files run as separate processes against one shared
+    // database, and staff.test.ts creates a temporary branch while it runs, so a
+    // hardcoded total here read as a failure caused by this suite's own fixtures.
+    // The nine real branches still have to be there.
+    assert.ok(branches >= 9, `expected at least the nine real branches, found ${branches}`);
+
+    // Every product and deal is sold at every real branch. Derived from the rows
+    // rather than from the branch count, so a transient fixture cannot skew it.
+    if (products > 0) {
+      assert.equal(menuRows % products, 0, "menu rows are not an even spread of products across branches");
+      assert.ok(
+        menuRows / products >= 9,
+        `expected every real branch to stock every mock product, got ${menuRows} rows for ${products} products`,
+      );
+    }
+    if (deals > 0) {
+      assert.equal(dealRows % deals, 0, "deal rows are not an even spread of deals across branches");
+      assert.ok(
+        dealRows / deals >= 9,
+        `expected every real branch to stock every mock deal, got ${dealRows} rows for ${deals} deals`,
+      );
+    }
   });
 
   it("hides an unavailable product on one branch and keeps the global price elsewhere", async () => {

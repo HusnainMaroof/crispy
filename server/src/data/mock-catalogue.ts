@@ -1,4 +1,4 @@
-/** Development mock catalogue. Not the real Crispies menu. */
+/** Development catalogue used by seed:catalogue and tests. Not loaded in production. */
 
 const IMG = {
   box: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=800&h=600",
