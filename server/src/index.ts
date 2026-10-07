@@ -140,7 +140,7 @@ app.use((_req, res) => {
 // Error handling (must be last)
 app.use(errorHandler);
 
-const server = app.listen(SERVER.PORT, () => {
+const server = app.listen(SERVER.PORT, "127.0.0.1", () => {
   logger.info({ port: SERVER.PORT, env: SERVER.NODE_ENV }, "Server started");
 });
 
