@@ -1,0 +1,78 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production
+
+    if: >
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' }}
+
+    runs-on: ubuntu-latest
+
+    environment: production
+
+    steps:
+      - name: Configure SSH
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy exact CI commit
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" \
+            "cd /var/www/crispies && \
+             git fetch origin main && \
+             git reset --hard '$DEPLOY_SHA' && \
+             cd server && \
+             pnpm install --frozen-lockfile && \
+             pnpm prisma:generate && \
+             pnpm build && \
+             cd ../client && \
+             pnpm install --frozen-lockfile && \
+             pnpm build && \
+             cd ../server && \
+             pnpm migrate && \
+             cd .. && \
+             pm2 restart crispies-api crispies-web && \
+             pm2 save && \
+             sleep 5 && \
+             curl --fail --silent --show-error https://api.crispiesuk.com/health && \
+             curl --fail --silent --show-error https://crispiesuk.com"
