@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
@@ -6,6 +7,11 @@ if (process.env.NODE_ENV === "production" && (!apiBase || /localhost|127\.0\.0\.
 }
 
 const nextConfig: NextConfig = {
+  // The repo root has its own lockfile. Without this, Turbopack treats that
+  // directory as the app root and next/font fails to resolve.
+  turbopack: {
+    root: path.join(__dirname),
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
