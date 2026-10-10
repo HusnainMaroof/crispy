@@ -3,6 +3,7 @@ import { getPrisma, getReadPrisma } from "../config/prisma.js";
 import { NotFoundException } from "../utils/app-error.js";
 import { rethrow, serialize } from "../utils/db.js";
 import { cachedJson, invalidateCatalogueCache, TTL_MENU_SECONDS } from "../utils/cache.js";
+import { destroyCloudinaryAsset } from "./upload.service.js";
 import type { MenuCategory, MenuItem, Deal } from "../types/models.js";
 
 export interface CategoryWithItems extends MenuCategory {
@@ -245,10 +246,47 @@ export async function updateCategory(id: string, input: Record<string, unknown>)
   }
 }
 
+/**
+ * True when a catalogue row still points at this image URL.
+ *
+ * Images are shared: the seed reuses one demo picture across every category,
+ * and the same photo can legitimately be used by two dishes. Destroying on the
+ * first delete would strip every other row of its picture, so the URL is only
+ * removed once nothing references it. Call this after the row is gone.
+ */
+async function isImageStillReferenced(url: string): Promise<boolean> {
+  const [items, categories, deals] = await Promise.all([
+    db().menu_items.count({ where: { image: url } }),
+    db().menu_categories.count({ where: { image: url } }),
+    db().deals.count({ where: { image: url } }),
+  ]);
+  return items + categories + deals > 0;
+}
+
+/** Removes an image only once no catalogue row points at it any more. */
+async function cleanupImage(url: string | undefined): Promise<void> {
+  if (!url) return;
+  if (await isImageStillReferenced(url)) return;
+  await destroyCloudinaryAsset(url);
+}
+
 export async function deleteCategory(id: string): Promise<void> {
   try {
+    // Read the images first, then delete. The items cascade with the category,
+    // so their images leak too and have to be collected before the row goes.
+    const current = await db().menu_categories.findUnique({
+      where: { id },
+      select: { image: true, menu_items: { select: { image: true } } },
+    });
     await db().menu_categories.delete({ where: { id } });
     void invalidateCatalogueCache();
+
+    const candidates = new Set<string>();
+    if (current?.image) candidates.add(current.image);
+    for (const item of current?.menu_items ?? []) {
+      if (item.image) candidates.add(item.image);
+    }
+    for (const url of candidates) await cleanupImage(url);
   } catch (error) {
     rethrow(error, "Category not found");
   }
@@ -382,8 +420,10 @@ export async function updateMenuItem(id: string, input: Record<string, unknown>)
 
 export async function deleteMenuItem(id: string): Promise<void> {
   try {
+    const current = await db().menu_items.findUnique({ where: { id }, select: { image: true } });
     await db().menu_items.delete({ where: { id } });
     void invalidateCatalogueCache();
+    await cleanupImage(current?.image);
   } catch (error) {
     rethrow(error, "Menu item not found");
   }
@@ -458,8 +498,10 @@ export async function updateDeal(id: string, input: Record<string, unknown>): Pr
 
 export async function deleteDeal(id: string): Promise<void> {
   try {
+    const current = await db().deals.findUnique({ where: { id }, select: { image: true } });
     await db().deals.delete({ where: { id } });
     void invalidateCatalogueCache();
+    await cleanupImage(current?.image);
   } catch (error) {
     rethrow(error, "Deal not found");
   }

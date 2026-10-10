@@ -1,4 +1,4 @@
-import coverage from "../data/location-coverage.json";
+import coverage from "../data/location-coverage.json" with { type: "json" };
 import { envConfig } from "../config/env.js";
 import { getLocations } from "./admin.service.js";
 import { geocoder, logGeocoderFailure, type GeoCandidate, type Geocoder } from "./geocoding.service.js";
