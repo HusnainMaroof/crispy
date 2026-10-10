@@ -36,6 +36,7 @@ export default function ConfirmModal({
   const [error, setError] = useState("");
 
   const run = async () => {
+    if (busy) return;
     setBusy(true);
     setError("");
     try {

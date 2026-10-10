@@ -25,6 +25,16 @@ const orderSelect = {
   location: { select: { name: true } },
 } as const;
 
+/** The list only shows these fields of the latest order, so nothing else is read. */
+const latestOrderSelect = {
+  id: true,
+  created_at: true,
+  status: true,
+  total: true,
+  fulfilment: true,
+  location_id: true,
+} as const;
+
 function orderScope(allowed: string[] | null) {
   if (allowed === null) return {};
   return { location_id: { in: allowed } };
@@ -72,10 +82,15 @@ export async function listCustomers(admin: Staff, options: { q?: string } & Page
       : {}),
   };
 
-  // Both reads in one transaction so the count and the page describe the same
-  // snapshot. Without it a concurrent order can shift the rows between the two
-  // queries and the page count disagrees with the rows shown.
-  const [rows, total] = await getPrisma().$transaction([
+  // Independent reads, run concurrently so the latency is max(findMany, count)
+  // rather than their sum. They are not one snapshot, so a concurrent order can
+  // make the count differ by one from the rows shown; that is the same tradeoff
+  // the orders, jobs and applications lists already make, and an occasional
+  // off-by-one page count is harmless for this grid.
+  // The branch names are read in the same wave, not through the order's
+  // `location` relation. That relation chained a third wait after the orders.
+  // The branch table is small, so reading it whole is cheap.
+  const [rows, total, locations] = await Promise.all([
     getPrisma().customers.findMany({
       where,
       skip: options.skip,
@@ -92,12 +107,14 @@ export async function listCustomers(admin: Staff, options: { q?: string } & Page
           where: scope,
           orderBy: [{ created_at: "desc" }, { id: "desc" }],
           take: 1,
-          select: orderSelect,
+          select: latestOrderSelect,
         },
       },
     }),
     getPrisma().customers.count({ where }),
+    getPrisma().locations.findMany({ select: { id: true, name: true } }),
   ]);
+  const branchName = new Map(locations.map((location) => [location.id, location.name]));
 
   const customers = rows.map((row) => {
     const latest = row.orders[0];
@@ -115,7 +132,7 @@ export async function listCustomers(admin: Staff, options: { q?: string } & Page
             status: latest.status,
             total: latest.total,
             fulfilment: latest.fulfilment,
-            location_name: latest.location?.name ?? null,
+            location_name: (latest.location_id && branchName.get(latest.location_id)) || null,
           }
         : null,
     });

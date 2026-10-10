@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
 import { useSelector } from "react-redux";
+import * as Popover from "@radix-ui/react-popover";
+import { Check, ChevronDown, Globe } from "lucide-react";
 import { useUI } from "@/lib/context/ui-context";
 import { cartCount } from "@/lib/cart-model";
 import type { RootState } from "@/lib/redux/store";
@@ -19,21 +21,66 @@ export type NavbarContent = {
 
 const LOCALE_LABEL: Record<AppLocale, string> = { en: "EN", ar: "عربي" };
 
-function LanguageSwitch({ locale, onChange }: { locale: AppLocale; onChange: (value: AppLocale) => void }) {
+/** Each language is written in itself, so an Arabic speaker reads "العربية" first. */
+const LOCALE_NAME: Record<AppLocale, string> = { en: "English", ar: "العربية" };
+
+/**
+ * Globe trigger plus a list of languages. Sits at the very end of the nav, after
+ * the social rail. The header is forced to dir="ltr", so the list never mirrors
+ * itself when the page is in Arabic.
+ */
+function LanguageMenu({
+  locale,
+  onChange,
+  label,
+  align = "end",
+  className = "",
+}: {
+  locale: AppLocale;
+  onChange: (value: AppLocale) => void;
+  label: string;
+  align?: "start" | "center" | "end";
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white">
-      {SUPPORTED_LOCALES.map((code) => (
-        <button
-          key={code}
-          type="button"
-          onClick={() => onChange(code)}
-          aria-pressed={locale === code}
-          className={`cursor-pointer ${locale === code ? "text-[#FF0931]" : "text-white/50"}`}
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        aria-label={label}
+        className={`group flex cursor-pointer items-center gap-2 text-white transition-colors duration-200 hover:text-[#FF0931] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FF0931] ${className}`}
+      >
+        <Globe className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+        <span className="text-xs font-bold uppercase tracking-widest">{LOCALE_LABEL[locale]}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-white/50 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align={align}
+          sideOffset={8}
+          className="z-[70] min-w-44 overflow-hidden rounded-xl border border-white/10 bg-black p-1.5 shadow-xl shadow-black/50"
         >
-          {LOCALE_LABEL[code]}
-        </button>
-      ))}
-    </div>
+          {SUPPORTED_LOCALES.map((code) => {
+            const active = locale === code;
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => {
+                  onChange(code);
+                  setOpen(false);
+                }}
+                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10 ${active ? "text-[#FF0931]" : "text-white"}`}
+              >
+                <span className="font-semibold">{LOCALE_NAME[code]}</span>
+                {active ? <Check className="h-4 w-4 shrink-0" /> : null}
+              </button>
+            );
+          })}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
@@ -228,7 +275,7 @@ function OrderIcon({ name, className }: { name?: string; className: string }) {
 }
 
 const navItemClass =
-  "text-white text-[18px]  font-normal uppercase tracking-[0.4px] " +
+  "text-white text-[16px]  font-normal uppercase tracking-[0.4px] " +
   "[font-family:var(--font-korolev),Korolev,sans-serif] " +
   "transition-colors duration-200 hover:text-[#FF0931]";
 
@@ -420,7 +467,6 @@ export default function Navbar({
           </div>
 
           <div className=" flex items-center gap-8">
-            <LanguageSwitch locale={locale} onChange={setLocale} />
             {orderSystem === "cart" ? (
               <button type="button" onClick={openOrdering} aria-haspopup="dialog" className="cursor-pointer">
                 <PillButton variant="filled" count={itemCount} icon={<OrderIcon name="bag" className="h-4 w-3.5 2xl:h-5 2xl:w-4" />} lines={[t("nav.pill.cart.1"), t("nav.pill.cart.2")].filter(Boolean)} className={pillWidth} />
@@ -435,6 +481,7 @@ export default function Navbar({
             </button>
           </div>
         <SocialRail links={SOCIALS} className="flex-col gap-1.5" />
+        <LanguageMenu locale={locale} onChange={setLocale} label={t("nav.language")} />
         </div>
 
       </nav>
@@ -501,7 +548,6 @@ export default function Navbar({
           )}
         </Link>
         <div className="flex items-center gap-3">
-          <LanguageSwitch locale={locale} onChange={setLocale} />
           <button
             aria-label={t("nav.toggleMenu")}
             aria-expanded={open}
@@ -565,6 +611,15 @@ export default function Navbar({
                 className="menu-item mt-4 flex justify-center"
               >
                 <SocialRail links={SOCIALS} className="flex-row gap-4" />
+              </div>
+
+              {/* Language sits last, matching the desktop order: links, pills,
+                  socials, then the globe. */}
+              <div
+                style={{ animationDelay: `${0.05 + (links.length + 2) * 0.08}s` }}
+                className="menu-item mt-4 flex justify-center"
+              >
+                <LanguageMenu locale={locale} onChange={setLocale} label={t("nav.language")} align="center" />
               </div>
             </div>
           </div>

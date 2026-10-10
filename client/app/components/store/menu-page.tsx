@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addItem } from "@/lib/redux/slices/cartSlice";
-import { fetchFullMenu } from "@/lib/redux/slices/menuSlice";
+import { addItem, clearCartBranch } from "@/lib/redux/slices/cartSlice";
+import { fetchDeals, fetchFullMenu } from "@/lib/redux/slices/menuSlice";
 import { useUI } from "@/lib/context/ui-context";
 import type { AppDispatch, RootState } from "@/lib/redux/store";
 import type { MenuItem } from "@/lib/redux/types";
@@ -27,6 +27,58 @@ const SORT_OPTIONS = [
   { value: "price-asc", label: "Price Low-High" },
   { value: "price-desc", label: "Price High-Low" },
 ];
+
+/**
+ * One box for every inline icon on this page.
+ *
+ * The magnifier used to grow 20px to 36px across three breakpoints, so it was a
+ * third bigger on a laptop than on a phone, and each dropdown chevron was drawn
+ * on a 23x14 viewBox but given an h-3 w-4 box, which squashed it. Both now sit
+ * on a 24x24 grid at a fixed size, and the chevron is defined once instead of
+ * being pasted three times.
+ */
+const ICON = "h-5 w-5 shrink-0";
+
+/** Shared by all three filter dropdowns so they cannot drift apart again. */
+const SELECT_CLS =
+  "h-12 w-full appearance-none rounded-xl border border-black/15 bg-white ps-4 pe-11 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] disabled:cursor-not-allowed disabled:opacity-60";
+
+function SearchIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={`${ICON} ${className}`}
+    >
+      <path
+        d="M21 21l-4.6-4.6M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronDown({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={`${ICON} ${className}`}
+    >
+      <path
+        d="M6 9l6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function MenuPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -63,13 +115,25 @@ export default function MenuPage() {
   const isFirstLoad = menu.status !== "ready" && menu.status !== "failed";
 
   // The cart's location is the single source of truth for the current branch, so
-  // the dropdown is a controlled read of it. Picking a branch goes through
+  // the dropdown is a controlled read of it. An empty id means "All branches",
+  // which is the default: fetchFullMenu is called with no location_id and the
+  // whole menu across every branch comes back. Picking a branch goes through
   // selectBranch, which is the same path the delivery popup uses — it sets the
   // cookie, refetches the menu and deals for that branch, and prompts before
   // clearing a cart that belongs somewhere else.
   const branchValue = cart.locationId ?? "";
+  const savedBranch = branches.find((item) => item.id === branchValue);
   const handleBranchChange = (nextId: string) => {
-    if (!nextId || nextId === cart.locationId) return;
+    // "" is the All branches option. Going back to it drops the branch, which
+    // empties the cart because its lines were picked against a branch.
+    if (nextId === "") {
+      if (cart.locationId === null) return;
+      dispatch(clearCartBranch());
+      void dispatch(fetchFullMenu(undefined));
+      void dispatch(fetchDeals(undefined));
+      return;
+    }
+    if (nextId === cart.locationId) return;
     const branch = branches.find((item) => item.id === nextId);
     if (!branch) return;
     selectBranch(nextId, localizedName(locale, branch.name));
@@ -89,6 +153,9 @@ export default function MenuPage() {
     [menu.categories],
   );
 
+  /* The measured offset is relative to the container's visible left edge, but the
+     underline is a child of the scrolling content, so scrollLeft has to be added
+     back or the bar drifts sideways once the row has been scrolled. */
   useEffect(() => {
     const container = tabContainerRef.current;
     const underline = underlineRef.current;
@@ -100,7 +167,7 @@ export default function MenuPage() {
     const containerRect = container.getBoundingClientRect();
     const tabRect = activeTab.getBoundingClientRect();
 
-    const offset = tabRect.left - containerRect.left;
+    const offset = tabRect.left - containerRect.left + container.scrollLeft;
     const width = tabRect.width;
 
     underline.style.width = `${width}px`;
@@ -189,26 +256,35 @@ export default function MenuPage() {
           ) : (
             <div
               ref={tabContainerRef}
-              className="relative flex gap-2 overflow-x-auto"
+              className="relative flex gap-6 overflow-x-auto"
             >
-              {categoryNames.map((cat, i) => (
-                <button
-                  key={cat}
-                  type="button"
-                  ref={(el) => {
-                    tabRefs.current[i] = el;
-                  }}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`cursor-pointer whitespace-nowrap rounded-full px-4 py-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 ${
-                    effectiveCategory === cat
-                      ? "bg-[#FF0931] text-white"
-                      : "bg-white text-black hover:text-[#FF0931]"
-                  }`}
-                >
-                  {categoryLabel(cat)}
-                </button>
-              ))}
-              <div ref={underlineRef} className="hidden" />
+              {categoryNames.map((cat, i) => {
+                const isActive = effectiveCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    ref={(el) => {
+                      tabRefs.current[i] = el;
+                    }}
+                    onClick={() => setActiveCategory(cat)}
+                    aria-pressed={isActive}
+                    className={`shrink-0 cursor-pointer whitespace-nowrap pb-3 pt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 sm:text-base ${
+                      isActive ? "text-[#FF0931]" : "text-black/55 hover:text-black"
+                    }`}
+                  >
+                    {categoryLabel(cat)}
+                  </button>
+                );
+              })}
+              {/* The underline was measured by the effect above all along but
+                  sat on a `hidden` element, so the indicator never appeared.
+                  Sliding tab labels now carry the active state themselves. */}
+              <div
+                ref={underlineRef}
+                aria-hidden="true"
+                className="absolute bottom-0 start-0 h-[2px] rounded-full bg-[#FF0931] transition-[width,transform] duration-300 ease-out"
+              />
             </div>
           )}
         </div>
@@ -216,29 +292,17 @@ export default function MenuPage() {
         {/* Filter Bar */}
         <div className="py-4 px-4 sm:py-6 sm:px-6 md:px-12 xl:px-25">
           <div className="flex flex-col gap-3 md:flex-row md:flex-wrap sm:items-stretch sm:gap-10">
-            {/* Search */}
+            {/* Search. ps-11 is 16px of offset + a 24px icon + a 4px gap, so the
+                glyph no longer butts straight into the typed text. */}
             <div className="relative w-full max-w-full md:w-[858px]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="36"
-                height="35"
-                viewBox="0 0 36 35"
-                fill="none"
-                className="absolute start-4 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 md:start-5 md:h-[35px] md:w-[36px]"
-              >
-                <path
-                  d="M33.5 32L25.5 24M28.5 15.5C28.5 22.6797 22.6797 28.5 15.5 28.5C8.3203 28.5 2.5 22.6797 2.5 15.5C2.5 8.3203 8.3203 2.5 15.5 2.5C22.6797 2.5 28.5 8.3203 28.5 15.5Z"
-                  stroke="black"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <SearchIcon className="absolute start-4 top-1/2 -translate-y-1/2 text-black" />
               <input
                 type="text"
+                aria-label={t("menu.searchLabel")}
                 placeholder={t("menu.search")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-12 w-full rounded-xl border border-black/15 bg-white ps-12 pe-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] placeholder:text-black/40 sm:ps-14"
+                className="h-12 w-full rounded-xl border border-black/15 bg-white ps-11 pe-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] placeholder:text-black/40"
               />
             </div>
 
@@ -246,8 +310,9 @@ export default function MenuPage() {
             <div className="relative w-full max-w-full md:w-[419px]">
               <select
                 value={dietary}
+                aria-label={t("menu.dietary.label")}
                 onChange={(e) => setDietary(e.target.value)}
-                className="h-12 w-full appearance-none rounded-xl border border-black/15 bg-white ps-4 pe-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931]"
+                className={SELECT_CLS}
               >
                 {DIETARY_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -255,29 +320,16 @@ export default function MenuPage() {
                   </option>
                 ))}
               </select>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="23"
-                height="14"
-                viewBox="0 0 23 14"
-                fill="none"
-                className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 h-3 w-4 sm:end-5 sm:h-3.5 sm:w-[23px]"
-              >
-                <path
-                  d="M2.5 2.5L11.2504 11.3603C11.4363 11.5484 11.7347 11.5456 11.9206 11.3575L20.5 2.67034"
-                  stroke="black"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
             </div>
 
             {/* Sort By */}
             <div className="relative w-full max-w-full md:w-[419px]">
               <select
                 value={sort}
+                aria-label={t("menu.sortLabel")}
                 onChange={(e) => setSort(e.target.value)}
-                className="h-12 w-full appearance-none rounded-xl border border-black/15 bg-white ps-4 pe-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931]"
+                className={SELECT_CLS}
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -285,55 +337,38 @@ export default function MenuPage() {
                   </option>
                 ))}
               </select>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="23"
-                height="14"
-                viewBox="0 0 23 14"
-                fill="none"
-                className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 h-3 w-4 sm:end-5 sm:h-3.5 sm:w-[23px]"
-              >
-                <path
-                  d="M2.5 2.5L11.2504 11.3603C11.4363 11.5484 11.7347 11.5456 11.9206 11.3575L20.5 2.67034"
-                  stroke="black"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
             </div>
 
-            {/* Branch */}
+            {/* Branch. While the branch list is still in flight the select is
+                disabled, so there is no window where it looks empty but is live. */}
             <div className="relative w-full max-w-full md:w-[419px]">
               <select
                 value={branchValue}
+                disabled={branchesLoading}
                 onChange={(e) => handleBranchChange(e.target.value)}
                 aria-label={t("menu.branch")}
-                className="h-12 w-full appearance-none rounded-xl border border-black/15 bg-white ps-4 pe-10 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931]"
+                className={SELECT_CLS}
               >
-                <option value="">
-                  {branchesLoading ? t("menu.branchesLoading") : t("menu.branchPlaceholder")}
-                </option>
+                {/* Default view: the whole menu across every branch. Rendered first and
+                    always, so "" is a real choice rather than a blank state. */}
+                <option value="">{t("menu.allBranches")}</option>
+                {/* One option is always rendered that matches the current value,
+                    otherwise the browser falls back to showing nothing at all
+                    when the saved branch id is not in the list yet. Only needed
+                    for a real branch id, since "" already has the row above. */}
+                {branchValue !== "" && !savedBranch && (
+                  <option value={branchValue}>
+                    {branchesLoading ? t("menu.branchesLoading") : t("menu.branchPlaceholder")}
+                  </option>
+                )}
                 {branches.map((branch) => (
                   <option key={branch.id} value={branch.id}>
                     {localizedText(locale, branch.name)}
                   </option>
                 ))}
               </select>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="23"
-                height="14"
-                viewBox="0 0 23 14"
-                fill="none"
-                className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 h-3 w-4 sm:end-5 sm:h-3.5 sm:w-[23px]"
-              >
-                <path
-                  d="M2.5 2.5L11.2504 11.3603C11.4363 11.5484 11.7347 11.5456 11.9206 11.3575L20.5 2.67034"
-                  stroke="black"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-              </svg>
+              <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
             </div>
           </div>
         </div>
@@ -427,29 +462,24 @@ export default function MenuPage() {
                       <button
                         type="button"
                         onClick={() => void handleAddToCart(item)}
-                        className="flex cursor-pointer h-[59px] w-[59px] shrink-0 items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8] transition-colors hover:bg-[#FF0931] hover:border-[#FF0931] group/btn"
+                        className="group/btn flex h-[59px] w-[59px] shrink-0 cursor-pointer items-center justify-center rounded-[8.5px] border border-[#E2E2E2] bg-[#F7F8F8] text-black transition-colors hover:border-[#FF0931] hover:bg-[#FF0931] hover:text-white"
                         aria-label={t(isRedirect ? "menu.orderItem" : "menu.addToCart", { name: localizedName(locale, item.name, item.nameAr) })}
                       >
+                        {/* The plus used to be wrapped in its own 58x58 <rect>
+                            that repeated the button's border and carried a fixed
+                            #F7F8F8 fill, so hovering turned the button red while
+                            a grey square with a doubled 1px border sat on top of
+                            it. The button itself already draws both. */}
                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="59"
-                          height="59"
-                          viewBox="0 0 59 59"
+                          viewBox="0 0 24 24"
                           fill="none"
+                          aria-hidden="true"
+                          className="h-5 w-5 shrink-0"
                         >
-                          <rect
-                            x="0.5"
-                            y="0.5"
-                            width="58"
-                            height="58"
-                            rx="8.5"
-                            fill="#F7F8F8"
-                            stroke="#E2E2E2"
-                          />
                           <path
-                            d="M17 29H29M29 29H42M29 29V17M29 29L29 42"
-                            stroke="black"
-                            strokeWidth="5"
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
                             strokeLinecap="round"
                           />
                         </svg>

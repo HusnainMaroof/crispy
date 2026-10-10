@@ -6,8 +6,26 @@ export interface UploadResult {
   publicId: string;
 }
 
+/**
+ * Eager transformation applied to every image on the way in. Nothing about the
+ * stored original changes, this just tells Cloudinary to derive the delivered
+ * file up front, so the first page view does not pay for the conversion.
+ *
+ * Quality 82 is the point where food photography stops showing visible
+ * artefacts. `f_auto` hands the browser WebP or AVIF instead of a large JPEG,
+ * and the 2000px cap is wider than any store image is ever rendered, so a phone
+ * photo is never served at 4000px wide.
+ */
+const IMAGE_TRANSFORMATION: UploadApiOptions = {
+  transformation: [
+    { width: 2000, height: 2000, crop: "limit" },
+    { quality: 82 },
+    { fetch_format: "auto" },
+  ],
+};
+
 export function uploadImage(buffer: Buffer, folder = "uploads"): Promise<UploadResult> {
-  return uploadMedia(buffer, folder, "image");
+  return uploadMedia(buffer, folder, "image", IMAGE_TRANSFORMATION);
 }
 
 export function uploadVideo(buffer: Buffer, folder = "uploads"): Promise<UploadResult> {

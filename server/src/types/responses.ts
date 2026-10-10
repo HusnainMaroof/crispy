@@ -30,4 +30,6 @@ export interface AuthPayload {
   email: string;
   role: AdminRole;
   tabs?: string[];
+  /** Unix seconds when this login began. Refresh keeps it, so the session cap holds. */
+  session_started_at?: number;
 }

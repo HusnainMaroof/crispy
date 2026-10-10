@@ -76,8 +76,12 @@ describe("order management", { concurrency: 1 }, () => {
     assert.equal(row.customer_name, "Stage Ten");
     assert.equal(row.fulfilment, "collection");
     assert.equal(row.status, "pending");
-    assert.equal(Number(row.total), Number(row.items[0].price));
-    assert.equal(row.items[0].name, "Crispy Chicken Burger");
+    // The list returns a line *count*, not the lines themselves. Loading every
+    // line here is what made the list payload heavy; the full stored snapshot
+    // (line name and price) is asserted on the detail test below, which is the
+    // endpoint that loads order_items.
+    assert.equal(row.item_count, 1);
+    assert.equal(Number(row.total), Number(order.total));
   });
 
   it("returns order detail from the snapshot", async () => {
@@ -179,12 +183,14 @@ describe("order management", { concurrency: 1 }, () => {
   });
 
   it("keeps the stored price after the catalogue price changes", async () => {
-    const location = await branch("harrow-road");
+    // Own branch, so the price change never touches Harrow Road, which the quote
+    // tests read in parallel.
+    const location = await branch("tower-hill");
     await prisma.branch_menu_items.update({
       where: { location_id_menu_item_id: { location_id: location.id, menu_item_id: "mock-burger-crispy" } },
       data: { price: 9.25 },
     });
-    const order = await place("harrow-road");
+    const order = await place("tower-hill");
     assert.equal(Number(order.items[0].price), 9.25);
     await prisma.branch_menu_items.update({
       where: { location_id_menu_item_id: { location_id: location.id, menu_item_id: "mock-burger-crispy" } },
@@ -197,7 +203,8 @@ describe("order management", { concurrency: 1 }, () => {
     } finally {
       await prisma.branch_menu_items.update({
         where: { location_id_menu_item_id: { location_id: location.id, menu_item_id: "mock-burger-crispy" } },
-        data: { price: 9.25 },
+        // Restore the branch to its original state: no price override.
+        data: { price: null },
       });
     }
   });

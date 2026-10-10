@@ -1,19 +1,18 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import toast from "react-hot-toast";
-import { Plus, ArrowUpRight } from "lucide-react";
+import { Plus, ArrowUpRight, Loader2 } from "lucide-react";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import Modal from "@/app/components/admin/ui/modal";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import TeamAccessFields from "@/app/components/admin/ui/team-access-fields";
+import MemberModal from "@/app/components/admin/ui/member-modal";
 import { ListToolbar, ListMessage, Pagination, adminInput, primaryButton, secondaryButton } from "@/app/components/admin/ui/list-toolbar";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { api, type Pagination as PageMeta } from "@/lib/api";
 import { TAB_PICKER_LABELS, type AdminTabId } from "@/lib/admin/tabs";
 import { assignableRoles, normalizeRole, roleLabel, ROLE_DEFAULTS, type AdminRole } from "@/lib/admin/roles";
 import { useAdminSession } from "@/lib/admin/session";
-import { usePanel } from "@/lib/admin/use-panel";
 
 type Branch = { id: string; name: string };
 type StaffRow = { id: string; name: string; email: string; role: string; position?: string | null; tabs: string[]; is_active: boolean; branches: Branch[] };
@@ -21,7 +20,6 @@ const emptyForm = { name: "", email: "", password: "", role: "staff" as AdminRol
 const PAGE_SIZE = 20;
 
 export default function StaffPage() {
-  const panel = usePanel();
   const { user } = useAdminSession();
   const actorRole = normalizeRole(user?.role);
   const isManager = actorRole === "branch_manager";
@@ -61,6 +59,7 @@ export default function StaffPage() {
   }, [query, branchFilter, roleFilter, statusFilter, page]);
   useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   const permittedDefaults = (role: AdminRole) => ROLE_DEFAULTS[role].filter((tab) => actorRole === "superadmin" || user?.tabs.includes(tab));
+  const [viewing, setViewing] = useState<string | null>(null);
   function openModal() {
     setError(""); setForm({ ...emptyForm, tabs: permittedDefaults("staff"), branchIds: branches.length === 1 ? [branches[0].id] : [] }); setOpen(true);
   }
@@ -88,12 +87,25 @@ export default function StaffPage() {
       <div className="overflow-x-auto rounded-xl border border-white/10"><table className="w-full min-w-[760px] text-left text-sm">
         <thead className="border-b border-white/10 bg-white/[0.025] text-xs uppercase tracking-wider text-white/50"><tr>{["Person", "Role / position", "Branches", "Access", "Status", ""].map((heading) => <th key={heading} scope="col" className="px-5 py-4 font-medium">{heading || <span className="sr-only">Manage</span>}</th>)}</tr></thead>
         <tbody className="divide-y divide-white/10">{staff.map((person) => <tr key={person.id} className="transition-colors hover:bg-white/[0.03]">
-          <td className="px-5 py-4"><Link href={panel.href(`staff/${person.id}`)} className="font-medium text-white hover:underline">{person.name}</Link><p className="mt-1 text-xs text-white/50">{person.email}</p></td>
+          <td className="px-5 py-4">
+            <button type="button" onClick={() => setViewing(person.id)} className="cursor-pointer text-start font-medium text-white hover:underline">{person.name}</button>
+            <p className="mt-1 text-xs text-white/50">{person.email}</p>
+          </td>
           <td className="px-5 py-4 text-white/80">{roleLabel(person.role)}{person.position && <p className="mt-1 text-xs text-white/50">{person.position}</p>}</td>
           <td className="max-w-52 px-5 py-4 text-white/70">{person.branches.map((branch) => branch.name).join(", ") || "All branches"}</td>
           <td className="max-w-64 px-5 py-4 text-xs leading-relaxed text-white/60">{person.role === "superadmin" ? "Full access" : person.tabs.map((tab) => TAB_PICKER_LABELS[tab as AdminTabId] ?? tab).join(", ")}</td>
           <td className="px-5 py-4 text-white/70">{person.is_active ? "Active" : "Inactive"}</td>
-          <td className="px-5 py-4"><Link href={panel.href(`staff/${person.id}`)} aria-label={`Manage ${person.name}`} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"><ArrowUpRight className="h-4 w-4" /></Link></td>
+          <td className="px-5 py-4">
+            <button
+              type="button"
+              onClick={() => setViewing(person.id)}
+              aria-label={`View ${person.name}`}
+              title="View team member"
+              className="inline-flex size-11 cursor-pointer items-center justify-center rounded-lg text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-brand-red"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          </td>
         </tr>)}</tbody>
       </table></div><Pagination page={pagination.page} total={pagination.total} size={pagination.limit} onChange={setPage} />
     </>}
@@ -110,8 +122,19 @@ export default function StaffPage() {
           <div className="space-y-2 border-t border-white/10 pt-5"><label htmlFor="team-role" className="text-sm text-white/70">Account role</label><Dropdown id="team-role" value={form.role} disabled={isManager} onChange={(value) => { const role = value as AdminRole; setForm({ ...form, role, tabs: permittedDefaults(role) }); }} options={assignableRoles(actorRole).map((role) => ({ value: role, label: roleLabel(role) }))} /></div>
           <TeamAccessFields role={form.role} position={form.position} onPositionChange={(position) => setForm({ ...form, position })} tabs={form.tabs} onTabsChange={(tabs) => setForm({ ...form, tabs })} branchIds={form.branchIds} onBranchesChange={(branchIds) => setForm({ ...form, branchIds })} branches={branches} actorRole={actorRole} actorTabs={user?.tabs ?? []} />
         </fieldset>
-        <div className="flex justify-end gap-3 border-t border-white/10 pt-5"><button type="button" disabled={saving} onClick={() => { setOpen(false); setError(""); }} className={secondaryButton}>Cancel</button><button disabled={saving} className={primaryButton}>{saving ? "Adding…" : "Add team member"}</button></div>
+        <div className="flex justify-end gap-3 border-t border-white/10 pt-5"><button type="button" disabled={saving} onClick={() => { setOpen(false); setError(""); }} className={secondaryButton}>Cancel</button><button disabled={saving} className={primaryButton}>{saving && <Loader2 aria-hidden className="size-4 animate-spin" />}{saving ? "Adding…" : "Add team member"}</button></div>
       </form>
     </Modal>}
+  {viewing && <MemberModal
+      memberId={viewing}
+      branches={branches}
+      actorRole={actorRole}
+      actorTabs={user?.tabs ?? []}
+      currentUserId={user?.id}
+      canDelete={actorRole === "superadmin"}
+      onClose={() => setViewing(null)}
+      onChanged={() => void load()}
+      onDeleted={() => void load()}
+    />}
   </div>;
 }

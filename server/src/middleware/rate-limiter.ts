@@ -53,6 +53,56 @@ export const cvUploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Contact messages notify the team by email, so each one costs a send. A real
+ * visitor sends one or two; five per quarter hour covers a retry or two.
+ */
+export const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, error: "Too many messages, please try again later", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Brochure requests email a PDF link to any address given, so they are capped tightly too. */
+export const brochureLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, error: "Too many brochure requests, please try again later", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Location resolve calls a geocoder, and route calls a routing service. Both are
+ * paid or rate-limited upstreams, so each has its own budget.
+ */
+export const locationResolveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { success: false, error: "Too many location searches, please try again shortly", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+export const locationRouteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { success: false, error: "Too many route requests, please try again shortly", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Each translation calls a paid external API, so it has its own budget. */
+export const translateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { success: false, error: "Too many translation requests, please try again later", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const checkoutLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,

@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 
-export default function Modal({ children, onClose, title, busy = false }: { children: React.ReactNode; onClose: () => void; title: string; busy?: boolean }) {
+export default function Modal({ children, onClose, title, busy = false, size = "default" }: { children: React.ReactNode; onClose: () => void; title: string; busy?: boolean; size?: "default" | "wide" }) {
   const id = useId();
   const content = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
@@ -28,7 +28,7 @@ export default function Modal({ children, onClose, title, busy = false }: { chil
     return () => { document.removeEventListener("keydown", handleKey); unlockBodyScroll(); previous?.focus(); };
   }, []);
   return createPortal(<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onClick={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
-    <div ref={content} role="dialog" aria-modal="true" aria-labelledby={id} aria-busy={busy} tabIndex={-1} className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b0b0b] text-white shadow-2xl">
+    <div ref={content} role="dialog" aria-modal="true" aria-labelledby={id} aria-busy={busy} tabIndex={-1} className={`flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b0b0b] text-white shadow-2xl ${size === "wide" ? "max-w-3xl" : "max-w-xl"}`}>
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-6 py-5"><h2 id={id} className="font-display text-2xl tracking-wide">{title}</h2><button type="button" aria-label="Close dialog" disabled={busy} onClick={onClose} className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-brand-red disabled:opacity-30"><X className="h-5 w-5" /></button></div>
       <div className="overflow-y-auto overscroll-contain p-6">{children}</div>
     </div>

@@ -9,6 +9,7 @@ export const ERROR_CODES = {
   VALIDATION: "ERR_VALIDATION",
   CONFLICT: "ERR_CONFLICT",
   ITEM_UNAVAILABLE: "ERR_ITEM_UNAVAILABLE",
+  UNAVAILABLE: "ERR_UNAVAILABLE",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -63,6 +64,16 @@ export class ForbiddenException extends AppError {
 export class ConflictException extends AppError {
   constructor(message = "Conflict") {
     super(message, HTTPSTATUS.CONFLICT, ERROR_CODES.CONFLICT);
+  }
+}
+
+/**
+ * An upstream service we depend on (geocoder, router) is down, slow, or not
+ * configured. The message is safe to show to the customer.
+ */
+export class ServiceUnavailableException extends AppError {
+  constructor(message = "This service is temporarily unavailable. Please try again shortly.") {
+    super(message, HTTPSTATUS.SERVICE_UNAVAILABLE, ERROR_CODES.UNAVAILABLE);
   }
 }
 

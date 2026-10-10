@@ -22,6 +22,8 @@ interface DropdownProps {
   disabled?: boolean;
   id?: string;
   'aria-label'?: string;
+  /** Optional action shown at the bottom of the open list. */
+  footer?: React.ReactNode;
 }
 
 export default function Dropdown({
@@ -33,6 +35,7 @@ export default function Dropdown({
   disabled,
   id,
   'aria-label': ariaLabel,
+  footer,
 }: DropdownProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
@@ -45,6 +48,7 @@ export default function Dropdown({
             {option.label}
           </SelectItem>
         ))}
+        {footer && <div className="border-t border-white/10 p-1">{footer}</div>}
       </SelectContent>
     </Select>
   );

@@ -59,6 +59,10 @@ async function tryRefreshToken(): Promise<boolean> {
 
 async function readBody<T>(res: Response): Promise<ApiResponse<T>> {
   const raw = await res.text();
+  // 204 and other empty bodies are a valid success with nothing to say. Without
+  // this, JSON.parse("") threw and surfaced as "unexpected response (204)",
+  // even though the delete had actually gone through.
+  if (!raw) return { success: true, data: undefined as T };
   try {
     return JSON.parse(raw) as ApiResponse<T>;
   } catch {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import ConfirmModal from "@/app/components/admin/ui/confirm-modal";
@@ -106,6 +107,7 @@ function PostJobsTab() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<AdminJobPost | null>(null);
   const [deleting, setDeleting] = useState<AdminJobPost | null>(null);
+  const [pendingPostId, setPendingPostId] = useState<string | null>(null);
   const PAGE_SIZE = 12;
 
   // Branch filter options come from the job form's own endpoint rather than
@@ -139,12 +141,18 @@ function PostJobsTab() {
   };
 
   const handleToggle = async (post: AdminJobPost) => {
+    // Per-row pending, so rapid clicks cannot fire overlapping PATCHes and
+    // leave the row showing a status that was never saved.
+    if (pendingPostId) return;
+    setPendingPostId(post.id);
     try {
       await toggleJobStatus(post.id);
       toast.success(post.status === "active" ? "Post closed" : "Post activated");
       refresh();
     } catch {
       toast.error("Failed to update job status");
+    } finally {
+      setPendingPostId(null);
     }
   };
 
@@ -231,17 +239,22 @@ function PostJobsTab() {
                   <button
                     type="button"
                     onClick={() => void handleToggle(post)}
+                    disabled={pendingPostId === post.id}
                     aria-label={post.status === "active" ? `Close ${post.title}` : `Activate ${post.title}`}
                     title={post.status === "active" ? "Close post" : "Activate post"}
-                    className="btn-press flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-brand-red"
+                    className="btn-press flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-brand-red disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {post.status === "active" ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      )}
-                    </svg>
+                    {pendingPostId === post.id ? (
+                      <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {post.status === "active" ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        )}
+                      </svg>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -357,6 +370,7 @@ function ReviewApplicationsTab() {
   const debouncedSearch = useDebounced(search);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<AdminJobApplication | null>(null);
+  const [pendingAppId, setPendingAppId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -387,6 +401,8 @@ function ReviewApplicationsTab() {
   };
 
   const handleStatusChange = async (app: AdminJobApplication, status: AdminJobApplication["status"]) => {
+    if (pendingAppId) return;
+    setPendingAppId(app.id);
     try {
       await updateApplicationStatus(app.id, status);
       toast.success(`Application ${appStatusLabels[status].toLowerCase()}`);
@@ -394,6 +410,8 @@ function ReviewApplicationsTab() {
       if (filterStatus !== "all") refresh();
     } catch {
       toast.error("Failed to update status");
+    } finally {
+      setPendingAppId(null);
     }
   };
 
@@ -558,16 +576,20 @@ function ReviewApplicationsTab() {
                           key={action.value}
                           type="button"
                           onClick={() => void handleStatusChange(app, action.value)}
-                          disabled={app.status === action.value}
-                          className="btn-press min-h-11 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          disabled={app.status === action.value || pendingAppId === app.id}
+                          className="btn-press flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
                         >
+                          {pendingAppId === app.id && (
+                            <Loader2 aria-hidden className="size-3.5 animate-spin" />
+                          )}
                           {action.label}
                         </button>
                       ))}
                       <button
                         type="button"
                         onClick={() => setDeleting(app)}
-                        className="btn-press ml-auto min-h-11 rounded-lg border border-brand-red/30 px-3 py-1.5 text-xs text-brand-red transition-colors hover:bg-brand-red/10"
+                        disabled={pendingAppId === app.id}
+                        className="btn-press ml-auto min-h-11 cursor-pointer rounded-lg border border-brand-red/30 px-3 py-1.5 text-xs text-brand-red transition-colors hover:bg-brand-red/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Delete
                       </button>

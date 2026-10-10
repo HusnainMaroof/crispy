@@ -50,18 +50,23 @@ export function useMenu() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchItems = useCallback(async (categoryId?: string) => {
-    setLoading(true);
+  /**
+   * `silent` refreshes the list in place without flipping `loading` back to true.
+   * A background refresh after a save should not blank the table into a skeleton
+   * and throw away the scroll position and filters the user already set.
+   */
+  const fetchItems = useCallback(async (options?: { categoryId?: string; silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     setError("");
     try {
-      const query = categoryId ? `?category_id=${categoryId}` : "";
+      const query = options?.categoryId ? `?category_id=${options.categoryId}` : "";
       const data = await api.get<Record<string, unknown>[]>(`/admin/menu${query}`);
       setItems(data.map(mapMenuItem));
     } catch (error) {
       if (isSessionExpiredError(error)) return;
       setError(error instanceof Error ? error.message : "Could not load menu items.");
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, []);
 

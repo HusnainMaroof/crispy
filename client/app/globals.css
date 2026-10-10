@@ -451,18 +451,81 @@ html::-webkit-scrollbar {
   width: 100%;
 }
 
-/* --- Location list hover (menu-style blur) --- */
-/*
- * The location row is a 6-column grid. It used to carry its template as an
- * inline style, which no Tailwind variant could override, so every clamp()
- * collapsed to its floor on a phone and pushed the status pill, hours and
- * arrow off the right edge. The template now lives here so a mobile variant
- * is possible. Desktop above sm is byte-identical to the old inline value.
- */
+
+/* --- Location list hover --- */
+
 .loc-row-grid {
-  grid-template-columns: minmax(0, 1fr) auto;
-  row-gap: 0.5rem;
+  display: grid;
+  grid-template-columns:
+    28px
+    minmax(0, 220px)
+    minmax(0, 1fr)
+    110px
+    max-content
+    38px;
+  column-gap: clamp(6px, 1.2vw, 16px);
+  row-gap: 0;
+  align-items: center;
+  min-width: 0;
 }
+
+.loc-row-grid > * {
+  min-width: 0;
+}
+
+.loc-row-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loc-row-hours {
+  min-width: 0;
+  white-space: nowrap;
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 12px;
+}
+
+.loc-row-grid > button {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  justify-self: end;
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .loc-row-grid {
+    grid-template-columns:
+      24px
+      minmax(0, 1fr)
+      minmax(0, 1.2fr)
+      38px;
+    column-gap: 8px;
+  }
+
+  /* Keep status and hours from fighting for horizontal space */
+  .loc-row-grid > span:nth-child(4),
+  .loc-row-hours {
+    grid-column: 2 / 4;
+  }
+
+  .loc-row-grid > span:nth-child(4) {
+    justify-self: start;
+  }
+
+  .loc-row-hours {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .loc-row-grid > button {
+    grid-column: 4;
+    grid-row: 1 / span 4;
+    align-self: center;
+  }
+}
+
 @media (min-width: 640px) {
   .loc-row-grid {
     grid-template-columns:
@@ -473,25 +536,32 @@ html::-webkit-scrollbar {
       minmax(70px, 8vw)
       38px;
     column-gap: clamp(8px, 1.2vw, 16px);
-    row-gap: 0;
+  }
+
+  .loc-row-hours {
+    white-space: nowrap;
+    overflow-wrap: normal;
   }
 }
+
 .loc-row {
-  transition:
-    opacity 0.35s ease,
-    filter 0.35s ease;
+  transition: opacity 0.35s ease, filter 0.35s ease;
   will-change: opacity, filter;
 }
+
 .loc-list:hover .loc-row:not(:hover) {
   opacity: 0.15;
   filter: blur(2.5px);
 }
+
 .loc-row .loc-hover-red {
   transition: color 0.35s ease;
 }
+
 .loc-row:hover .loc-hover-red {
   color: #ff0931;
 }
+
 /* Subtle hover lift — used on tiles / cards / CTAs, does not change layout */
 .micro-elevate {
   transition:

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import { useSettings } from "@/lib/admin/use-settings";
@@ -92,11 +93,14 @@ export default function SettingsPage() {
         {/* Save Button */}
         <div className="mt-6">
           <button
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             disabled={saving}
-            className="btn-press rounded-lg bg-brand-red px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+            className="btn-press flex items-center gap-2 rounded-lg bg-brand-red px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving && (
+              <Loader2 aria-hidden className="size-4 animate-spin" />
+            )}
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
         </div>}

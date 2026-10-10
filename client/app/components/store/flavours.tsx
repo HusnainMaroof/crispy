@@ -375,15 +375,28 @@ export default function DiscoverFlavours({
   ctaUrl?: string;
 }) {
   const { locale } = useLocale();
-  const sliderImages = galleryImages?.filter(Boolean).length ? galleryImages.filter(Boolean) : SLIDER_IMAGES;
-  const flavourTiles = FLAVOUR_TILES.map((tile, index) => ({ ...tile, label: localizedText(locale, flavourLabels?.[index] || tile.label), image: flavourTileImages?.[index] }));
-  const scaleItems = SCALE_ITEMS.map((item, index) => ({ ...item, label: localizedText(locale, scaleLabels?.[index] || item.label), image: scaleImages?.[index] }));
+  const sliderImages = galleryImages?.filter(Boolean).length
+    ? galleryImages.filter(Boolean)
+    : SLIDER_IMAGES;
+  const flavourTiles = FLAVOUR_TILES.map((tile, index) => ({
+    ...tile,
+    label: localizedText(locale, flavourLabels?.[index] || tile.label),
+    image: flavourTileImages?.[index],
+  }));
+  const scaleItems = SCALE_ITEMS.map((item, index) => ({
+    ...item,
+    label: localizedText(locale, scaleLabels?.[index] || item.label),
+    image: scaleImages?.[index],
+  }));
   const trackRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<gsap.core.Tween | null>(null);
   const scopeRef = useScrollReveal();
   const { ordering, redirect } = useStoreOrdering();
   const [deliveryOpen, setDeliveryOpen] = useState(false);
-  const orderLabel = localizedText(locale, ordering.mode === "redirect" ? ordering.ctaLabel : ctaLabel);
+  const orderLabel = localizedText(
+    locale,
+    ordering.mode === "redirect" ? ordering.ctaLabel : ctaLabel,
+  );
   // Redirect system routes every order through the branch and platform popup,
   // the same as the navbar and the menu. The bare URL is only a last resort for
   // the cart system, where the CTA points somewhere the customer chose.
@@ -397,9 +410,10 @@ export default function DiscoverFlavours({
   };
 
   useEffect(() => {
-    if (!trackRef.current) return;
+    const track = trackRef.current;
+    if (!track) return;
 
-    animRef.current = gsap.to(trackRef.current, {
+    animRef.current = gsap.to(track, {
       xPercent: -50,
       duration: 30,
       ease: "none",
@@ -408,6 +422,11 @@ export default function DiscoverFlavours({
 
     return () => {
       animRef.current?.kill();
+      animRef.current = null;
+      // Without this the last transform stays baked onto the node. Switching to
+      // Arabic triggers router.refresh(), and if React reuses the element the
+      // next tween starts from a stale offset and the row visibly jumps.
+      gsap.set(track, { clearProps: "transform" });
     };
   }, []);
 
@@ -415,155 +434,207 @@ export default function DiscoverFlavours({
   const handleMouseLeave = () => animRef.current?.resume();
   return (
     <>
-    <section ref={scopeRef} className="relative w-full overflow-hidden bg-white  ">
-      <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
-        {/* Heading */}
-        <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(26px,5.5vw,48px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
-          {localizedText(locale, discoverTitle)}
-        </h2>
+      <section
+        ref={scopeRef}
+        className="relative w-full overflow-hidden bg-white  "
+      >
+        <div className="mx-auto flex  flex-col items-center gap-10 bg-black px-6 pb-50 pt-16 sm:px-10 md:px-14 lg:px-20 lg:pt-24 rounded-b-3xl lg:rounded-b-[50px] ">
+          {/* Heading */}
+          <h2 className="fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] capitalize  text-[clamp(26px,5.5vw,48px)] font-semibold leading-[1] tracking-[0.54px] text-white ">
+            {localizedText(locale, discoverTitle)}
+          </h2>
 
-        {/* Divider: Crispies Original Flavours */}
-        <div className="fade-up flex items-center gap-14" data-delay="0.06">
-          <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
-          <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(15px,2.4vw,24px)] font-bold capitalize tracking-[0.54px] text-white">
-            {localizedText(locale, title)}
-          </h3>
-          <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
-        </div>
+          {/* Divider: Crispies Original Flavours */}
+          <div className="fade-up flex items-center gap-14" data-delay="0.06">
+            <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
+            <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(15px,2.4vw,24px)] font-bold capitalize tracking-[0.54px] text-white">
+              {localizedText(locale, title)}
+            </h3>
+            <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
+          </div>
 
-        {/* Flavour tiles */}
-        <div className="flex flex-wrap items-stretch justify-center gap-4 md:gap-16">
-          {flavourTiles.map(({ label, Icon, image }, i) => (
-            <div
-              key={`${label}-${i}`}
-              className="micro-elevate fade-up flex w-[120px] h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white px-3 py-5 text-center sm:w-[130px]"
-              data-delay={String(0.08 + i * 0.05)}
-            >
-              {image ? <img src={image} alt="" className="h-8 w-8 object-contain" /> : <Icon className="h-8 w-6 text-[#EE3346]" />}
-              <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-medium capitalize leading-tight tracking-[0.54px] text-white sm:text-[15px]">
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Divider: Flaming Grill Flavour */}
-        <div className="fade-up mt-6 flex items-center gap-24" data-delay="0.12">
-          <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
-          <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(15px,2.4vw,24px)] font-bold capitalize tracking-[0.54px] text-white">
-            {localizedText(locale, scaleTitle)}
-          </h3>
-          <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
-        </div>
-
-        {/* Heat scale */}
-        <div className="fade-up w-full max-w-5xl" data-delay="0.16">
-          <div className="flex items-end justify-between">
-            {scaleItems.map(({ label, Icon, image }, index) => (
+          {/* Flavour tiles */}
+          <div className="flex flex-wrap items-stretch justify-center gap-4 md:gap-16">
+            {flavourTiles.map(({ label, Icon, image }, i) => (
               <div
-                key={`${label}-${index}`}
-                className="flex flex-col items-center gap-2 text-center"
+                key={`${label}-${i}`}
+                className="micro-elevate fade-up flex w-[120px] h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white px-3 py-5 text-center sm:w-[130px]"
+                data-delay={String(0.08 + i * 0.05)}
               >
-                <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[11px] font-semibold capitalize tracking-[0.54px] text-white sm:text-[13px]">
+                {image ? (
+                  <img src={image} alt="" className="h-8 w-8 object-contain" />
+                ) : (
+                  <Icon className="h-8 w-6 text-[#EE3346]" />
+                )}
+                <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-medium capitalize leading-tight tracking-[0.54px] text-white sm:text-[15px]">
                   {label}
                 </span>
-                {image ? <img src={image} alt="" className="h-5 w-5 object-contain" /> : <Icon className="h-5 w-5 text-white" />}
               </div>
             ))}
           </div>
-          {/* Static track: red up to the "Mild" marker, thin white/gray after — not an interactive input */}
-          <div className="relative mt-10 h-[3px] w-full rounded-full bg-white/25">
-            <div className="absolute inset-y-0 start-0 w-[50%] rounded-full bg-[#FF0931]" />
-            <div className="absolute start-[50%] top-1/2 h-4 w-4 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF0931] bg-white" />
-          </div>
-        </div>
 
-        {/* Infinite Slider Gallery */}
-        <div className="fade-up w-full  mx-auto" data-delay="0.2">
+          {/* Divider: Flaming Grill Flavour */}
           <div
-            className="relative mt-10 w-full"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            className="fade-up mt-6 flex items-center gap-24"
+            data-delay="0.12"
           >
-            {/* Scrolling Track */}
-            <div className="h-[200px] overflow-hidden sm:h-[220px]">
-              <div
-                ref={trackRef}
-                className="flex h-full items-center gap-4 sm:gap-6"
-              >
-                {[
-                  ...sliderImages,
-                  ...sliderImages,
-                  ...sliderImages,
-                  ...sliderImages,
-                ].map((src, i) => (
-                  <div key={i} className="relative h-[200px] w-[200px] flex-shrink-0 overflow-hidden rounded-2xl bg-black sm:h-[220px] sm:w-[220px]">
-                    <img src={src} alt="Discover Crispies flavours" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <DividerLineLeft className="hidden h-2.5 w-[132px] sm:block" />
+            <h3 className="whitespace-nowrap font-[family-name:var(--font-inter),Inter,sans-serif] text-[clamp(15px,2.4vw,24px)] font-bold capitalize tracking-[0.54px] text-white">
+              {localizedText(locale, scaleTitle)}
+            </h3>
+            <DividerLineRight className="hidden h-2.5 w-[132px] sm:block" />
+          </div>
 
-            {/* Static Center CTA */}
-            <div className="pointer-events-auto absolute start-1/2 top-1/2 z-30 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 p-5 bg-black  ">
-              <a
-                href={ctaUrl}
-                onClick={(event) => { event.preventDefault(); void handleOrderClick(); }}
-                aria-label={orderLabel}
-                className="relative flex h-[220px] w-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-2xl sm:h-[260px] sm:w-[260px] sm:p-5"
-              >
-                <span className="absolute end-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] sm:end-4 sm:top-4 sm:h-10 sm:w-10">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    className="h-4 w-4 sm:h-5 sm:w-5"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M7 7h10v10" />
-                    <path d="M7 17 17 7" />
-                  </svg>
-                </span>
-                <div className="">
-                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(15px,2vw,21px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
-                    {orderLabel.split(" ").slice(0, Math.ceil(orderLabel.split(" ").length / 2)).join(" ")}
-                  </h3>
-                  <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(15px,2vw,21px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
-                    {orderLabel.split(" ").slice(Math.ceil(orderLabel.split(" ").length / 2)).join(" ")}
-                  </h3>
-                  <p className="mt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[10px] font-normal capitalize leading-snug text-black sm:text-xs">
-                    Takeaway Only Pick Up From 10+ Locations
-                  </p>
+          {/* Heat scale */}
+          <div className="fade-up w-full max-w-5xl" data-delay="0.16">
+            <div className="flex items-end justify-between">
+              {scaleItems.map(({ label, Icon, image }, index) => (
+                <div
+                  key={`${label}-${index}`}
+                  className="flex flex-col items-center gap-2 text-center"
+                >
+                  <span className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[11px] font-semibold capitalize tracking-[0.54px] text-white sm:text-[13px]">
+                    {label}
+                  </span>
+                  {image ? (
+                    <img
+                      src={image}
+                      alt=""
+                      className="h-5 w-5 object-contain"
+                    />
+                  ) : (
+                    <Icon className="h-5 w-5 text-white" />
+                  )}
                 </div>
-                <img
-                  src={centerImage.trim() || "/images/orderOnimage.png"}
-                  alt="Order on website"
-                  // sm:h-fit resolved to the intrinsic 712x474, so from sm up
-                  // the small logo filled and overflowed the whole 260px card.
-                  className="absolute bottom-0 start-1/2 h-[80px] w-auto -translate-x-1/2 rtl:translate-x-1/2 object-contain sm:h-[100px]"
-                />
-              </a>
-
-              <div className="pointer-events-none absolute inset-y-0 end-0 translate-x-full rtl:-translate-x-full z-20 w-20 bg-linear-to-r rtl:bg-linear-to-l from-black to-transparent sm:w-32" />
-              <div className="pointer-events-none absolute inset-y-0 start-0 z-20 w-20 -translate-x-full rtl:translate-x-full bg-linear-to-l rtl:bg-linear-to-r from-black to-transparent sm:w-32" />
+              ))}
             </div>
+            {/* Static track: red up to the "Mild" marker, thin white/gray after — not an interactive input */}
+            <div className="relative mt-10 h-[3px] w-full rounded-full bg-white/25">
+              <div className="absolute inset-y-0 start-0 w-[50%] rounded-full bg-[#FF0931]" />
+              <div className="absolute start-[50%] top-1/2 h-4 w-4 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#FF0931] bg-white" />
+            </div>
+          </div>
 
-            {/* Fade edges */}
-            <div className="pointer-events-none absolute inset-y-0 start-0 z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
-            <div className="pointer-events-none absolute inset-y-0 end-0 z-20 w-20 bg-linear-to-l from-black to-transparent sm:w-32" />
+          {/* Infinite Slider Gallery */}
+          <div className="fade-up w-full  mx-auto" data-delay="0.2">
+            <div
+              className="relative mt-10 w-full"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              {/* Scrolling Track */}
+              <div className="h-[200px] overflow-hidden sm:h-[220px]">
+                {/* Pinned to ltr on purpose. Under the page-level dir="rtl" a flex
+                  row lays its tiles out right-to-left, but the GSAP tween below
+                  still translates physically leftwards, so the two disagree and
+                  the row snaps to a different offset mid-loop. The tiles are
+                  photos with no reading order, so forcing ltr keeps the loop
+                  seamless in every language. */}
+                <div
+                  ref={trackRef}
+                  dir="ltr"
+                  className="flex h-full items-center gap-4 sm:gap-6"
+                >
+                  {[
+                    ...sliderImages,
+                    ...sliderImages,
+                    ...sliderImages,
+                    ...sliderImages,
+                  ].map((src, i) => (
+                    <div
+                      key={i}
+                      className="relative h-[200px] w-[200px] flex-shrink-0 overflow-hidden rounded-2xl bg-black sm:h-[220px] sm:w-[220px]"
+                    >
+                      <img
+                        src={src}
+                        alt="Discover Crispies flavours"
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Static Center CTA. The wrapper used to carry `p-5 bg-black`, and two
+                bg-linear-to-* strips sat inside it. Together they painted an
+                opaque dark panel around the card, so it read as a hole cut in
+                the band rather than a card floating above it. A black shadow on
+                a black band cannot do that job either, so the wrapper is now
+                transparent and completely unpadded: the shadow sits tight
+                against the card and no tile can show through a dead margin. */}
+              <div className="pointer-events-auto absolute start-1/2 top-1/2 z-30 -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2">
+                <a
+                  href={ctaUrl}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void handleOrderClick();
+                  }}
+                  aria-label={orderLabel}
+                  className="relative flex h-[220px] w-[220px] cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-4 ring-1 ring-white/15 shadow-[0_18px_45px_-12px_rgba(0,0,0,0.85),0_0_35px_-8px_rgba(255,9,49,0.45)] sm:h-[260px] sm:w-[260px] sm:p-5"
+                >
+                  <span className="absolute end-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[#FF0931] sm:end-4 sm:top-4 sm:h-10 sm:w-10">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4 sm:h-5 sm:w-5"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M7 7h10v10" />
+                      <path d="M7 17 17 7" />
+                    </svg>
+                  </span>
+                  <div className="">
+                    <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(15px,2vw,21px)] font-normal capitalize leading-[1] tracking-[0.54px] text-[#FF0931]">
+                      {orderLabel
+                        .split(" ")
+                        .slice(0, Math.ceil(orderLabel.split(" ").length / 2))
+                        .join(" ")}
+                    </h3>
+                    <h3 className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[clamp(15px,2vw,21px)] font-normal capitalize leading-[1] tracking-[0.54px] text-black">
+                      {orderLabel
+                        .split(" ")
+                        .slice(Math.ceil(orderLabel.split(" ").length / 2))
+                        .join(" ")}
+                    </h3>
+                    <p className="mt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[10px] font-normal capitalize leading-snug text-black sm:text-xs">
+                      Takeaway Only Pick Up From 10+ Locations
+                    </p>
+                  </div>
+                  <img
+                    src={centerImage.trim() || "/images/orderOnimage.png"}
+                    alt="Order on website"
+                    // sm:h-fit resolved to the intrinsic 712x474, so from sm up
+                    // the small logo filled and overflowed the whole 260px card.
+                    className="absolute bottom-0 start-1/2 h-[80px] w-auto -translate-x-1/2 rtl:translate-x-1/2 object-contain sm:h-[100px]"
+                  />
+                </a>
+                <div className="pointer-events-none absolute inset-y-0 end-0 translate-x-full rtl:-translate-x-full z-20 w-20 bg-linear-to-r rtl:bg-linear-to-l from-black to-transparent sm:w-32" />
+                <div className="pointer-events-none absolute inset-y-0 start-0 z-20 w-20 -translate-x-full rtl:translate-x-full bg-linear-to-l rtl:bg-linear-to-r from-black to-transparent sm:w-32" />
+              </div>
+
+              {/* Fade edges. Pinned to physical left/right, not start/end: the
+                gradients below are physical, so flipping the strips under the
+                page-level dir="rtl" put the solid black end on the transparent
+                side and the edges washed out in Arabic. */}
+              <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-20 bg-linear-to-r from-black to-transparent sm:w-32" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-20 bg-linear-to-l from-black to-transparent sm:w-32" />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Floating CTA — half overlaps the section below it, so the parent
+        {/* Floating CTA — half overlaps the section below it, so the parent
           page needs enough negative margin on the next section, or this
           needs to sit in a shared wrapper with it */}
-    </section>
-      {deliveryOpen && <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />}
+      </section>
+      {deliveryOpen && (
+        <DeliveryOverlay onClose={() => setDeliveryOpen(false)} />
+      )}
     </>
   );
 }

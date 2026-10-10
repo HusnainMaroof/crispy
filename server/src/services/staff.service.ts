@@ -1,5 +1,6 @@
 import { Prisma } from "../generated/prisma/client.js";
 import { getPrisma } from "../config/prisma.js";
+import { logger } from "../middleware/logger.js";
 import { isAdminTab, resolveTabs, tabsForRole, type AdminTabId } from "../config/admin-tabs.js";
 import {
   canManageRole,
@@ -11,6 +12,7 @@ import {
   type AdminRole,
 } from "../config/admin-roles.js";
 import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error.js";
+import { invalidateAdminAuth } from "../utils/cache.js";
 import { hashPassword } from "../utils/password.js";
 import { serialize } from "../utils/db.js";
 import type { PageRequest } from "../utils/pagination.js";
@@ -32,6 +34,19 @@ const publicSelect = {
   admin_branch_access: {
     select: { location_id: true, location: { select: { name: true } } },
   },
+} as const;
+
+/** The list view's columns. Branch assignments are read separately, in `listStaff`. */
+const listSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  position: true,
+  tabs: true,
+  is_active: true,
+  created_at: true,
+  updated_at: true,
 } as const;
 
 function assertCanManageStaff(actor: Actor) {
@@ -163,10 +178,17 @@ export async function listStaff(
     ],
   };
 
-  const [rows, total] = await getPrisma().$transaction([
+  // Independent reads, run concurrently (same tradeoff as the orders, jobs and
+  // applications lists): latency is max(findMany, count), and a concurrent write
+  // can make the count differ from the rows by one, which is harmless here.
+  // The page, its total, and the branch names are independent, so they share
+  // one wave. The branch assignments depend on the page's ids, so they are read
+  // in a second, batched query. This replaces the nested include, which chained
+  // assignments and then branch names as two more waits.
+  const [rows, total, locations] = await Promise.all([
     getPrisma().admin_profiles.findMany({
       where,
-      select: publicSelect,
+      select: listSelect,
       skip: options.skip,
       take: options.limit,
       // id ASC is the tiebreaker so two people with the same name cannot swap
@@ -174,9 +196,26 @@ export async function listStaff(
       orderBy: [{ name: "asc" }, { id: "asc" }],
     }),
     getPrisma().admin_profiles.count({ where }),
+    getPrisma().locations.findMany({ select: { id: true, name: true } }),
   ]);
 
-  return { staff: rows.map(present), total };
+  const access = rows.length === 0
+    ? []
+    : await getPrisma().admin_branch_access.findMany({
+        where: { admin_id: { in: rows.map((row) => row.id) } },
+        select: { admin_id: true, location_id: true },
+      });
+  const branchName = new Map(locations.map((location) => [location.id, location.name]));
+  const branchesByStaff = new Map<string, { location_id: string; location: { name: string } | null }[]>();
+  for (const link of access) {
+    const name = branchName.get(link.location_id);
+    const list = branchesByStaff.get(link.admin_id) ?? [];
+    list.push({ location_id: link.location_id, location: name === undefined ? null : { name } });
+    branchesByStaff.set(link.admin_id, list);
+  }
+
+  const staff = rows.map((row) => present({ ...row, admin_branch_access: branchesByStaff.get(row.id) ?? [] }));
+  return { staff, total };
 }
 
 export async function getStaff(actor: Actor, id: string) {
@@ -317,15 +356,48 @@ export async function updateStaff(actor: Actor, id: string, input: {
       ...(role !== "staff" ? { position: null } : input.position !== undefined ? { position: input.position?.trim() || null } : {}),
       ...(tabs ? { tabs } : {}),
       ...(input.is_active !== undefined ? { is_active: input.is_active } : {}),
+      // Security events end every live session of this account: a new password,
+      // a deactivation, or a role change. The next request with an old token fails.
+      ...(input.password || input.is_active === false || input.role
+        ? { token_version: { increment: 1 } }
+        : {}),
       ...(branchIds !== undefined ? { admin_branch_access: { deleteMany: {}, create: branchIds.map((location_id) => ({ location_id })) } } : {}),
     },
   });
+
+  // Drop the cached auth profile so a role, tab, or active-flag change takes
+  // effect on the very next request instead of after the cache TTL.
+  void invalidateAdminAuth(id);
 
   return getStaff(actor, id);
 }
 
 export async function setStaffActive(actor: Actor, id: string, isActive: boolean) {
   return updateStaff(actor, id, { is_active: isActive });
+}
+
+/**
+ * Removes a team member's login entirely. Deactivating is the softer option and
+ * is usually the right one, because it blocks sign-in while keeping the row for
+ * anything that references the person. This is for accounts that should not
+ * exist at all.
+ *
+ * `admin_branch_access` cascades in the schema, so the branch assignments go
+ * with it.
+ */
+export async function deleteStaff(actor: Actor, id: string) {
+  assertCanManageStaff(actor);
+  const current = await getPrisma().admin_profiles.findUnique({
+    where: { id },
+    select: { role: true, name: true, admin_branch_access: { select: { location_id: true } } },
+  });
+  if (!current) throw new NotFoundException("Staff member not found");
+  // Deleting your own login would strand you in a session you cannot re-open.
+  if (actor.sub === id) throw new BadRequestException("You cannot delete your own account");
+  assertCanManageTarget(actor, current.role);
+  await assertTargetInScope(actor, current);
+  await getPrisma().admin_profiles.delete({ where: { id } });
+  logger.info({ staffId: id, by: actor.sub }, "Staff account deleted");
 }
 
 export async function replaceStaffBranches(actor: Actor, id: string, branchIds: string[]) {
@@ -357,6 +429,7 @@ export async function replaceStaffBranches(actor: Actor, id: string, branchIds: 
       data: unique.map((location_id) => ({ admin_id: id, location_id })),
     }),
   ]);
+  void invalidateAdminAuth(id);
   return getStaff(actor, id);
 }
 

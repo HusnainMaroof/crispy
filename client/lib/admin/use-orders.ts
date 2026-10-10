@@ -7,6 +7,8 @@ export type AdminOrder = {
   id: string;
   customer: string;
   items: { name: string; quantity: number; price: number }[];
+  /** Line count for list rows (the list API sends a count, not the lines). */
+  itemCount: number;
   total: number;
   status: "pending" | "preparing" | "ready" | "out-for-delivery" | "delivered" | "cancelled";
   allowedStatuses: string[];
@@ -28,6 +30,7 @@ function mapOrder(raw: Record<string, unknown>): AdminOrder {
     id: raw.id as string,
     customer: raw.customer_name as string,
     items: mapOrderItems(rawItems),
+    itemCount: (raw.item_count as number | undefined) ?? rawItems.length,
     total: raw.total as number,
     status: raw.status as AdminOrder["status"],
     allowedStatuses: (raw.allowed_statuses as string[]) ?? [],
@@ -99,7 +102,7 @@ export function useOrders() {
     const data = await api.get<{ order: Record<string, unknown>; items: Record<string, unknown>[] }>(
       `/admin/orders/${id}`
     );
-    return { ...mapOrder(data.order), items: mapOrderItems(data.items) };
+    return { ...mapOrder(data.order), items: mapOrderItems(data.items), itemCount: data.items.length };
   }, []);
 
   const updateOrderStatus = useCallback(
@@ -120,6 +123,17 @@ export function useOrders() {
     []
   );
 
+  const deleteOrder = useCallback(async (id: string) => {
+    await api.delete(`/admin/orders/${id}`);
+    // Drop the row and step the total down, so the count matches the rows
+    // without refetching and throwing away the reader's filters and page.
+    setOrders((prev) => prev.filter((order) => order.id !== id));
+    setPagination((prev) => {
+      const total = Math.max(prev.total - 1, 0);
+      return { ...prev, total, totalPages: Math.ceil(total / prev.limit) };
+    });
+  }, []);
+
   const getOrder = useCallback(
     (id: string) => orders.find((order) => order.id === id),
     [orders]
@@ -130,5 +144,5 @@ export function useOrders() {
     [orders]
   );
 
-  return { orders, pagination, loading, error, fetchOrders, fetchOrderById, updateOrderStatus, getOrder, getOrdersByStatus };
+  return { orders, pagination, loading, error, fetchOrders, fetchOrderById, updateOrderStatus, deleteOrder, getOrder, getOrdersByStatus };
 }

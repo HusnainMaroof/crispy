@@ -8,32 +8,44 @@ import toast from "react-hot-toast";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 import { useLenis } from "../providers/smooth-scroll";
 import { Check } from "lucide-react";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 const KOROLEV = "font-[family-name:var(--font-korolev),Korolev,sans-serif]";
 const INTER = "font-[family-name:var(--font-inter),Inter,sans-serif]";
 
 const CRITERIA = [
-  "Minimum liquid assets of £100,000",
-  "Passion for superior food quality & service",
-  "Local market knowledge and business acumen",
+  "franchise.app.criteria.1",
+  "franchise.app.criteria.2",
+  "franchise.app.criteria.3",
 ];
 
-const PROPERTY_STATUS = [
-  "Looking for Location",
-  "Already Own a Property",
-  "Leasing a Property",
+/**
+ * `value` stays the stable English string so the stored form data never depends
+ * on the visitor's language. Only `labelKey` is translated, so switching to
+ * Arabic relabels every option without rewriting what was already selected.
+ */
+type Option = { value: string; labelKey: string };
+
+const PROPERTY_STATUS: Option[] = [
+  { value: "Looking for Location", labelKey: "franchise.app.propertyStatus.1" },
+  { value: "Already Own a Property", labelKey: "franchise.app.propertyStatus.2" },
+  { value: "Leasing a Property", labelKey: "franchise.app.propertyStatus.3" },
 ];
-const BUDGET_RANGES = [
-  "£100,000 - £250,000",
-  "£250,000 - £500,000",
-  "£500,000+",
+const BUDGET_RANGES: Option[] = [
+  { value: "£100,000 - £250,000", labelKey: "franchise.app.budget.1" },
+  { value: "£250,000 - £500,000", labelKey: "franchise.app.budget.2" },
+  { value: "£500,000+", labelKey: "franchise.app.budget.3" },
 ];
-const EXPERIENCE = [
-  "Yes, 3+ Years",
-  "Yes, 1-3 Years",
-  "No, but eager to learn",
+const EXPERIENCE: Option[] = [
+  { value: "Yes, 3+ Years", labelKey: "franchise.app.experience.1" },
+  { value: "Yes, 1-3 Years", labelKey: "franchise.app.experience.2" },
+  { value: "No, but eager to learn", labelKey: "franchise.app.experience.3" },
 ];
-const OWN_BUSINESSES = ["Yes, Multi-unit Owner", "Yes, Single Business", "No"];
+const OWN_BUSINESSES: Option[] = [
+  { value: "Yes, Multi-unit Owner", labelKey: "franchise.app.own.1" },
+  { value: "Yes, Single Business", labelKey: "franchise.app.own.2" },
+  { value: "No", labelKey: "franchise.app.own.3" },
+];
 
 const INPUT_CLS =
   "w-full rounded-[10px] border-1 border-[#C4C4C4] bg-[#F1F1F1] px-4 py-3.5 text-[15px] text-black outline-none transition-colors placeholder:text-[#9A9A9A] focus:border-[#FF0931]";
@@ -110,9 +122,10 @@ function Select({
 }: {
   value: string;
   onChange: (v: string) => void;
-  options: string[];
+  options: Option[];
   label: string;
 }) {
+  const { t } = useLocale();
   return (
     <Field label={label}>
       <div className="relative">
@@ -122,8 +135,8 @@ function Select({
           className={`${INPUT_CLS} cursor-pointer appearance-none pe-10`}
         >
           {options.map((o) => (
-            <option key={o} value={o}>
-              {o}
+            <option key={o.value} value={o.value}>
+              {t(o.labelKey)}
             </option>
           ))}
         </select>
@@ -174,11 +187,11 @@ const EMPTY_FORM = {
   phone: "",
   dob: "",
   city: "",
-  propertyStatus: PROPERTY_STATUS[0],
-  budget: BUDGET_RANGES[0],
+  propertyStatus: PROPERTY_STATUS[0].value,
+  budget: BUDGET_RANGES[0].value,
   occupation: "",
-  experience: EXPERIENCE[0],
-  ownBusinesses: OWN_BUSINESSES[0],
+  experience: EXPERIENCE[0].value,
+  ownBusinesses: OWN_BUSINESSES[0].value,
   vision: "",
 };
 
@@ -188,6 +201,8 @@ export default function FranchiseApplicationOverlay({
   onClose: () => void;
 }) {
   const lenis = useLenis();
+  const { locale, t } = useLocale();
+  const dir = locale === "ar" ? "rtl" : "ltr";
   const [form, setForm] = useState(EMPTY_FORM);
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [agreeComms, setAgreeComms] = useState(false);
@@ -225,10 +240,10 @@ export default function FranchiseApplicationOverlay({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirmAccurate || !agreeComms) {
-      toast.error("Please confirm both checkboxes before submitting");
+      toast.error(t("franchise.app.errorConfirm"));
       return;
     }
-    toast.success("Application submitted! We'll be in touch soon.");
+    toast.success(t("franchise.app.success"));
     onClose();
   };
 
@@ -237,7 +252,7 @@ export default function FranchiseApplicationOverlay({
       className="fixed inset-0 z-[999] flex items-center justify-center "
       role="dialog"
       aria-modal="true"
-      aria-label="Franchise application"
+      aria-label={t("franchise.app.title")}
     >
       {/* Backdrop — full black overlay */}
       <div
@@ -249,12 +264,13 @@ export default function FranchiseApplicationOverlay({
       {/* Panel — full-screen black, white bg kept only on the form card */}
       <div
         data-lenis-prevent
+        dir={dir}
         className="loc-scroll relative flex h-[95vh]  w-[95%] md:w-[90%]  rounded-2xl border border-[#242424] bg-black bg-black rounded-[20px] flex-col items-center overflow-y-auto px-4 pb-8 pt-12 shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6 my-10!"
       >
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("franchise.app.close")}
           className="overlay-fade-in sticky -top-10 ms-auto z-50 -mb-9 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
@@ -281,7 +297,7 @@ export default function FranchiseApplicationOverlay({
             lineHeight: "100%",
           }}
         >
-          Partner With Us
+          {t("franchise.app.badge")}
         </span>
 
         <h2
@@ -293,7 +309,7 @@ export default function FranchiseApplicationOverlay({
             letterSpacing: "0.54px",
           }}
         >
-          Franchise <span className="text-[#FF0931]">Application</span>
+          {t("franchise.app.titleLead")} <span className="text-[#FF0931]">{t("franchise.app.titleAccent")}</span>
         </h2>
 
         <p
@@ -305,8 +321,7 @@ export default function FranchiseApplicationOverlay({
             letterSpacing: "0.54px",
           }}
         >
-          Tell us about your background, financial capability, and target
-          territories. Let&apos;s make some bold flavor moves together.
+          {t("franchise.app.intro")}
         </p>
 
         {/* Qualification criteria card */}
@@ -320,12 +335,12 @@ export default function FranchiseApplicationOverlay({
               letterSpacing: "0.54px",
             }}
           >
-            Qualification Criteria
+            {t("franchise.app.criteria")}
           </h3>
 
           <ul className="m-0 mt-6 list-none space-y-5 p-0 sm:mt-8 sm:space-y-6">
-            {CRITERIA.map((item) => (
-              <li key={item} className="flex items-start gap-3.5">
+            {CRITERIA.map((labelKey) => (
+              <li key={labelKey} className="flex items-start gap-3.5">
                 <CheckIcon />
                 <span
                   className={`text-[#EDEDED] ${INTER}`}
@@ -335,7 +350,7 @@ export default function FranchiseApplicationOverlay({
                     lineHeight: "150%",
                   }}
                 >
-                  {item}
+                  {t(labelKey)}
                 </span>
               </li>
             ))}
@@ -351,44 +366,47 @@ export default function FranchiseApplicationOverlay({
             {/* 01 — Personal Information */}
             <Section
               num="01"
-              title="Personal Information"
-              desc="Please provide your primary contact and identification information."
+              title={t("franchise.app.s1Title")}
+              desc={t("franchise.app.s1Desc")}
             >
-              <Field label="Full Name">
+              <Field label={t("franchise.app.fullName")}>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. John Doe"
+                  placeholder={t("franchise.app.phName")}
                   value={form.fullName}
                   onChange={(e) => set("fullName")(e.target.value)}
                   className={INPUT_CLS}
                 />
               </Field>
-              <Field label="Email Address">
+              <Field label={t("franchise.app.email")}>
                 <input
                   type="email"
                   required
-                  placeholder="john@example.com"
+                  dir="ltr"
+                  placeholder={t("franchise.app.phEmail")}
                   value={form.email}
                   onChange={(e) => set("email")(e.target.value)}
                   className={INPUT_CLS}
                 />
               </Field>
-              <Field label="Phone Number">
+              <Field label={t("franchise.app.phone")}>
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. +44 7123 456789"
+                  dir="ltr"
+                  placeholder={t("franchise.app.phPhone")}
                   value={form.phone}
                   onChange={(e) => set("phone")(e.target.value)}
                   className={INPUT_CLS}
                 />
               </Field>
-              <Field label="Date of Birth">
+              <Field label={t("franchise.app.dob")}>
                 <input
                   type="text"
                   required
-                  placeholder="DD / MM / YYYY"
+                  dir="ltr"
+                  placeholder={t("franchise.app.phDob")}
                   value={form.dob}
                   onChange={(e) => set("dob")(e.target.value)}
                   className={INPUT_CLS}
@@ -399,21 +417,21 @@ export default function FranchiseApplicationOverlay({
             {/* 02 — Location Preferences */}
             <Section
               num="02"
-              title="Location Preferences"
-              desc="Where would you like to build your Crispies empire?"
+              title={t("franchise.app.s2Title")}
+              desc={t("franchise.app.s2Desc")}
             >
-              <Field label="Preferred City / Area">
+              <Field label={t("franchise.app.city")}>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. London, Manchester"
+                  placeholder={t("franchise.app.phCity")}
                   value={form.city}
                   onChange={(e) => set("city")(e.target.value)}
                   className={INPUT_CLS}
                 />
               </Field>
               <Select
-                label="Current Property Status"
+                label={t("franchise.app.propertyStatus")}
                 value={form.propertyStatus}
                 onChange={set("propertyStatus")}
                 options={PROPERTY_STATUS}
@@ -423,20 +441,20 @@ export default function FranchiseApplicationOverlay({
             {/* 03 — Financial Information */}
             <Section
               num="03"
-              title="Financial Information"
-              desc="Verify that your liquid investment capital meets our brand threshold requirements."
+              title={t("franchise.app.s3Title")}
+              desc={t("franchise.app.s3Desc")}
             >
               <Select
-                label="Investment Budget Range"
+                label={t("franchise.app.budget")}
                 value={form.budget}
                 onChange={set("budget")}
                 options={BUDGET_RANGES}
               />
-              <Field label="Current Employment / Occupation">
+              <Field label={t("franchise.app.occupation")}>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Business Director"
+                  placeholder={t("franchise.app.phOccupation")}
                   value={form.occupation}
                   onChange={(e) => set("occupation")(e.target.value)}
                   className={INPUT_CLS}
@@ -447,17 +465,17 @@ export default function FranchiseApplicationOverlay({
             {/* 04 — Experience */}
             <Section
               num="04"
-              title="Experience"
-              desc="We value partners with previous business and hospitality track records."
+              title={t("franchise.app.s4Title")}
+              desc={t("franchise.app.s4Desc")}
             >
               <Select
-                label="Do you have food industry experience?"
+                label={t("franchise.app.experience")}
                 value={form.experience}
                 onChange={set("experience")}
                 options={EXPERIENCE}
               />
               <Select
-                label="Do you currently own other businesses?"
+                label={t("franchise.app.ownBusinesses")}
                 value={form.ownBusinesses}
                 onChange={set("ownBusinesses")}
                 options={OWN_BUSINESSES}
@@ -467,15 +485,15 @@ export default function FranchiseApplicationOverlay({
             {/* 05 — Your Vision */}
             <Section
               num="05"
-              title="Your Vision for Crispies"
-              desc="Tell us why you are passionate about launching a Crispies branch in your territory."
+              title={t("franchise.app.s5Title")}
+              desc={t("franchise.app.s5Desc")}
             >
               <div className="sm:col-span-2">
-                <Field label="Tell us about your vision">
+                <Field label={t("franchise.app.vision")}>
                   <textarea
                     required
                     rows={5}
-                    placeholder="Write a brief paragraph on how you plan to manage, market, and drive success at your proposed franchise outle..."
+                    placeholder={t("franchise.app.phVision")}
                     value={form.vision}
                     onChange={(e) => set("vision")(e.target.value)}
                     className={`${INPUT_CLS} resize-none leading-[160%]`}
@@ -491,7 +509,7 @@ export default function FranchiseApplicationOverlay({
                   type="checkbox"
                   checked={confirmAccurate}
                   onChange={(e) => setConfirmAccurate(e.target.checked)}
-                  aria-label="I confirm that the financial and personal details provided are accurate to the best of my knowledge."
+                  aria-label={t("franchise.app.consentAccurate")}
                   // sr-only, not `hidden`: display:none drops the input from the
                   // accessibility tree and from tab order, so a keyboard user
                   // could never tick the box that gates submit.
@@ -503,8 +521,7 @@ export default function FranchiseApplicationOverlay({
                 <span
                   className={`text-[13px] leading-[150%] text-[#3D3C3D] sm:text-[14px] ${INTER}`}
                 >
-                  I confirm that the financial and personal details provided are
-                  accurate to the best of my knowledge.
+                  {t("franchise.app.consentAccurate")}
                 </span>
               </label>
               <label className="flex cursor-pointer items-start gap-3">
@@ -512,7 +529,7 @@ export default function FranchiseApplicationOverlay({
                   type="checkbox"
                   checked={agreeComms}
                   onChange={(e) => setAgreeComms(e.target.checked)}
-                  aria-label="I agree to receive communications regarding my franchise inquiries and future partnership opportunities."
+                  aria-label={t("franchise.app.consentComms")}
                   className="sr-only"
                 />
 
@@ -523,8 +540,7 @@ export default function FranchiseApplicationOverlay({
                 <span
                   className={`text-[13px] leading-[150%] text-[#3D3C3D] sm:text-[14px] ${INTER}`}
                 >
-                  I agree to receive communications regarding my franchise
-                  inquiries and future partnership opportunities.
+                  {t("franchise.app.consentComms")}
                 </span>
               </label>
             </div>
@@ -548,7 +564,7 @@ export default function FranchiseApplicationOverlay({
                   letterSpacing: "0.54px",
                 }}
               >
-                Submit Franchise Application
+                {t("franchise.app.submit")}
               </span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -9,8 +9,10 @@ import { sendSuccess } from "../../utils/response.js";
 import { resolveTabs } from "../../config/admin-tabs.js";
 import { normalizeRole } from "../../config/admin-roles.js";
 import type { AdminProfile } from "../../types/models.js";
-import { clearAdminAuthCookie, setAdminAuthCookie } from "../../utils/admin-auth-cookie.js";
+import { ADMIN_AUTH_COOKIE, clearAdminAuthCookie, setAdminAuthCookie } from "../../utils/admin-auth-cookie.js";
+import { invalidateAdminAuth } from "../../utils/cache.js";
 import { slugifyBranchName } from "../../utils/slug.js";
+import { loadAuthProfile, type SessionClaims } from "../../middleware/auth.js";
 
 function personSlug(name: string) {
   try {
@@ -35,9 +37,20 @@ function homeFor(role: string, name: string, branches: { slug: string }[], tabs:
   return first ? `${base}/${segments[first]}` : base;
 }
 
-function signToken(profile: { id: string; email: string; role: string }): string {
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+/**
+ * `sv` must match the account's current token_version, and `ss` is when this
+ * login began. Refresh copies `ss` forward, so the session cap cannot be reset.
+ */
+function signToken(
+  profile: { id: string; email: string; role: string; token_version: number },
+  sessionStart: number,
+): string {
   return jwt.sign(
-    { sub: profile.id, email: profile.email, role: profile.role },
+    { sub: profile.id, email: profile.email, role: profile.role, sv: profile.token_version, ss: sessionStart },
     envConfig.JWT.SECRET,
     { expiresIn: envConfig.JWT.EXPIRES_IN as jwt.SignOptions["expiresIn"] },
   );
@@ -86,14 +99,14 @@ export const AuthController = {
     }
 
     const user = await publicProfile(profile);
-    const token = signToken(profile);
+    const token = signToken(profile, nowSeconds());
     setAdminAuthCookie(res, token);
     sendSuccess(res, { user });
   },
 
   async refresh(req: Request, res: Response) {
     const payload = req.admin;
-    if (!payload) {
+    if (!payload || payload.session_started_at === undefined) {
       throw new UnauthorizedException("Not authenticated");
     }
 
@@ -102,18 +115,41 @@ export const AuthController = {
       throw new UnauthorizedException("Invalid email or password");
     }
 
-    const token = signToken(profile);
+    // Keeps the original login time, so refreshing never extends the session cap.
+    const token = signToken(profile, payload.session_started_at);
     setAdminAuthCookie(res, token);
     sendSuccess(res, { user: await publicProfile(profile) });
   },
 
-  async logout(_req: Request, res: Response) {
+  /**
+   * Revokes the session, not just the cookie. The token is checked for its
+   * signature only (expiry ignored, so a stale tab can still sign out). A
+   * forged or unreadable token has nothing to revoke and is ignored.
+   */
+  async logout(req: Request, res: Response) {
+    const header = req.headers?.authorization;
+    const bearer = header?.startsWith("Bearer ") ? header.slice(7) : null;
+    const token = bearer || req.cookies?.[ADMIN_AUTH_COOKIE];
+    if (typeof token === "string" && token) {
+      try {
+        const claims = jwt.verify(token, envConfig.JWT.SECRET, { ignoreExpiration: true }) as SessionClaims;
+        await getPrisma().admin_profiles.update({
+          where: { id: claims.sub },
+          data: { token_version: { increment: 1 } },
+        });
+        void invalidateAdminAuth(claims.sub);
+      } catch {
+        // Not a token this server issued, or the account is gone: nothing to revoke.
+      }
+    }
     clearAdminAuthCookie(res);
     sendSuccess(res);
   },
 
   async me(req: Request, res: Response) {
-    const profile = await getPrisma().admin_profiles.findUnique({ where: { id: req.admin!.sub } });
+    // Reuses the memoized profile the auth middleware already loaded (same row,
+    // same invalidation), so this request no longer pays its own profile read.
+    const profile = await loadAuthProfile(req.admin!.sub);
     if (!profile?.is_active) {
       throw new UnauthorizedException("Invalid email or password");
     }

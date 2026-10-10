@@ -60,7 +60,8 @@ describe("branch menu prices", () => {
     });
     const hiddenAtBranch = await getFullMenu({ locationId: locationA, required: true });
     assert.equal(hiddenAtBranch.flatMap((category) => category.items).some((item) => item.id === itemId), false);
-    assert.equal(hiddenAtBranch.length, 0);
+    // The category stays listed, with no items left in it at this branch.
+    assert.equal(hiddenAtBranch.find((category) => category.id === categoryId)?.items.length, 0);
   });
 });
 

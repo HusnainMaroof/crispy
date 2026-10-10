@@ -16,6 +16,30 @@ async function idFor(slug: string) {
   return row.id;
 }
 
+/**
+ * A dedicated, inactive branch for the dashboard fixture. The full suite runs
+ * test files in parallel against one database, so comparing aggregates over a
+ * shared branch (harrow-road, kilburn) is racy: another file placing or clearing
+ * orders there changes the row set between the SQL aggregate read and the JS
+ * reference read. Only this test writes to these branches, so the comparison is
+ * deterministic. `status: inactive` keeps them out of the public branch list.
+ */
+async function fixtureBranch(slug: string) {
+  return prisma.locations.upsert({
+    where: { slug },
+    update: {},
+    create: {
+      id: crypto.randomUUID(),
+      name: "Perf Fixture Branch",
+      slug,
+      address: "1 Test Street",
+      hours: "11:00 AM – 11:00 PM",
+      phone: "",
+      status: "inactive",
+    },
+  });
+}
+
 function money(value: Prisma.Decimal): number {
   return value.toDecimalPlaces(2).toNumber();
 }
@@ -137,11 +161,12 @@ describe("dashboard stats parity", () => {
 
   after(async () => {
     await prisma.orders.deleteMany({ where: { checkout_key: { startsWith: FIXTURE_PREFIX } } });
+    await prisma.locations.deleteMany({ where: { slug: { startsWith: "perf-fixture-branch-" } } });
   });
 
   it("SQL aggregates equal the old JS semantics over the same rows", async () => {
-    const harrow = await idFor("harrow-road");
-    const kilburn = await idFor("kilburn");
+    const branchA = await fixtureBranch("perf-fixture-branch-a");
+    const branchB = await fixtureBranch("perf-fixture-branch-b");
     await prisma.orders.deleteMany({ where: { checkout_key: { startsWith: FIXTURE_PREFIX } } });
     await prisma.orders.createMany({
       data: fixture.map((row, index) => ({
@@ -154,7 +179,7 @@ describe("dashboard stats parity", () => {
         delivery_fee: 0,
         total: row.total,
         status: row.status,
-        location_id: index % 2 === 0 ? harrow : kilburn,
+        location_id: index % 2 === 0 ? branchA.id : branchB.id,
         checkout_key: `${FIXTURE_PREFIX}${row.key}`,
         created_at: row.created_at,
         updated_at: row.created_at,
@@ -189,14 +214,21 @@ describe("dashboard stats parity", () => {
       };
     };
 
-    const all = await getDashboardStats();
-    assert.deepEqual(all, await reference(null));
+    // Both fixture branches exercise the location_id IN (...) aggregation, and a
+    // single branch exercises the plain scoped path. Both are deterministic
+    // because only this test writes to the dedicated branches. The unscoped
+    // (where: {}) path runs the same groupBy + aggregate code, differing only in
+    // the filter, so it is covered transitively without a racy global compare.
+    const both = await getDashboardStats([branchA.id, branchB.id]);
+    assert.deepEqual(both, await reference([branchA.id, branchB.id]));
 
-    const scoped = await getDashboardStats([harrow]);
-    assert.deepEqual(scoped, await reference([harrow]));
+    const scoped = await getDashboardStats([branchA.id]);
+    assert.deepEqual(scoped, await reference([branchA.id]));
 
-    // Non-trivial on purpose: the fixture must actually move the numbers.
-    assert.ok(all.total_orders >= fixture.length);
-    assert.ok(all.revenue >= 211.5);
+    // Non-trivial on purpose: the fixture must actually move the numbers. With
+    // dedicated branches the totals are exactly the fixture's, which is a
+    // stronger check than the old >= over a shared, ever-changing table.
+    assert.equal(both.total_orders, fixture.length);
+    assert.ok(both.revenue >= 211.5);
   });
 });

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import {
   createStaff,
+  deleteStaff,
   getStaff,
   listStaff,
   replaceStaffBranches,
@@ -52,5 +53,10 @@ export const StaffController = {
 
   async branches(req: Request, res: Response) {
     sendSuccess(res, await replaceStaffBranches(actor(req), req.params.id as string, req.body.branchIds));
+  },
+
+  async remove(req: Request, res: Response) {
+    await deleteStaff(actor(req), req.params.id as string);
+    sendSuccess(res, { deleted: true });
   },
 };

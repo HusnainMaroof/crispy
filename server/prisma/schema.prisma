@@ -247,6 +247,9 @@ model admin_profiles {
   tabs                String[]              @default([])
   password_hash       String
   is_active           Boolean               @default(true)
+  /// Bumped on logout, password change, deactivation or role change. A token whose
+  /// `sv` claim differs is rejected, so a stolen token dies with the event.
+  token_version       Int                   @default(0)
   created_at          DateTime              @default(now())
   updated_at          DateTime              @updatedAt
   admin_branch_access admin_branch_access[]

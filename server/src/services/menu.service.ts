@@ -74,14 +74,12 @@ type CategoryRow = {
 };
 
 /**
- * Drops categories with nothing in them. The branch path already did this; the
- * global path did not, so an empty or placeholder category still rendered as a
- * dead tab that opened onto an empty grid.
+ * Keeps every category, even one with no items, so the storefront shows the
+ * full category list. An empty category renders as a tab with no products yet.
  */
 function toCategories(rows: CategoryRow[]): CategoryWithItems[] {
-  return rows.flatMap((cat) => {
+  return rows.map((cat) => {
     const { menu_items, ...category } = cat;
-    if (menu_items.length === 0) return [];
     // A branch can override sort_order, which lands after the SQL ORDER BY, so
     // re-apply it here. Array.sort is stable, so unchanged keys keep SQL order.
     const items = menu_items
@@ -94,7 +92,7 @@ function toCategories(rows: CategoryRow[]): CategoryWithItems[] {
         };
       })
       .sort((a, b) => a.sort_order - b.sort_order);
-    return [serialize<CategoryWithItems>({ ...category, items })];
+    return serialize<CategoryWithItems>({ ...category, items });
   });
 }
 
@@ -319,13 +317,36 @@ async function loadMenuItems(
     return serialize(rows);
   }
 
-  const rows = await db(options?.read).menu_items.findMany({
-    where,
-    orderBy: [{ sort_order: "asc" }, { id: "asc" }],
-    take,
-    include: itemBranchInclude,
-  });
-  return serialize(rows.map(withBranches));
+  // The items, their branch links and the branch names are independent reads,
+  // so they run in one wave. The old `include` chained them: items, then links,
+  // then the location names, three waits in a row.
+  const client = db(options?.read);
+  const [rows, links, locations] = await Promise.all([
+    client.menu_items.findMany({ where, orderBy: [{ sort_order: "asc" }, { id: "asc" }], take }),
+    client.branch_menu_items.findMany({
+      where: { available: true, menu_item: { is: where } },
+      select: { menu_item_id: true, location_id: true },
+    }),
+    client.locations.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+
+  // Same shape and order as the old include: each item lists its available
+  // branches, sorted by branch name (the database sorted the names).
+  const linkedBy = new Map<string, Set<string>>();
+  for (const link of links) {
+    const set = linkedBy.get(link.menu_item_id) ?? new Set<string>();
+    set.add(link.location_id);
+    linkedBy.set(link.menu_item_id, set);
+  }
+  return serialize(
+    rows.map((row) => {
+      const linked = linkedBy.get(row.id);
+      const branches = locations
+        .filter((location) => linked?.has(location.id))
+        .map((location) => ({ id: location.id, name: location.name }));
+      return { ...row, locations: branches };
+    }),
+  );
 }
 
 export async function getMenuItemById(id: string): Promise<MenuItem> {

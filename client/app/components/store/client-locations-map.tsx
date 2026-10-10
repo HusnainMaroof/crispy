@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState, type ComponentType } from "react";
-import type { MapLocation } from "./locations-map";
+import type { MapLocation, MapPoint } from "./locations-map";
 
 type MapProps = {
   locations: MapLocation[];
   selectedId: string;
   onSelect?: (id: string) => void;
+  origin?: MapPoint | null;
+  directionsHref?: string | null;
+  onPickOrigin?: (point: MapPoint) => void;
+  onLocate?: () => void;
+  locating?: boolean;
 };
 
 export default function ClientLocationsMap(props: MapProps) {

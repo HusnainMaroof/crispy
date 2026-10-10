@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import PageHeader from "@/app/components/admin/ui/page-header";
+import ActionButton from "@/app/components/admin/ui/action-button";
 import { api } from "@/lib/api";
 import { usePanel } from "@/lib/admin/use-panel";
 import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
@@ -83,7 +84,7 @@ function ConfirmDialog({ request, onCancel }: { request: ConfirmRequest; onCance
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="cms-confirm-title" className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <button type="button" className="absolute inset-0 bg-black/80" aria-label="Close dialog" onClick={onCancel} />
+      <button type="button" className="absolute inset-0 cursor-pointer bg-black/80" aria-label="Close dialog" onClick={onCancel} />
       <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-black p-6 shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
         <h2 id="cms-confirm-title" className="font-[family-name:var(--font-korolev),Korolev,sans-serif] text-3xl uppercase text-white">{request.title}</h2>
         <p className="mt-3 text-sm leading-relaxed text-white/65">{request.message}</p>
@@ -388,9 +389,9 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
               </div>
 
               <div className="sticky bottom-4 -mx-1 flex flex-wrap items-center gap-3 rounded-full border border-white/10 bg-black/85 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur">
-                <button type="submit" disabled={busyId === section.id || !dirty.has(section.id)} className="h-11 cursor-pointer rounded-full bg-[#FF0931] px-6 text-sm font-medium text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100">
-                  {busyId === section.id ? "Saving…" : "Save section"}
-                </button>
+                <ActionButton type="submit" busy={busyId === section.id} busyLabel="Saving…" disabled={!dirty.has(section.id)} className="rounded-full px-6">
+                  Save section
+                </ActionButton>
                 {dirty.has(section.id) && (
                   <button type="button" onClick={() => edit(section.id, draftOf(section))} className="cursor-pointer rounded-full px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/10 hover:text-white">Discard changes</button>
                 )}

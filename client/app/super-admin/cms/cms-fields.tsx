@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { compressImage } from "@/lib/image-compress";
 
 export type CmsField =
   | { kind: "text"; label: string; max: number; multiline?: boolean; hint?: string; default: string }
@@ -42,7 +44,9 @@ function MediaInput({ field, value, onChange }: { field: Extract<CmsField, { kin
   const isVideo = field.kind === "video";
 
   async function upload(file?: File) {
-    if (!file) return;
+    // Without this a second pick fired a second upload while the first was
+    // still running, and the slower one could win.
+    if (!file || uploading) return;
     const limit = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
     if (file.size > limit) {
       toast.error(`File must be ${limit / 1024 / 1024} MB or smaller.`);
@@ -50,8 +54,11 @@ function MediaInput({ field, value, onChange }: { field: Extract<CmsField, { kin
     }
     setUploading(true);
     try {
+      // Videos are already compressed and cannot be re-encoded cheaply, so
+      // only images go through the canvas pass.
+      const payload = isVideo ? file : await compressImage(file);
       const body = new FormData();
-      body.append("file", file);
+      body.append("file", payload);
       const result = await api.upload<{ url: string }>(isVideo ? "/admin/upload-media" : "/admin/upload", body);
       onChange(result.url);
       toast.success("Uploaded. Save the section to publish it.");
@@ -71,9 +78,21 @@ function MediaInput({ field, value, onChange }: { field: Extract<CmsField, { kin
           <img src={value} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" />
         )}
         <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={isVideo ? "https://… or /images/video.mp4" : "https://… or /images/photo.jpg"} className={`${fieldClass} mt-0`} />
-        <label className={`${smallButton} shrink-0 ${uploading ? "pointer-events-none opacity-40" : ""}`}>
+        <label
+          className={`${smallButton} flex shrink-0 items-center gap-2 ${uploading ? "cursor-progress opacity-60" : ""}`}
+        >
+          {uploading && <Loader2 aria-hidden className="size-3.5 animate-spin" />}
           {uploading ? "Uploading…" : "Upload"}
-          <input type="file" accept={isVideo ? VIDEO_TYPES : IMAGE_TYPES} className="hidden" onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ""; }} />
+          <input
+            type="file"
+            accept={isVideo ? VIDEO_TYPES : IMAGE_TYPES}
+            disabled={uploading}
+            className="hidden"
+            onChange={(event) => {
+              void upload(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
         </label>
       </div>
       <Hint text={field.hint ?? (isVideo ? "MP4, WebM or MOV, up to 50 MB." : "JPEG, PNG, WebP or AVIF, up to 5 MB.")} />

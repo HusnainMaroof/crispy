@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useStoreLocations } from "@/lib/use-store-locations";
 import { useStoreOrdering } from "@/lib/use-store-ordering";
 import type { MenuItemRedirects } from "@/lib/redux/types";
@@ -119,6 +120,11 @@ export default function DeliveryOverlay({
   const selectedName = locations.find((l) => l.id === selected)?.name ?? "";
   const selectedPlatform = platforms.find((p) => p.id === platform);
 
+  // The overlay has to be a child of <body>, not of whatever page opened it.
+  // Rendered in place it competed with the cart drawer, which is also z-[9999]
+  // but sits later in the DOM, so the drawer and its images painted over the
+  // overlay. A portal lifts it clear of every ancestor stacking context, and
+  // 10000 puts it above the drawer for good.
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -132,12 +138,12 @@ export default function DeliveryOverlay({
     };
   }, [onClose]);
 
-  return (
+  const content = (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={t("delivery.choose")}
-      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto p-4 sm:p-6"
+      className="fixed inset-0 z-[10000] flex items-start justify-center overflow-y-auto p-2 sm:p-3"
     >
       <div
         className="overlay-backdrop-in fixed inset-0 bg-black/85"
@@ -145,14 +151,15 @@ export default function DeliveryOverlay({
         aria-hidden
       />
 
-      {/* justify-start: centring an over-tall flex column pushed the heading
-            above the scroll origin, making it unreachable on a long branch list. */}
-      <div className="overlay-panel-in relative my-auto  h-[100vh]  flex w-full  md:w-[90%] flex-col justify-b overflow-y-auto rounded-2xl border border-[#242424] bg-black px-4  shadow-[0_20px_60px_rgba(0,0,0,0.7)] sm:px-6  ">
+      {/* The panel is fixed at 90vh and does not scroll. Only the inner wrapper scrolls,
+            so the close button stays put. The panel's transform animation would otherwise
+            make a fixed button scroll with the content. */}
+      <div className="overlay-panel-in relative my-auto flex h-[98vh] w-full flex-col overflow-hidden rounded-2xl border border-[#242424] bg-black shadow-[0_20px_60px_rgba(0,0,0,0.7)] md:w-[90%]">
         <button
           type="button"
           onClick={onClose}
           aria-label={t("delivery.close")}
-          className="overlay-fade-in fixed end-4 top-4 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
+          className="overlay-fade-in absolute end-3 top-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931]"
         >
           <svg
             width="14"
@@ -169,217 +176,133 @@ export default function DeliveryOverlay({
           </svg>
         </button>
 
-        {step === "branch" && (
-          <>
-            <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[40px] 3xl:text-[80px]">
-              Where are
-              <br />
-              you ordering from?
-            </h2>
-
-            <p className="overlay-fade-up stagger-1  text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] 3xl:text-[20px]">
-              Choose your nearest Crispies branch to continue.
-            </p>
-
-            {product && (
-              <div className="overlay-fade-in mx-auto  flex w-full max-w-[85%] items-center gap-3 rounded-2xl border border-[#242424] bg-[#161616] px-4   sm:max-w-[75%] md:max-w-[70%]">
-                {product.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={product.image}
-                    alt=""
-                    className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14"
-                  />
-                ) : (
-                  <span
-                    aria-hidden
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2b2b2b] sm:h-14 sm:w-14"
-                  />
-                )}
-                <span className="min-w-0">
-                  <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8f8f] sm:text-[11px]">
-                    Ordering
-                  </span>
-                  <span className="block truncate text-[15px] font-semibold text-white sm:text-[17px]">
-                    {product.name}
-                  </span>
-                </span>
-              </div>
-            )}
-
-            <div className="mx-auto mt-6 grid w-full max-w-[85%] grid-cols-1 gap-2 sm:grid-cols-2  md:mt-8 md:max-w-[75%] lg:max-w-[70%]">
-              {locations.map((loc, i) => {
-                const isSelected = selected === loc.id;
-
-                return (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    onClick={() => {
-                      if (
-                        !selectBranch(loc.id, localizedText(locale, loc.name))
-                      )
-                        return;
-                      setSelected(loc.id);
-                    }}
-                    aria-pressed={isSelected}
-                    className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] cursor-pointer items-center justify-between overflow-hidden rounded-xl border px-4 text-start transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[95px] ${
-                      isSelected
-                        ? "border-[#FF0931] bg-[#FF0931]/[0.07] shadow-[0_0_18px_rgba(255,9,49,0.15)]"
-                        : "border-[#242424] bg-[#161616] hover:border-[#3a3a3a]"
-                    }`}
-                  >
-                    <span className="flex flex-col items-start gap-1.5 sm:gap-3">
-                      <span className="text-[13px] font-semibold leading-snug text-white sm:text-[14px] md:text-[15px] lg:text-[18px] @max-3xl:text-[24px]">
-                        {localizedText(locale, loc.name)}
-                      </span>
-                      <span className="inline-flex items-center justify-center gap-2 rounded-full bg-[#085B1F] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[8px] @max-3xl:text-[12px] ">
-                        <span className="size-[4px] rounded-full bg-[#22c55e] sm:size-[8px]" />
-                        Open Now
-                      </span>
-                    </span>
-
-                    {!isSelected && (
-                      <span
-                        aria-hidden
-                        className="size-[18px] shrink-0 self-center rounded-full bg-[#2b2b2b] sm:size-[20px] md:size-[22px]"
-                      />
-                    )}
-
-                    {isSelected && (
-                      <span
-                        aria-hidden
-                        className="flex size-[18px] items-center justify-center rounded-full bg-[#FF0931] sm:size-[20px] md:size-[22px]"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="10"
-                          height="10"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          className="sm:w-3 sm:h-3 md:w-[12px] md:h-[12px]"
-                        >
-                          <path
-                            d="M9.99969 3L4.50024 8.4996L2.00049 5.99978"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              disabled={!selected}
-              onClick={() => setStep("platform")}
-              className={`overlay-fade-up stagger-7 mx-auto mt-4 flex w-full max-w-[85%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-5 md:max-w-[75%] md:py-4 md:text-[13px] lg:max-w-[70%] ${
-                selected
-                  ? "bg-[#FF0931] hover:brightness-110 active:scale-[0.99]"
-                  : "cursor-not-allowed bg-[#232323] opacity-60"
-              }`}
+        {/* Same reason as the close button above: the inner wrapper scrolls, so a
+              button rendered inside it scrolls away and gets clipped by the panel's
+              overflow-hidden. The platform step overflows on most viewports, which
+              made the back button disappear once the user scrolled to the Continue
+              button. Kept outside the scroll wrapper so it stays put. */}
+        {step === "platform" && (
+          <button
+            type="button"
+            onClick={() => {
+              setStep("branch");
+              setPlatform("");
+              setLinkError("");
+            }}
+            aria-label={t("delivery.back")}
+            className="overlay-fade-in absolute start-3 top-3 z-10 flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931] sm:start-4 sm:top-4 sm:size-9"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="pointer-events-none sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
             >
-              Continue to platforms
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#ffffff"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="md:w-4 md:h-4"
-              >
-                <path d="M4 12h16" />
-                <path d="m13 5 7 7-7 7" />
-              </svg>
-            </button>
-          </>
+              <path d="M19 12H5" />
+              <path d="m12 19-7-7 7-7" />
+            </svg>
+          </button>
         )}
 
-        {step === "platform" && (
-          <>
-            <button
-              type="button"
-              onClick={() => setStep("branch")}
-              aria-label={t("delivery.back")}
-              className="overlay-fade-in absolute start-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-full border border-[#2b2b2b] bg-[#161616] text-white transition-colors hover:border-[#FF0931] hover:bg-[#FF0931] sm:start-4 sm:top-4 sm:size-9"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
-              >
-                <path d="M19 12H5" />
-                <path d="m12 19-7-7 7-7" />
-              </svg>
-            </button>
+        <div className="flex min-h-0 flex-1 flex-col justify-between  overflow-y-auto px-3 pb-3 pt-12 sm:px-4 sm:pt-5">
+          {step === "branch" && (
+            <>
+              <div className="flex items-center justify-center gap-5 mx-auto">
+                {" "}
+                <div>
+                  <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[40px] 3xl:text-[80px]">
+                    Where are
+                    <br />
+                    you ordering from?
+                  </h2>
 
-            <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[40px] 3xl:text-[80px]">
-              How would
-              <br />
-              you like to order?
-            </h2>
+                  <p className="overlay-fade-up stagger-1  text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] 3xl:text-[20px]">
+                    Choose your nearest Crispies branch to continue.
+                  </p>
+                </div>
+                {product && (
+                  <div className="overlay-fade-in mx-auto flex w-fit max-w-[85%] items-center gap-3 rounded-2xl border border-[#242424] bg-[#161616] px-4   sm:max-w-[75%] md:max-w-[70%]">
+                    {product.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.image}
+                        alt=""
+                        className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#2b2b2b] sm:h-14 sm:w-14"
+                      />
+                    )}
+                    <span className="min-w-0">
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8f8f8f] sm:text-[11px]">
+                        Ordering
+                      </span>
+                      <span className="block truncate text-[15px] font-semibold text-white sm:text-[17px]">
+                        {product.name}
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            <p className="overlay-fade-up stagger-1  text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] 3xl:text-[20px]">
-              Choose your preferred delivery platform for{" "}
-              <span className="font-bold text-[#FF0931]">{selectedName}</span>{" "}
-              branch.
-            </p>
+              <div className="mx-auto mt-4 grid w-full max-w-[85%] grid-cols-1 gap-2 sm:grid-cols-2 md:mt-5 md:max-w-[75%] lg:max-w-[70%]">
+                {locations.map((loc, i) => {
+                  const isSelected = selected === loc.id;
 
-            <div className="mx-auto mt-6 grid w-full max-w-[90%] grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 md:mt-8 md:max-w-[80%] lg:max-w-[70%]">
-              {platforms.map((p, i) => {
-                const isSelected = platform === p.id;
-
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setPlatform(p.id)}
-                    aria-pressed={isSelected}
-                    className={`overlay-scale-in stagger-${Math.min(i + 2, 4)} relative flex cursor-pointer flex-col items-center rounded-2xl border px-4 py-6 text-center transition-all duration-200 sm:rounded-3xl sm:px-5 sm:pb-5 sm:pt-7 md:pb-6 md:pt-8 ${
-                      isSelected
-                        ? "border-[#FF0931] bg-[#FF0931]/[0.07] shadow-[0_0_18px_rgba(255,9,49,0.15)]"
-                        : "border-[#242424] bg-[#161616] hover:border-[#3a3a3a]"
-                    }`}
-                  >
-                    <span
-                      className="flex size-[56px] items-center justify-center rounded-full text-[10px] font-bold text-white sm:size-[64px] md:size-[80px] lg:size-[90px]"
-                      style={{ backgroundColor: p.logoBg }}
+                  return (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => {
+                        if (
+                          !selectBranch(loc.id, localizedText(locale, loc.name))
+                        )
+                          return;
+                        setSelected(loc.id);
+                      }}
+                      aria-pressed={isSelected}
+                      className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] cursor-pointer items-center justify-between overflow-hidden rounded-xl border px-4 text-start transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[95px] ${
+                        isSelected
+                          ? "border-[#FF0931] bg-[#FF0931]/[0.07] shadow-[0_0_18px_rgba(255,9,49,0.15)]"
+                          : "border-[#242424] bg-[#161616] hover:border-[#3a3a3a]"
+                      }`}
                     >
-                      {p.url}
-                    </span>
+                      <span className="flex flex-col items-start gap-1.5 sm:gap-3">
+                        <span className="text-[13px] font-semibold leading-snug text-white sm:text-[14px] md:text-[15px] lg:text-[18px] @max-3xl:text-[24px]">
+                          {localizedText(locale, loc.name)}
+                        </span>
+                        <span className="inline-flex items-center justify-center gap-2 rounded-full bg-[#085B1F] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[8px] @max-3xl:text-[12px] ">
+                          <span className="size-[4px] rounded-full bg-[#22c55e] sm:size-[8px]" />
+                          Open Now
+                        </span>
+                      </span>
 
-                    <span className="mt-4 text-[16px] font-bold text-white sm:text-[18px] md:text-[22px] lg:text-[25px]">
-                      {p.name}
-                    </span>
-                    <span className="mt-2 text-[13px] leading-relaxed text-[#9a9a9a] sm:text-[14px] md:text-[15px] lg:text-[16px] max-w-[180px] lg:max-w-[200px]">
-                      {t(p.desc)}
-                    </span>
-
-                    <span className="mt-5 flex h-[20px] items-center justify-center sm:mt-6 sm:h-[22px]">
-                      {isSelected ? (
+                      {!isSelected && (
                         <span
                           aria-hidden
-                          className="flex size-[20px] items-center justify-center rounded-full bg-[#FF0931] sm:size-[22px]"
+                          className="size-[18px] shrink-0 self-center rounded-full bg-[#2b2b2b] sm:size-[20px] md:size-[22px]"
+                        />
+                      )}
+
+                      {isSelected && (
+                        <span
+                          aria-hidden
+                          className="flex size-[18px] items-center justify-center rounded-full bg-[#FF0931] sm:size-[20px] md:size-[22px]"
                         >
                           <svg
+                            xmlns="http://www.w3.org/2000/svg"
                             width="10"
                             height="10"
                             viewBox="0 0 12 12"
                             fill="none"
-                            className="sm:w-3 sm:h-3"
+                            className="sm:w-3 sm:h-3 md:w-[12px] md:h-[12px]"
                           >
                             <path
                               d="M9.99969 3L4.50024 8.4996L2.00049 5.99978"
@@ -389,180 +312,290 @@ export default function DeliveryOverlay({
                             />
                           </svg>
                         </span>
-                      ) : (
-                        <span
-                          aria-hidden
-                          className="size-[20px] rounded-full bg-[#2b2b2b] sm:size-[22px]"
-                        />
                       )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              disabled={!platform}
-              onClick={() => {
-                if (!platform) return;
-                void (async () => {
-                  // Destination order: this product's link for the chosen
-                  // platform, then that platform's site-wide link, then the
-                  // fallback external order URL.
-                  const resolved = await resolveOrdering();
-                  const field = PLATFORM_URL_FIELDS[platform];
-                  const platformUrl = field ? resolved[field] : "";
-                  const productKey = PLATFORM_PRODUCT_LINKS[platform];
-                  const productUrl = productKey
-                    ? product?.redirects?.[productKey]
-                    : undefined;
-                  const target = [
-                    productUrl,
-                    platformUrl,
-                    resolved.redirectUrl,
-                  ].find(
-                    (value) =>
-                      Boolean(value) && /^https:\/\//i.test(value ?? ""),
+                    </button>
                   );
-                  if (!target) {
-                    setLinkError(t("delivery.missingLink"));
-                    return;
-                  }
-                  setLinkError("");
-                  setStep("redirect");
-                  window.location.assign(target);
-                })();
-              }}
-              className={`overlay-fade-up stagger-4 mx-auto mt-8 flex w-full max-w-[90%] cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3.5 sm:text-[12px] md:mt-10 md:max-w-[80%] md:py-4 md:text-[14px] lg:max-w-[70%] ${
-                platform
-                  ? "bg-[#FF0931] hover:brightness-110 active:scale-[0.99]"
-                  : "cursor-not-allowed bg-[#232323] opacity-60"
-              }`}
-            >
-              Continue to {selectedPlatform?.name ?? "platform"}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="md:w-5 md:h-5"
+                })}
+              </div>
+
+              <button
+                type="button"
+                disabled={!selected}
+                onClick={() => setStep("platform")}
+                className={`overlay-fade-up stagger-7 mx-auto mt-3 flex w-full max-w-[85%] cursor-pointer items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3 sm:text-[12px] md:mt-4 md:max-w-[75%] md:py-3.5 md:text-[13px] lg:max-w-[70%] ${
+                  selected
+                    ? "bg-[#FF0931] hover:brightness-110 active:scale-[0.99]"
+                    : "cursor-not-allowed bg-[#232323] opacity-60"
+                }`}
               >
-                <path
-                  d="M4.16602 10H15.834M10 15.834L15.834 10L10 4.16602"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-            {linkError && (
-              <p
-                className="overlay-fade-up mx-auto mt-4 max-w-[90%] text-center text-[12px] text-[#FF0931] md:max-w-[70%] md:text-[14px]"
-                role="alert"
-              >
-                {linkError}
-              </p>
-            )}
-          </>
-        )}
-
-        {step === "redirect" && (
-          <div className="flex flex-col items-center justify-center py-6 sm:py-8 md:py-10">
-            {/* Red dashed spinner */}
-            <div className="overlay-scale-in redirect-spinner mb-6 sm:mb-7 md:mb-8" />
-
-            {/* Heading */}
-            <h2 className="overlay-fade-up stagger-1 text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.1] text-white sm:text-[36px] md:text-[48px] lg:text-[56px]">
-              {t("delivery.taking").split("\n")[0]}
-              <br />
-              {t("delivery.taking").split("\n")[1]}
-            </h2>
-
-            {/* Subtext */}
-            <p className="overlay-fade-up stagger-2 mt-3 text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:mt-4 md:text-[16px] lg:text-[18px] max-w-[90%] sm:max-w-[80%] md:max-w-md">
-              {t("delivery.redirect")}
-            </p>
-
-            {/* Info pills */}
-            <div className="overlay-fade-up stagger-3 mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:mt-8">
-              {/* Branch pill */}
-              <div
-                className="flex items-center gap-1.5 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3"
-                style={{
-                  background: "#1a1a1a",
-                  border: "1px solid #333",
-                }}
-              >
+                Continue to platforms
                 <svg
-                  width="12"
-                  height="12"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
-                  className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                  stroke="#ffffff"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="md:w-4 md:h-4"
                 >
-                  <path
-                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-                    fill="#FF0931"
-                  />
+                  <path d="M4 12h16" />
+                  <path d="m13 5 7 7-7 7" />
                 </svg>
-                <span
-                  style={{
-                    color: "#FFF",
-                    fontWeight: 500,
-                  }}
-                  className="sm:text-[13px] md:text-[14px]"
-                >
-                  {selectedName} Branch
-                </span>
+              </button>
+            </>
+          )}
+
+          {step === "platform" && (
+            <>
+              <div>
+                {" "}
+                <h2 className="overlay-fade-up text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.18] tracking-[0.01em] text-white sm:text-[36px] md:text-[40px] 3xl:text-[80px]">
+                  How would
+                  <br />
+                  you like to order?
+                </h2>
+                <p className="overlay-fade-up stagger-1  text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:text-[16px] 3xl:text-[20px]">
+                  Choose your preferred delivery platform for{" "}
+                  <span className="font-bold text-[#FF0931]">
+                    {selectedName}
+                  </span>{" "}
+                  branch.
+                </p>
               </div>
 
-              {/* Platform pill */}
-              <div
-                className="flex items-center gap-3 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 md:px-6  md:py-3"
-                style={{
-                  background: "transparent",
-                  border: "1px solid #FF0931",
+              <div className="mx-auto mt-4 grid w-full max-w-[90%] grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3 md:mt-5 md:max-w-[80%] lg:max-w-[70%]">
+                {platforms.map((p, i) => {
+                  const isSelected = platform === p.id;
+
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPlatform(p.id)}
+                      aria-pressed={isSelected}
+                      className={`overlay-scale-in stagger-${Math.min(i + 2, 4)} relative flex cursor-pointer flex-col items-center rounded-2xl border px-4 py-4 text-center transition-all duration-200 sm:rounded-3xl sm:px-4 sm:pb-4 sm:pt-5 md:pb-5 md:pt-6 ${
+                        isSelected
+                          ? "border-[#FF0931] bg-[#FF0931]/[0.07] shadow-[0_0_18px_rgba(255,9,49,0.15)]"
+                          : "border-[#242424] bg-[#161616] hover:border-[#3a3a3a]"
+                      }`}
+                    >
+                      <span
+                        className="flex size-[56px] items-center justify-center rounded-full text-[10px] font-bold text-white sm:size-[64px] md:size-[80px] lg:size-[90px]"
+                        style={{ backgroundColor: p.logoBg }}
+                      >
+                        {p.url}
+                      </span>
+
+                      <span className="mt-3 text-[16px] font-bold text-white sm:text-[18px] md:text-[22px] lg:text-[25px]">
+                        {p.name}
+                      </span>
+                      <span className="mt-2 text-[13px] leading-relaxed text-[#9a9a9a] sm:text-[14px] md:text-[15px] lg:text-[16px] max-w-[180px] lg:max-w-[200px]">
+                        {t(p.desc)}
+                      </span>
+
+                      <span className="mt-3 flex h-[20px] items-center justify-center sm:mt-4 sm:h-[22px]">
+                        {isSelected ? (
+                          <span
+                            aria-hidden
+                            className="flex size-[20px] items-center justify-center rounded-full bg-[#FF0931] sm:size-[22px]"
+                          >
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              className="sm:w-3 sm:h-3"
+                            >
+                              <path
+                                d="M9.99969 3L4.50024 8.4996L2.00049 5.99978"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </span>
+                        ) : (
+                          <span
+                            aria-hidden
+                            className="size-[20px] rounded-full bg-[#2b2b2b] sm:size-[22px]"
+                          />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                disabled={!platform}
+                onClick={() => {
+                  if (!platform) return;
+                  void (async () => {
+                    // Destination order: this product's link for the chosen
+                    // platform, then that platform's site-wide link, then the
+                    // fallback external order URL.
+                    const resolved = await resolveOrdering();
+                    const field = PLATFORM_URL_FIELDS[platform];
+                    const platformUrl = field ? resolved[field] : "";
+                    const productKey = PLATFORM_PRODUCT_LINKS[platform];
+                    const productUrl = productKey
+                      ? product?.redirects?.[productKey]
+                      : undefined;
+                    const target = [
+                      productUrl,
+                      platformUrl,
+                      resolved.redirectUrl,
+                    ].find(
+                      (value) =>
+                        Boolean(value) && /^https:\/\//i.test(value ?? ""),
+                    );
+                    if (!target) {
+                      setLinkError(t("delivery.missingLink"));
+                      return;
+                    }
+                    setLinkError("");
+                    setStep("redirect");
+                    window.location.assign(target);
+                  })();
                 }}
+                className={`overlay-fade-up stagger-4 mx-auto mt-5 flex w-full max-w-[90%] cursor-pointer items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-white transition-all duration-200 sm:py-3 sm:text-[12px] md:mt-6 md:max-w-[80%] md:py-3.5 md:text-[14px] lg:max-w-[70%] ${
+                  platform
+                    ? "bg-[#FF0931] hover:brightness-110 active:scale-[0.99]"
+                    : "cursor-not-allowed bg-[#232323] opacity-60"
+                }`}
               >
+                Continue to {selectedPlatform?.name ?? "platform"}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 20 20"
                   fill="none"
-                  className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                  className="md:w-5 md:h-5"
                 >
-                  <g clipPath="url(#clip0_996_2749)">
-                    <path
-                      d="M10.6667 6.66579C10.6667 7.37309 10.3857 8.05142 9.88562 8.55156C9.38552 9.0517 8.70724 9.33267 8 9.33267C7.29276 9.33267 6.61448 9.0517 6.11438 8.55156C5.61428 8.05142 5.33333 7.37309 5.33333 6.66579M2.06836 4.0217H13.931M2.26667 3.64355C2.09357 3.87436 2 4.1551 2 4.44361V13.333C2 13.6866 2.14048 14.0258 2.39052 14.2759C2.64057 14.5259 2.97971 14.6664 3.33333 14.6664H12.6667C13.0203 14.6664 13.3594 14.5259 13.6095 14.2759C13.8595 14.0258 14 13.6866 14 13.333V4.44361C14 4.1551 13.9064 3.87436 13.7333 3.64355L12.4 1.86541C12.2758 1.6998 12.1148 1.56538 11.9296 1.47281C11.7445 1.38023 11.5403 1.33203 11.3333 1.33203H4.66667C4.45967 1.33203 4.25552 1.38023 4.07038 1.47281C3.88524 1.56538 3.7242 1.6998 3.6 1.86541L2.26667 3.64355Z"
-                      stroke="#FF0931"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_996_2749">
-                      <rect width="16" height="16" fill="white" />
-                    </clipPath>
-                  </defs>
+                  <path
+                    d="M4.16602 10H15.834M10 15.834L15.834 10L10 4.16602"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
                 </svg>
-                <span
-                  style={{
-                    color: "#FFF",
-                    fontSize: "16px",
-                    fontWeight: 500,
-                  }}
-                  className="sm:text-[13px] md:text-[14px]"
+              </button>
+              {linkError && (
+                <p
+                  className="overlay-fade-up mx-auto mt-4 max-w-[90%] text-center text-[12px] text-[#FF0931] md:max-w-[70%] md:text-[14px]"
+                  role="alert"
                 >
-                  {selectedPlatform?.name}
-                </span>
+                  {linkError}
+                </p>
+              )}
+            </>
+          )}
+
+          {step === "redirect" && (
+            <div className="flex flex-col items-center justify-center py-6 sm:py-8 md:py-10">
+              {/* Red dashed spinner */}
+              <div className="overlay-scale-in redirect-spinner mb-6 sm:mb-7 md:mb-8" />
+
+              {/* Heading */}
+              <h2 className="overlay-fade-up stagger-1 text-center font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-[1.1] text-white sm:text-[36px] md:text-[48px] lg:text-[56px]">
+                {t("delivery.taking").split("\n")[0]}
+                <br />
+                {t("delivery.taking").split("\n")[1]}
+              </h2>
+
+              {/* Subtext */}
+              <p className="overlay-fade-up stagger-2 mt-3 text-center text-[12px] font-normal text-[#8f8f8f] sm:text-[14px] md:mt-4 md:text-[16px] lg:text-[18px] max-w-[90%] sm:max-w-[80%] md:max-w-md">
+                {t("delivery.redirect")}
+              </p>
+
+              {/* Info pills */}
+              <div className="overlay-fade-up stagger-3 mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3 md:mt-8">
+                {/* Branch pill */}
+                <div
+                  className="flex items-center gap-1.5 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3"
+                  style={{
+                    background: "#1a1a1a",
+                    border: "1px solid #333",
+                  }}
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                  >
+                    <path
+                      d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                      fill="#FF0931"
+                    />
+                  </svg>
+                  <span
+                    style={{
+                      color: "#FFF",
+                      fontWeight: 500,
+                    }}
+                    className="sm:text-[13px] md:text-[14px]"
+                  >
+                    {selectedName} Branch
+                  </span>
+                </div>
+
+                {/* Platform pill */}
+                <div
+                  className="flex items-center gap-3 rounded-full px-3 py-2 sm:px-4 sm:py-2.5 md:px-6  md:py-3"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid #FF0931",
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                  >
+                    <g clipPath="url(#clip0_996_2749)">
+                      <path
+                        d="M10.6667 6.66579C10.6667 7.37309 10.3857 8.05142 9.88562 8.55156C9.38552 9.0517 8.70724 9.33267 8 9.33267C7.29276 9.33267 6.61448 9.0517 6.11438 8.55156C5.61428 8.05142 5.33333 7.37309 5.33333 6.66579M2.06836 4.0217H13.931M2.26667 3.64355C2.09357 3.87436 2 4.1551 2 4.44361V13.333C2 13.6866 2.14048 14.0258 2.39052 14.2759C2.64057 14.5259 2.97971 14.6664 3.33333 14.6664H12.6667C13.0203 14.6664 13.3594 14.5259 13.6095 14.2759C13.8595 14.0258 14 13.6866 14 13.333V4.44361C14 4.1551 13.9064 3.87436 13.7333 3.64355L12.4 1.86541C12.2758 1.6998 12.1148 1.56538 11.9296 1.47281C11.7445 1.38023 11.5403 1.33203 11.3333 1.33203H4.66667C4.45967 1.33203 4.25552 1.38023 4.07038 1.47281C3.88524 1.56538 3.7242 1.6998 3.6 1.86541L2.26667 3.64355Z"
+                        stroke="#FF0931"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </g>
+                    <defs>
+                      <clipPath id="clip0_996_2749">
+                        <rect width="16" height="16" fill="white" />
+                      </clipPath>
+                    </defs>
+                  </svg>
+                  <span
+                    style={{
+                      color: "#FFF",
+                      fontSize: "16px",
+                      fontWeight: 500,
+                    }}
+                    className="sm:text-[13px] md:text-[14px]"
+                  >
+                    {selectedPlatform?.name}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
+
+  // The overlay only ever opens from a click, so it never renders during SSR
+  // and the document guard below is never hit on the server.
+  if (typeof document === "undefined") return null;
+  return createPortal(content, document.body);
 }

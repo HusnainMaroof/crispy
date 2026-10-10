@@ -15,8 +15,8 @@ function LocationPinIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="150"
-      height="150"
+      width="130"
+      height="130"
       viewBox="0 0 255 255"
       fill="none"
     >
@@ -173,8 +173,8 @@ export default function Locations({
       ref={scopeRef}
       className="relative w-full bg-white px-6 sm:px-10  md:px-14 lg:px-20 py-16  sm:py-20  md:py-24  lg:py-28"
     >
-      <div className="absolute start-[50%] top-0 translate-x-[-50%] rtl:translate-x-[50%] translate-y-[-50%]">
-        <div className="fade-up">
+      <div className="absolute start-[50%] top-0 translate-x-[-50%] rtl:translate-x-[50%] translate-y-[-50%]  ">
+        <div className="fade-up ">
           <LocationPinIcon />
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function Locations({
 
                       {/* NAME */}
                       <span
-                        className={`loc-hover-red ${nameColor} uppercase font-normal leading-none whitespace-nowrap truncate`}
+                        className={`loc-hover-red loc-row-name ${nameColor} uppercase font-normal leading-none whitespace-nowrap truncate`}
                         style={{
                           fontFamily:
                             "var(--font-korolev), Korolev, sans-serif",
@@ -309,10 +309,10 @@ export default function Locations({
 
                       {/* Hours */}
                       <span
-                        className={`loc-hover-red ${hoursColor} font-normal leading-none whitespace-nowrap min-w-0`}
+                        className={`loc-row-hours loc-hover-red ${hoursColor} font-normal leading-[130%] min-w-0`}
                         style={{
                           fontFamily: "var(--font-inter), Inter, sans-serif",
-                          fontSize: "clamp(12px, 1.2vw, 12px)",
+                          fontSize: "12px",
                         }}
                       >
                         {localizedText(locale, loc.hours)}
@@ -390,12 +390,14 @@ export default function Locations({
             </Link>
           </div>
 
-          {/* Right — real map card */}
+          {/* Right — real map card. On lg+ it stretches to the list height. The
+              inner card is absolutely positioned, so a percentage height here
+              cannot collapse to zero. Below lg it uses a fixed height. */}
           <div
-            className="fade-up w-full lg:w-[420px] xl:w-[40%] shrink-0"
+            className="fade-up relative h-[320px] w-full lg:h-auto lg:min-h-[420px] lg:w-[420px] lg:self-stretch xl:w-[40%] shrink-0"
             data-delay="0.1"
           >
-            <div className="micro-elevate relative h-full w-full rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
+            <div className="micro-elevate absolute inset-0 rounded-[20px] sm:rounded-[24px] overflow-hidden bg-[#1A1A1A]">
               <LocationsMap
                 locations={mapLocations}
                 selectedId={activeSelectedId}

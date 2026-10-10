@@ -5,6 +5,8 @@ dotenv.config();
 type JwtConfig = {
   SECRET: string;
   EXPIRES_IN: string;
+  /** Hard cap on one admin login, however often the token is refreshed. */
+  SESSION_MAX_HOURS: number;
 };
 
 type ServerConfig = {
@@ -38,6 +40,29 @@ type FranchiseConfig = {
   SITE_URL: string;
 };
 
+type LocationConfig = {
+  /** Straight-line search radius in miles. Bounded 1 to 200. */
+  RADIUS_MILES: number;
+  /** Timeout for every geocoding request. */
+  GEOCODE_TIMEOUT_MS: number;
+  /** Nominatim is a free public service with a strict usage policy, so it is opt-out. */
+  NOMINATIM_ENABLED: boolean;
+  NOMINATIM_URL: string;
+  /** Nominatim requires an identifying User-Agent. */
+  USER_AGENT: string;
+};
+
+type RoutingConfig = {
+  /**
+   * Base URL of an OSRM-compatible routing server, e.g. https://router.example.com.
+   * Empty means in-app routing is off and the client shows the navigation link only.
+   */
+  OSRM_URL: string;
+  /** OSRM profile name. Common values are "driving" or "car", depending on how the server was built. */
+  OSRM_PROFILE: string;
+  TIMEOUT_MS: number;
+};
+
 type LogConfig = {
   LEVEL: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 };
@@ -55,6 +80,13 @@ type NeonConfig = {
   SLOW_QUERY_MS: number;
 };
 
+/** Falls back to the default when the value is missing, not a number, or outside the range. */
+function boundedNumber(raw: string | undefined, fallback: number, min: number, max: number): number {
+  const value = Number(raw);
+  if (!raw || !Number.isFinite(value) || value < min || value > max) return fallback;
+  return value;
+}
+
 function required(key: string, fallback?: string): string {
   const val = process.env[key] ?? fallback;
   if (!val) {
@@ -67,6 +99,7 @@ export const envConfig = {
   JWT: {
     SECRET: required("JWT_SECRET"),
     EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
+    SESSION_MAX_HOURS: Number(process.env.ADMIN_SESSION_MAX_HOURS) || 12,
   } satisfies JwtConfig,
 
   SERVER: {
@@ -102,6 +135,20 @@ export const envConfig = {
   LOG: {
     LEVEL: (process.env.LOG_LEVEL as LogConfig["LEVEL"]) || "info",
   } satisfies LogConfig,
+
+  LOCATION: {
+    RADIUS_MILES: boundedNumber(process.env.LOCATION_RADIUS_MILES, 50, 1, 200),
+    GEOCODE_TIMEOUT_MS: boundedNumber(process.env.LOCATION_GEOCODE_TIMEOUT_MS, 5000, 500, 15000),
+    NOMINATIM_ENABLED: process.env.LOCATION_NOMINATIM_ENABLED !== "false",
+    NOMINATIM_URL: process.env.LOCATION_NOMINATIM_URL || "https://nominatim.openstreetmap.org",
+    USER_AGENT: process.env.LOCATION_USER_AGENT || "CrispiesBranchLocator/1.0 (https://crispies.co.uk)",
+  } satisfies LocationConfig,
+
+  ROUTING: {
+    OSRM_URL: (process.env.ROUTING_OSRM_URL || "").replace(/\/+$/, ""),
+    OSRM_PROFILE: process.env.ROUTING_OSRM_PROFILE || "driving",
+    TIMEOUT_MS: boundedNumber(process.env.ROUTING_TIMEOUT_MS, 6000, 500, 15000),
+  } satisfies RoutingConfig,
 
   NEON: {
     DATABASE_URL: required("NEON_DATABASE_URL"),

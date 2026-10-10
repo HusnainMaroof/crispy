@@ -7,6 +7,7 @@ import {
   findCmsPage,
   findCmsSection,
   publicDefinition,
+  lockedFieldNames,
   sectionDefaults,
   sectionDefinition,
   type CmsPage,
@@ -140,11 +141,21 @@ async function loadPublicRows(pageId: string): Promise<SectionRow[]> {
   }
 }
 
+/**
+ * Creates any registry section rows a page is missing. It is a write, so it runs
+ * once per page per process rather than on every editor read. `skipDuplicates`
+ * makes the first call idempotent, and the registry only grows, so a later
+ * request never needs to re-check. A restart simply re-runs it once.
+ */
+const ensuredPages = new Set<string>();
+
 async function ensureSections(page: CmsPage) {
+  if (ensuredPages.has(page.id)) return;
   await getPrisma().cms_sections.createMany({
     data: page.sections.map((section, index) => ({ page: page.id, key: section.key, sort_order: index })),
     skipDuplicates: true,
   });
+  ensuredPages.add(page.id);
 }
 
 export async function getPublicCmsPage(pageId: string, requested?: unknown): Promise<PublicCmsPage> {
@@ -205,7 +216,7 @@ export async function getCmsPageForEditing(actor: Actor, pageId: string, request
     page: publicDefinition(page),
     locale,
     coverage,
-    sections: orderedSections(page, rows).map((section) => {
+    sections: orderedSections(page, rows).filter((section) => !section.hidden).map((section) => {
       const row = rows.find((item) => item.key === section.key)!;
       const translation = row.translations.find((item) => item.locale === locale) ?? null;
       const english = row.translations.find((item) => item.locale === DEFAULT_LOCALE);
@@ -244,11 +255,32 @@ function validateContent(section: CmsSection, content: Record<string, unknown>) 
   return result.data as Prisma.InputJsonValue;
 }
 
+/**
+ * Locked fields are not editable in the panel, but the editor still sends the
+ * whole content object back. Their values are restored from the stored copy (or
+ * the registry default) so a save can never change them.
+ */
+function restoreLocked(section: CmsSection, incoming: Record<string, unknown>, stored: Record<string, unknown>) {
+  const result = { ...incoming };
+  for (const name of lockedFieldNames(section)) {
+    result[name] = stored[name] !== undefined ? stored[name] : sectionDefaults(section)[name];
+  }
+  return result;
+}
+
 export async function updateCmsSection(actor: Actor, id: string, input: CmsSectionInput) {
   await assertCmsEditor(actor);
   const locale = requireLocale(input.locale ?? DEFAULT_LOCALE);
   const { row, section } = await requireSection(id);
-  const content = input.content !== undefined ? validateContent(section, input.content) : undefined;
+  if (section.hidden) throw new BadRequestException("This section is managed by the store");
+  let content: Prisma.InputJsonValue | undefined;
+  if (input.content !== undefined) {
+    const current = await getPrisma().cms_section_translations.findUnique({
+      where: { section_id_locale: { section_id: id, locale } },
+      select: { content: true },
+    });
+    content = validateContent(section, restoreLocked(section, input.content, asObject(current?.content)));
+  }
   if (input.is_active !== undefined) {
     await getPrisma().cms_sections.update({ where: { id }, data: { is_active: input.is_active } });
   }
@@ -270,13 +302,14 @@ export async function moveCmsSection(actor: Actor, id: string, direction: "up" |
   await assertCmsEditor(actor);
   const { row, section } = await requireSection(id);
   const page = requirePage(row.page);
-  if (!page.sortable || section.pinned) throw new BadRequestException("This section has a fixed position");
+  if (!page.sortable || section.pinned || section.hidden) throw new BadRequestException("This section has a fixed position");
   const rows = await loadRows(page.id);
   const ordered = orderedSections(page, rows);
   const movable = ordered.filter((item) => !item.pinned);
   const index = movable.findIndex((item) => item.key === section.key);
   const swap = direction === "up" ? index - 1 : index + 1;
   if (swap >= 0 && swap < movable.length) {
+    if (movable[swap].hidden) throw new BadRequestException("This section has a fixed position");
     [movable[index], movable[swap]] = [movable[swap], movable[index]];
     const next = [...ordered.filter((item) => item.pinned), ...movable];
     await getPrisma().$transaction(next.map((item, order) => getPrisma().cms_sections.updateMany({

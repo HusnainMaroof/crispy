@@ -174,8 +174,15 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
           onMouseLeave={handleMouseLeave}
         >
           <div className="overflow-clip">
+            {/* Pinned to ltr on purpose. Under the page-level dir="rtl" a flex
+                row lays the cards out right-to-left, but the tween below still
+                translates physically leftwards and measures its loop width from
+                the reversed order, so the row snaps and the loop seam shows.
+                Reel thumbnails have no reading order, so forcing ltr keeps the
+                wrap exact in every language. */}
             <div
               ref={trackRef}
+              dir="ltr"
               className="flex items-center gap-6 px-4 sm:gap-8 sm:px-6"
             >
               {[...posts, ...posts, ...posts].map(

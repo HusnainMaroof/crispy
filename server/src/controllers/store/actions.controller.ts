@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import { createOrder, getOrdersByCustomerId, getOrdersByEmail, getOrderById, customerCanView } from "../../services/order.service.js";
-import { BadRequestException, InternalServerException, NotFoundException } from "../../utils/app-error.js";
+import { createOrder, getOrdersByCustomerId, getOrdersByEmail, getOwnedOrderById } from "../../services/order.service.js";
+import { BadRequestException, InternalServerException } from "../../utils/app-error.js";
 import { resolvePage, sendPaged } from "../../utils/pagination.js";
 import { createContactMessage, createJobApplication } from "../../services/admin.service.js";
 import { sendSuccess } from "../../utils/response.js";
@@ -76,10 +76,8 @@ export const ActionsController = {
   },
 
   async getOrder(req: Request, res: Response) {
-    const result = await getOrderById(req.params.id as string);
-    if (!customerCanView(result.order.customer_id, req.customerId)) {
-      throw new NotFoundException("Order not found");
-    }
-    sendSuccess(res, result);
+    // Owner match is in the query. Another customer's id gets the same 404 as a
+    // missing one, so ids cannot be used to probe for orders.
+    sendSuccess(res, await getOwnedOrderById(req.params.id as string, req.customerId));
   },
 };

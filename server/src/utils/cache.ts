@@ -193,6 +193,20 @@ export const TTL_LOCATIONS_SECONDS = 60;
 export const TTL_JOBS_SECONDS = 60;
 export const TTL_SETTINGS_SECONDS = 120;
 export const TTL_CMS_SECONDS = 120;
+// Staff auth is re-checked on every admin request so a deactivation or role
+// change takes effect at once. A short cache cuts that per-request lookup; every
+// profile write drops the entry via invalidateAdminAuth, so revocation is
+// immediate on the instance that handles the write and bounded by this TTL on
+// any other instance. Keep it short: this is a security boundary, not display
+// data. Multi-instance deployments should set CACHE_REDIS_URL so invalidation
+// propagates and revocation stays immediate across instances.
+export const TTL_ADMIN_AUTH_SECONDS = 15;
+
+// Dashboard stats are branch-scoped aggregates over the whole order history.
+// The two revenue sums grow with the table, so the result is held briefly and
+// dropped whenever an order is written. Short because a manager watching the
+// dashboard during a shift expects a new order to show up quickly.
+export const TTL_DASHBOARD_SECONDS = 30;
 
 async function fire(action: () => Promise<void>): Promise<void> {
   try {
@@ -234,4 +248,17 @@ export function invalidateCmsCache(): Promise<void> {
 export function invalidateJobsCache(): Promise<void> {
   bump("jobs:public:");
   return fire(() => getCache().delByPrefix("jobs:public:"));
+}
+
+/** An order was created or its status moved, so the dashboard totals changed. */
+export function invalidateDashboardCache(): Promise<void> {
+  bump("dashboard:");
+  return fire(() => getCache().delByPrefix("dashboard:"));
+}
+
+/** A staff profile changed (role, tabs, or the active flag). */
+export function invalidateAdminAuth(adminId: string): Promise<void> {
+  const key = `admin-auth:${adminId}`;
+  bump(key);
+  return fire(() => getCache().del(key));
 }

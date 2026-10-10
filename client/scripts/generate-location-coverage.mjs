@@ -198,7 +198,8 @@ const payload = {
 };
 
 const root = dirname(fileURLToPath(import.meta.url));
-const outPath = join(root, "..", "lib", "location-coverage.json");
+// The coverage index is read by the server (server/src/data), the one place that resolves locations.
+const outPath = join(root, "..", "..", "server", "src", "data", "location-coverage.json");
 writeFileSync(outPath, `${JSON.stringify(payload)}\n`);
 console.log(
   `\nWrote ${Object.keys(outcodes).length} outcodes + ${branches.length} branch postcodes to ${outPath}`,

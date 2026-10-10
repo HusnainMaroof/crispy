@@ -118,7 +118,7 @@ export default function Welcome({
   }, []);
 
   return (
-    <div ref={outerRef} className={styles.outer}>
+    <div ref={outerRef} className={`  ${styles.outer}   min-[1400px]:bg-black  rounded-3xl  lg:rounded-[50px]  `}>
       <div
         ref={panelRef}
         className={`${styles.panel} flex w-full items-center overflow-hidden rounded-3xl bg-white px-6 sm:px-10  md:px-14 lg:px-20 lg:rounded-[50px] `}

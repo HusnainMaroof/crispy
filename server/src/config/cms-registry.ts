@@ -1,4 +1,11 @@
-export type CmsField =
+/**
+ * `locked` marks a field the admin panel must not expose or accept. The field
+ * still ships to the storefront with its stored value, it just cannot be
+ * changed from the panel. Locking works on top-level section fields only.
+ */
+type Lockable = { locked?: boolean };
+
+export type CmsField = (
   | { kind: "text"; label: string; max: number; multiline?: boolean; hint?: string; default: string }
   | { kind: "image" | "video"; label: string; hint?: string; default: string }
   | { kind: "link"; label: string; external?: boolean; hint?: string; default: string }
@@ -7,7 +14,8 @@ export type CmsField =
   | { kind: "select"; label: string; options: { value: string; label: string }[]; hint?: string; default: string }
   | { kind: "toggle"; label: string; hint?: string; default: boolean }
   | { kind: "branches"; label: string; max: number; hint?: string; default: string[] }
-  | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] };
+  | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] }
+) & Lockable;
 
 export type CmsListItem = Exclude<CmsField, { kind: "list" } | { kind: "branches" }> | { kind: "object"; label: string; fields: Record<string, CmsField> };
 
@@ -18,6 +26,8 @@ export type CmsSection = {
   label: string;
   hint: string;
   pinned?: boolean;
+  /** Hidden from the admin panel. The storefront still shows it, and nobody can edit or move it from the panel. */
+  hidden?: boolean;
   fields: Record<string, CmsField>;
   check?: (content: Record<string, unknown>) => CmsIssue | null;
 };
@@ -120,27 +130,29 @@ export const CMS_PAGES: CmsPage[] = [
       {
         key: "flavours",
         label: "Discover your flavor",
-        hint: "Headings, flavour names, heat scale, scrolling photos, and the order button.",
+        hint: "Only the center image and the carousel photos can be changed here. The headings, flavour names, heat scale, and order button are fixed in the storefront code.",
         fields: {
-          title: text("Original flavours label", 120, "Crispies Original Flavours"),
-          discoverTitle: text("Main heading", 120, "Discover Your Crispy Flavor"),
+          title: { ...text("Original flavours label", 120, "Crispies Original Flavours"), locked: true },
+          discoverTitle: { ...text("Main heading", 120, "Discover Your Crispy Flavor"), locked: true },
           tiles: {
             kind: "list",
             label: "Flavour tiles",
             max: 5,
+            locked: true,
             item: { kind: "object", label: "Flavour", fields: { label: text("Name", 60, ""), image: { kind: "image", label: "Tile artwork", default: "" } } },
             default: ["Zesty Lemon", "Korean BBQ", "Smokey BBQ", "Hawaiian Sweet Chilli", "Fiery Buffalo"].map((label) => ({ label, image: "" })),
           },
-          scaleTitle: text("Heat scale heading", 120, "Flaming Grill Flavour"),
+          scaleTitle: { ...text("Heat scale heading", 120, "Flaming Grill Flavour"), locked: true },
           scale: {
             kind: "list",
             label: "Heat scale",
             max: 6,
+            locked: true,
             item: { kind: "object", label: "Heat level", fields: { label: text("Name", 60, ""), image: { kind: "image", label: "Icon artwork", default: "" } } },
             default: ["Garlic", "Lemon", "Mild", "Hot", "Extra", "BBQ & Jerk Sauce"].map((label) => ({ label, image: "" })),
           },
-          ctaLabel: text("Button label", 80, "Order On The Website"),
-          ctaUrl: { kind: "link", label: "Button destination", external: true, default: "/menu" },
+          ctaLabel: { ...text("Button label", 80, "Order On The Website"), locked: true },
+          ctaUrl: { kind: "link", label: "Button destination", external: true, default: "/menu", locked: true },
           centerImage: { kind: "image", label: "Center image", hint: "The photo on the white card in the middle of the carousel.", default: "/images/orderOnimage.png" },
           galleryImages: {
             kind: "list",
@@ -166,6 +178,7 @@ export const CMS_PAGES: CmsPage[] = [
       {
         key: "partner",
         label: "Partner",
+        hidden: true,
         hint: "The franchise block on the homepage.",
         fields: {
           title: text("Headline", 200, "Bring Crispies\nto your city.", { multiline: true, hint: "One line per row." }),
@@ -222,6 +235,20 @@ export function sectionDefaults(section: CmsSection): Record<string, unknown> {
   return Object.fromEntries(Object.entries(section.fields).map(([name, field]) => [name, structuredClone(field.default)]));
 }
 
+export function isLocked(field: CmsField) {
+  return field.locked === true;
+}
+
+/** Field names the admin panel must not send, because it cannot edit them. */
+export function lockedFieldNames(section: CmsSection): string[] {
+  return Object.entries(section.fields).filter(([, field]) => isLocked(field)).map(([name]) => name);
+}
+
+/** The fields the editor is allowed to render and change. */
+export function editableFields(section: CmsSection): Record<string, CmsField> {
+  return Object.fromEntries(Object.entries(section.fields).filter(([, field]) => !isLocked(field)));
+}
+
 export function publicDefinition(page: CmsPage) {
   return {
     id: page.id,
@@ -233,5 +260,5 @@ export function publicDefinition(page: CmsPage) {
 }
 
 export function sectionDefinition(section: CmsSection) {
-  return { label: section.label, hint: section.hint, pinned: Boolean(section.pinned), fields: section.fields };
+  return { label: section.label, hint: section.hint, pinned: Boolean(section.pinned), fields: editableFields(section) };
 }

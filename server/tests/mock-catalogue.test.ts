@@ -83,8 +83,10 @@ describe("development mock catalogue", () => {
     const standardItems = standardBranch.flatMap((category) => category.items);
     assert.equal(Number(standardItems.find((item) => item.id === override.menu_item_id)?.price), Number(catalogue?.price));
 
-    // A branch menu never shows empty categories.
-    assert.ok([...hiddenBranch, ...overrideBranch, ...standardBranch].every((category) => category.items.length > 0));
+    // A branch menu lists every category the global menu lists, including empty ones.
+    assert.equal(standardBranch.length, globalMenu.length);
+    assert.equal(overrideBranch.length, globalMenu.length);
+    assert.equal(hiddenBranch.length, globalMenu.length);
   });
 
   it("keeps branch managers scoped and only the superadmin open", () => {

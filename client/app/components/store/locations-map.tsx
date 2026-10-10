@@ -18,6 +18,8 @@ export type MapLocation = {
   lng: number;
 };
 
+export type MapPoint = { lat: number; lng: number };
+
 // CARTO basemaps require an API key — without it tiles render with an
 // "API key required" watermark instead of map imagery.
 const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_BASECMAPS_API_KEY ?? "";
@@ -79,10 +81,24 @@ export default function LocationsMap({
   locations,
   selectedId,
   onSelect,
+  origin = null,
+  directionsHref = null,
+  onPickOrigin,
+  onLocate,
+  locating = false,
 }: {
   locations: MapLocation[];
   selectedId: string;
   onSelect?: (id: string) => void;
+  /** Customer start point. Drawn as its own marker, separate from the branch pins. */
+  origin?: MapPoint | null;
+  /** Google Maps directions link for the selected branch, shown at the bottom of the map. */
+  directionsHref?: string | null;
+  /** A map click sets the start point. */
+  onPickOrigin?: (point: MapPoint) => void;
+  /** Asks the browser for the customer's position (crosshair button). */
+  onLocate?: () => void;
+  locating?: boolean;
 }) {
   const hostRef = useRef<MapHostElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -207,6 +223,61 @@ export default function LocationsMap({
     }
   }, [mapEpoch, locations, selectedId, onSelect]);
 
+  // Origin marker, in its own layer group. It is removed and redrawn on every
+  // change and on unmount, and it leaves the branch pins alone.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapAlive(map)) return;
+    if (!origin) return;
+
+    const group = L.layerGroup();
+    try {
+      if (origin) {
+        // Blue "my location" dot, the same idea as Google Maps.
+        L.marker([origin.lat, origin.lng], {
+          icon: L.divIcon({
+            className: "",
+            html: `<span style="display:block;width:18px;height:18px;border-radius:50%;background:#2F80FF;border:3px solid #FFFFFF;box-shadow:0 0 0 8px rgba(47,128,255,0.25),0 2px 6px rgba(0,0,0,0.4)"></span>`,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
+          }),
+          interactive: false,
+          keyboard: false,
+        }).addTo(group);
+      }
+      group.addTo(map);
+    } catch {
+      /* map torn down mid-update */
+    }
+
+    return () => {
+      try {
+        group.remove();
+      } catch {
+        /* already removed */
+      }
+    };
+  }, [mapEpoch, origin]);
+
+  // A tap on empty map sets the start point. Branch pins stop their own clicks.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapAlive(map) || !onPickOrigin) return;
+
+    const handleClick = (event: L.LeafletMouseEvent) => {
+      onPickOrigin({ lat: event.latlng.lat, lng: event.latlng.lng });
+    };
+    map.on("click", handleClick);
+
+    return () => {
+      try {
+        map.off("click", handleClick);
+      } catch {
+        /* map already removed */
+      }
+    };
+  }, [mapEpoch, onPickOrigin]);
+
   // Fly to the selection, skipping the initial mount.
   useEffect(() => {
     const map = mapRef.current;
@@ -239,6 +310,46 @@ export default function LocationsMap({
   return (
     <div className="absolute inset-0 z-0">
       <div ref={hostRef} className="crispy-map h-full w-full" />
+
+      {onLocate && (
+        <button
+          type="button"
+          onClick={onLocate}
+          disabled={locating}
+          aria-label="Show my location"
+          title="Show my location"
+          className="absolute end-3 bottom-3 z-[1000] flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-[#1A1A1A] text-white shadow-lg transition-colors hover:bg-[#2A2A2A] disabled:cursor-wait disabled:opacity-60"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="7" />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        </button>
+      )}
+
+      {directionsHref && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[1000] flex justify-center px-3">
+          <a
+            href={directionsHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto cursor-pointer rounded-full bg-[#FF0931] px-6 py-3 text-[14px] font-bold text-white shadow-lg transition-transform hover:scale-105"
+          >
+            Directions
+          </a>
+        </div>
+      )}
 
       <div className="pointer-events-none absolute top-2 end-2 z-[1000] text-[9px] leading-none text-white/45">
         <a

@@ -70,8 +70,19 @@ const cartSlice = createSlice({
       state.items = next.items;
       saveCart(state);
     },
+    /**
+     * Back to browsing the whole menu across every branch. The cart is emptied
+     * because its lines were picked against a specific branch, and checkout
+     * needs a branch before it can quote.
+     */
+    clearCartBranch(state) {
+      const next = clearLines(state);
+      state.locationId = null;
+      state.items = next.items;
+      saveCart(state);
+    },
   },
 });
 
-export const { hydrateCart, addItem, removeItem, updateQuantity, clearCart, switchCartBranch } = cartSlice.actions;
+export const { hydrateCart, addItem, removeItem, updateQuantity, clearCart, switchCartBranch, clearCartBranch } = cartSlice.actions;
 export default cartSlice.reducer;

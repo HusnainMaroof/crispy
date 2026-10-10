@@ -5,7 +5,17 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import { envConfig } from "./config/env.js";
 import { httpLogger, logger } from "./middleware/logger.js";
-import { globalLimiter, authLimiter, adminLimiter, quoteLimiter, checkoutLimiter } from "./middleware/rate-limiter.js";
+import {
+  globalLimiter,
+  authLimiter,
+  adminLimiter,
+  quoteLimiter,
+  checkoutLimiter,
+  contactLimiter,
+  brochureLimiter,
+  locationResolveLimiter,
+  locationRouteLimiter,
+} from "./middleware/rate-limiter.js";
 import { identifyCustomer } from "./middleware/identify-customer.js";
 import { disconnectPrisma, getPrisma } from "./config/prisma.js";
 import { assertProductionConfig } from "./config/env.js";
@@ -74,6 +84,11 @@ app.use((req, res, next) => {
   // higher allowance instead.
   if (req.path === "/api/menu/quote") return quoteLimiter(req, res, next);
   if (req.path === "/api/orders") return checkoutLimiter(req, res, next);
+  // Endpoints that send email get a much tighter cap than the general one.
+  if (req.method === "POST" && req.path === "/api/contact") return contactLimiter(req, res, next);
+  if (req.method === "POST" && req.path === "/api/franchise/brochure") return brochureLimiter(req, res, next);
+  if (req.method === "POST" && req.path === "/api/store/locations/resolve") return locationResolveLimiter(req, res, next);
+  if (req.method === "POST" && req.path === "/api/store/locations/route") return locationRouteLimiter(req, res, next);
   globalLimiter(req, res, next);
 });
 

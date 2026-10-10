@@ -10,6 +10,7 @@
   /* Breathing room kept above the panel so it never sits flush against the
      very top of the viewport. */
   --panel-inset: clamp(20px, 3vw, 40px);
+  
 }
 
 .panel {
@@ -19,4 +20,5 @@
      bottom — the space above is what keeps it from feeling full-bleed. */
   height: calc(100dvh - var(--navbar-h, 0px) - var(--panel-inset));
   min-height: 480px;
+  max-height: 1100px;
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
 import "dotenv/config";
 import { getPrisma } from "../src/config/prisma.js";
-import { CMS_PAGES, findCmsSection, sectionDefaults } from "../src/config/cms-registry.js";
+import { CMS_PAGES, findCmsSection, lockedFieldNames, sectionDefaults, sectionDefinition } from "../src/config/cms-registry.js";
 import {
   getCmsPageForEditing,
   getPublicCmsPage,
@@ -63,6 +63,42 @@ describe("cms registry", () => {
     assert.equal(cmsSectionUpdateSchema.parse({ locale: "ar", is_published: true }).locale, "ar");
     assert.equal(cmsSectionUpdateSchema.safeParse({}).success, false);
   });
+
+  it("hides locked fields from the editor and keeps them out of saves", async () => {
+    const flavours = findCmsSection("home", "flavours");
+    assert.ok(flavours);
+    const definition = sectionDefinition(flavours);
+    // Only the center image and the carousel stay editable.
+    assert.deepEqual(Object.keys(definition.fields), ["centerImage", "galleryImages"]);
+    assert.deepEqual(lockedFieldNames(flavours), ["title", "discoverTitle", "tiles", "scaleTitle", "scale", "ctaLabel", "ctaUrl"]);
+    // Every other page keeps its full field set.
+    const welcome = findCmsSection("home", "welcome");
+    assert.ok(welcome);
+    assert.equal(Object.keys(sectionDefinition(welcome).fields).length, Object.keys(welcome.fields).length);
+  });
+
+  it("ignores attempts to change a locked field on the flavours section", async () => {
+    const flavours = await section("home", "flavours");
+    const existing = await prisma.cms_section_translations.findUnique({ where: { section_id_locale: { section_id: flavours.id, locale: "en" } } });
+    const before = (await getPublicCmsPage("home")).sections.flavours;
+    try {
+      await updateCmsSection(superadmin, flavours.id, {
+        content: { ...before, centerImage: "/images/new-center.png", ctaLabel: "Hacked label", title: "Hacked heading" },
+        is_published: true,
+      });
+      const after = (await getPublicCmsPage("home")).sections.flavours;
+      assert.equal(after.centerImage, "/images/new-center.png");
+      assert.equal(after.ctaLabel, before.ctaLabel);
+      assert.equal(after.title, before.title);
+    } finally {
+      await prisma.cms_section_translations.deleteMany({ where: { section_id: flavours.id } });
+      if (existing) {
+        await prisma.cms_section_translations.create({
+          data: { section_id: flavours.id, locale: "en", content: existing.content ?? {}, is_published: existing.is_published },
+        });
+      }
+    }
+  });
 });
 
 describe("cms pages", { concurrency: 1 }, () => {
@@ -107,12 +143,13 @@ describe("cms pages", { concurrency: 1 }, () => {
   it("keeps pinned sections first and reorders the rest", async () => {
     const hero = await section("home", "hero");
     await assert.rejects(() => moveCmsSection(superadmin, hero.id, "down"), BadRequestException);
-    const locations = await section("home", "locations");
-    await moveCmsSection(superadmin, locations.id, "down");
+    // Partner is hidden and fixed, so a visible section cannot move past it. Flavours moves past Locations instead.
+    const flavours = await section("home", "flavours");
+    await moveCmsSection(superadmin, flavours.id, "down");
     try {
-      assert.deepEqual((await getPublicCmsPage("home")).order, ["hero", "welcome", "flavours", "partner", "locations", "instagram"]);
+      assert.deepEqual((await getPublicCmsPage("home")).order, ["hero", "welcome", "locations", "flavours", "partner", "instagram"]);
     } finally {
-      await moveCmsSection(superadmin, locations.id, "up");
+      await moveCmsSection(superadmin, flavours.id, "up");
     }
     assert.deepEqual((await getPublicCmsPage("home")).order, ["hero", "welcome", "flavours", "locations", "partner", "instagram"]);
   });

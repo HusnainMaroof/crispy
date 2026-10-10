@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { getOrders, countOrders, getOrderById, nextStatuses, updateOrderStatus, assertOrderAccess } from "../../services/order.service.js";
+import { getOrders, countOrders, getOrderById, nextStatuses, updateOrderStatus, deleteOrder, assertOrderAccess } from "../../services/order.service.js";
 import { getAccessibleLocationIds } from "../../services/branch-access.service.js";
 import { ForbiddenException, UnauthorizedException } from "../../utils/app-error.js";
 import { resolvePage, sendPaged } from "../../utils/pagination.js";
@@ -56,5 +56,11 @@ export const OrdersController = {
     // the client-side row with it turned the Branch column into a raw UUID.
     const result = await getOrderById(req.params.id as string);
     sendSuccess(res, withAllowed({ ...result.order, items: result.items }));
+  },
+
+  async remove(req: Request, res: Response) {
+    if (!req.admin) throw new UnauthorizedException();
+    await deleteOrder(req.params.id as string, req.admin);
+    sendSuccess(res, { deleted: true });
   },
 };

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
 import { api } from "@/lib/api";
@@ -24,6 +25,7 @@ export default function BranchDetailPage() {
   const params = useParams<{ id: string }>();
   const [branch, setBranch] = useState<Branch | null>(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!params.id) return;
@@ -33,12 +35,15 @@ export default function BranchDetailPage() {
   }, [params.id]);
 
   async function setStatus(status: "active" | "inactive") {
-    if (!branch) return;
+    if (!branch || busy) return;
+    setBusy(true);
     try {
       const updated = await api.patch<Branch>(`/admin/locations/${branch.id}`, { status });
       setBranch({ ...branch, ...updated });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update the branch");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -57,9 +62,11 @@ export default function BranchDetailPage() {
           <button
             type="button"
             onClick={() => void setStatus(branch.status === "active" ? "inactive" : "active")}
-            className="mt-4 h-11 w-fit rounded-full bg-[#FF0931] px-5"
+            disabled={busy}
+            className="btn-press mt-4 flex h-11 w-fit items-center gap-2 rounded-full bg-[#FF0931] px-5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {branch.status === "active" ? "Deactivate" : "Activate"}
+            {busy && <Loader2 aria-hidden className="size-4 animate-spin" />}
+            {busy ? "Updating…" : branch.status === "active" ? "Deactivate" : "Activate"}
           </button>
         </div>
       )}

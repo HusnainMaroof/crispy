@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { Loader2 } from "lucide-react";
 import Modal from "@/app/components/admin/ui/modal";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import JobScopeFields from "@/app/components/admin/ui/job-scope-fields";
@@ -49,6 +50,9 @@ export default function JobFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The disabled button covers most of this, but a fast double submit can
+    // still land before React re-renders, and that would create two posts.
+    if (submitting) return;
     const filteredRequirements = requirements.filter((r) => r.trim() !== "");
     if (filteredRequirements.length === 0) {
       setFieldError("Add at least one requirement.");
@@ -201,6 +205,7 @@ export default function JobFormModal({
             Cancel
           </button>
           <button type="submit" disabled={submitting} className={primaryButton}>
+            {submitting && <Loader2 aria-hidden className="size-4 animate-spin" />}
             {submitting ? (post ? "Saving…" : "Creating…") : post ? "Save Changes" : "Create Job Post"}
           </button>
         </div>

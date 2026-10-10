@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { envConfig } from "../config/env.js";
 
 export const businessSettingsSchema = z.object({
   delivery_fee: z.number().min(0),
@@ -89,6 +90,28 @@ export const jobApplicationSchema = z.object({
 });
 
 /**
+ * A public applicant may only point at a CV we stored ourselves: the raw upload
+ * path of our Cloudinary account, over https. Anything else is an outside link
+ * that an admin would later open from the applications grid.
+ */
+export function isOwnCvUrl(value: string, cloudName = envConfig.CLOUDINARY.CLOUD_NAME): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === "https:" &&
+    url.hostname === "res.cloudinary.com" &&
+    url.username === "" &&
+    url.password === "" &&
+    url.port === "" &&
+    url.pathname.startsWith(`/${cloudName}/raw/upload/`)
+  );
+}
+
+/**
  * The store form uploads the CV file and sends back the stored URL, and a
  * CV-less application cannot be shortlisted, so the public route requires one
  * rather than silently accepting an application nobody can review. Admin
@@ -96,7 +119,7 @@ export const jobApplicationSchema = z.object({
  * arrives by another channel.
  */
 export const jobApplicationPublicSchema = jobApplicationSchema.omit({ job_post_id: true }).extend({
-  cv_url: cvLinkSchema,
+  cv_url: cvLinkSchema.refine(isOwnCvUrl, { message: "CV must be uploaded through the careers form" }),
 });
 
 export const jobApplicationUpdateSchema = z.object({

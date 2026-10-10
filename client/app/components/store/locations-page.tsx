@@ -6,7 +6,16 @@ import { useStoreLocations } from "@/lib/use-store-locations";
 import { localizedText } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { useBranchSelection } from "@/lib/branch-selection";
-import { resolveNearestBranch } from "@/lib/location-search";
+import {
+  createLatestGate,
+  describeGeolocationError,
+  formatMiles,
+  navigationLink,
+  resolveByOrigin,
+  resolveByQuery,
+  type LatLng,
+  type ResolveResponse,
+} from "@/lib/location-resolution";
 import { useLenis } from "@/app/components/providers/smooth-scroll";
 import type { MapLocation } from "./locations-map";
 import Footer from "@/app/components/store/footer";
@@ -15,6 +24,7 @@ import LocationsMap from "./client-locations-map";
 
 type SearchMessage =
   | { type: "error"; text: string }
+  | { type: "choice"; text: string; candidates: (LatLng & { label: string })[] }
   | {
       type: "success";
       text: string;
@@ -301,9 +311,19 @@ export default function Locations() {
     [locations],
   );
   const [selectedId, setSelectedId] = useState("");
+  const selectedMapLocation = mapLocations.find((l) => l.id === selectedId) ?? null;
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState<SearchMessage | null>(null);
+  const [origin, setOrigin] = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
+  const gateRef = useRef(createLatestGate());
+
+  // Pending lookups must not write state after the page unmounts.
+  useEffect(() => {
+    const gate = gateRef.current;
+    return () => gate.cancel();
+  }, []);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -357,66 +377,111 @@ export default function Locations() {
     }, 80);
   };
 
-  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
+  /**
+   * Runs one backend lookup. The newest lookup wins: an older response that
+   * arrives late is dropped, so it cannot overwrite a newer result.
+   */
+  const runLookup = async (lookup: () => Promise<ResolveResponse>, note = "", pinned: LatLng | null = null) => {
+    const ticket = gateRef.current.next();
+    setSearching(true);
+    if (pinned) setOrigin(pinned);
+    try {
+      const result = await lookup();
+      if (!ticket.isCurrent()) return;
+      await showResolution(result, note);
+    } catch (error) {
+      if (!ticket.isCurrent()) return;
+      setSearchMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Search failed. Try again.",
+      });
+    } finally {
+      if (ticket.isCurrent()) setSearching(false);
+    }
+  };
+
+  const showResolution = async (result: ResolveResponse, note: string) => {
+    if (result.status === "not_found" || !result.branch) {
+      setSearchMessage({ type: "error", text: result.message ?? t("locations.searchRequired") });
+      return;
+    }
+
+    if (result.status === "ambiguous") {
+      setSearchMessage({
+        type: "choice",
+        text: result.message ?? "Choose the right place.",
+        candidates: result.candidates,
+      });
+      return;
+    }
+
+    const branch = result.branch;
+    if (result.origin) setOrigin({ lat: result.origin.lat, lng: result.origin.lng });
+
+    // Distances are straight-line (Haversine). Approximate starts are labelled as such.
+    const distanceText = result.distance
+      ? `${result.origin?.approximate ? "about " : ""}${formatMiles(result.distance.value)} in a straight line`
+      : "";
+    const approximateNote = result.origin?.approximate ? " The start point is approximate." : "";
+    // A branch that is not open yet is still a match, so say so instead of
+    // letting it read like a branch you can order from today.
+    const comingSoonNote = branch.availability === "coming_soon" ? ` · ${t("locations.comingSoon")}, not open for orders yet` : "";
+    const prefix = result.origin
+      ? t("locations.nearestTo", { label: result.origin.label })
+      : t("locations.match");
+
+    setSearchMessage({
+      type: "success",
+      text: `${localizedText(locale, branch.name)}, ${localizedText(locale, branch.address)}${distanceText ? ` · ${distanceText}` : ""}${comingSoonNote}.${approximateNote}${note}`,
+      branchId: branch.id,
+      prefix,
+    });
+    revealBranch(branch.id);
+
+  };
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const query = search.trim();
     if (!query) {
       setSearchMessage({ type: "error", text: t("locations.searchRequired") });
       return;
     }
+    if (searching) return;
+    void runLookup(() => resolveByQuery(query));
+  };
 
-    setSearching(true);
-    try {
-      const result = await resolveNearestBranch(
-        query,
-        locations.flatMap((location) =>
-          location.lat != null && location.lng != null
-            ? [
-                {
-                  ...location,
-                  lat: location.lat,
-                  lng: location.lng,
-                  comingSoon: location.status === "coming_soon",
-                },
-              ]
-            : [],
-        ),
-      );
-      if ("error" in result) {
-        setSearchMessage({ type: "error", text: result.error });
-        return;
-      }
-
-      const distanceText =
-        result.distanceMiles != null
-          ? t("locations.milesAway", { miles: result.distanceMiles.toFixed(1) })
-          : "";
-
-      // A branch that is not open yet is still a match, so say so instead of
-      // letting it read like a branch you can order from today.
-      const comingSoonNote = result.branch.comingSoon ? ` · ${t("locations.comingSoon")}` : "";
-
-      const prefix =
-        result.via === "suggest"
-          ? t("locations.suggest")
-          : result.via === "name"
-            ? t("locations.match")
-            : t("locations.nearestTo", { label: result.searchedLabel });
-
-      setSearchMessage({
-        type: "success",
-        text: `${localizedText(locale, result.branch.name)} — ${localizedText(locale, result.branch.address)}${distanceText}${comingSoonNote}`,
-        branchId: result.branch.id,
-        prefix,
-      });
-      revealBranch(result.branch.id);
-    } finally {
-      setSearching(false);
+  const useCurrentLocation = () => {
+    if (searching || locating) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setSearchMessage({ type: "error", text: "Your browser cannot share its location. Enter a postcode instead." });
+      return;
     }
+    setLocating(true);
+    // Only runs from this click. The browser shows its own permission prompt.
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        const point = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const accuracy = position.coords.accuracy;
+        const note = accuracy > 500 ? ` Your GPS reading is rough (about ${Math.round(accuracy)} m), so check the result.` : "";
+        void runLookup(() => resolveByOrigin(point), note, point);
+      },
+      (error) => {
+        setLocating(false);
+        setSearchMessage({ type: "error", text: describeGeolocationError(error.code) });
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
+  const pickOnMap = (point: LatLng) => {
+    void runLookup(() => resolveByOrigin(point), "", point);
   };
 
   const [indicator, setIndicator] = useState({ top: 10, height: 0});
-  const draggingRef = useRef(false);
+  // Grab offset inside the thumb while dragging, so the thumb follows the pointer.
+  const dragRef = useRef<{ offset: number } | null>(null);
   const [maxListH, setMaxListH] = useState<number | null>(null);
 
   // Show ~4 cards at a time: measure first card height + gaps
@@ -448,7 +513,7 @@ export default function Locations() {
       setIndicator({ top: 0, height: trackH });
       return;
     }
-    const thumbH = Math.max(50, trackH * (clientHeight / scrollHeight));
+    const thumbH = Math.min(80, Math.max(50, trackH * (clientHeight / scrollHeight)));
     const maxScroll = scrollHeight - clientHeight;
     const top = (scrollTop / maxScroll) * (trackH - thumbH);
     setIndicator({ top, height: thumbH });
@@ -470,35 +535,46 @@ export default function Locations() {
     scrollListToBranch(selectedId);
   }, [selectedId]);
 
-  // Drag / click on the track to scroll the list
-  const jumpToClientY = (clientY: number) => {
+  // Moves the list so the thumb top sits at the pointer minus the grab offset.
+  // Uses the same thumb height as syncIndicator, so the thumb never overhangs the track.
+  const scrollToPointer = (clientY: number, offset: number) => {
     const sc = scrollRef.current;
     const track = trackRef.current;
     if (!sc || !track) return;
     const { scrollHeight, clientHeight } = sc;
     const trackH = track.clientHeight;
     if (scrollHeight <= clientHeight || trackH <= 0) return;
-    const thumbH = Math.max(50, trackH * (clientHeight / scrollHeight));
+    const thumbH = Math.min(80, Math.max(50, trackH * (clientHeight / scrollHeight)));
     const rect = track.getBoundingClientRect();
-    const y = clientY - rect.top - thumbH / 2;
+    const y = clientY - rect.top - offset;
     const ratio = Math.min(1, Math.max(0, y / (trackH - thumbH)));
     sc.scrollTop = ratio * (scrollHeight - clientHeight);
   };
 
+  // Pressing the thumb keeps the grab point. Pressing the empty track centers the thumb on the pointer.
+  const onThumbPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragRef.current = { offset: e.clientY - rect.top };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
   const onTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    draggingRef.current = true;
+    const offset = indicator.height / 2;
+    dragRef.current = { offset };
     e.currentTarget.setPointerCapture(e.pointerId);
-    jumpToClientY(e.clientY);
+    scrollToPointer(e.clientY, offset);
   };
 
   const onTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
-    jumpToClientY(e.clientY);
+    if (!dragRef.current) return;
+    scrollToPointer(e.clientY, dragRef.current.offset);
   };
 
   const endDrag = () => {
-    draggingRef.current = false;
+    dragRef.current = null;
   };
 
   return (
@@ -559,7 +635,7 @@ export default function Locations() {
                     <h4 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-black capitalize leading-[100%] text-black">
                       {t(feat.title)}
                     </h4>
-                    <p className=" max-w-[180px]  ps-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[20px] font-normal leading-normal text-[#6B6B6B]">
+                    <p className=" max-w-[180px]  ps-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal leading-normal text-[#6B6B6B]">
                       {t(feat.desc)}
                     </p>
                   </div>
@@ -609,7 +685,7 @@ export default function Locations() {
                 <h3 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[26px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
                   Cant find us
                 </h3>
-                <p className="m-0 mt-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal capitalize leading-[100%] tracking-[0.54px] text-[#696969]  sm:text-[20px]">
+                <p className="m-0 mt-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal capitalize leading-[100%] tracking-[0.54px] text-[#696969]  sm:text-[17px]">
                   Search for your area and
                   <br />
                   find nearest crispies
@@ -707,6 +783,28 @@ export default function Locations() {
         </div>
 
 
+        <div className="px-6 sm:px-10 md:px-12 xl:px-25">
+          {searchMessage?.type === "choice" && (
+            <div className="mx-auto flex max-w-[720px] flex-col gap-4 pt-4 text-center">
+              <p className="font-[family-name:var(--font-inter),Inter,sans-serif] text-[15px] text-[#333]">{searchMessage.text}</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {searchMessage.candidates.map((candidate) => (
+                  <button
+                    key={`${candidate.lat},${candidate.lng}`}
+                    type="button"
+                    disabled={searching}
+                    onClick={() => void runLookup(() => resolveByOrigin(candidate), "", candidate)}
+                    className="cursor-pointer rounded-full border border-[#C4C4C4] px-4 py-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-black transition-colors hover:border-[#FF0931] disabled:opacity-60"
+                  >
+                    {candidate.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+
         {/* Map + Locations List */}
         <div
           id="locations-results"
@@ -723,11 +821,12 @@ export default function Locations() {
                 onPointerMove={onTrackPointerMove}
                 onPointerUp={endDrag}
                 onPointerCancel={endDrag}
-                className="relative w-2 shrink-0 self-stretch cursor-pointer touch-none select-none rounded-[4px] bg-[#D9D9D9]"
+                className="relative w-2 shrink-0 self-stretch cursor-grab active:cursor-grabbing touch-none select-none rounded-[4px] bg-[#D9D9D9]"
               >
-                <span
-                  className="absolute start-0 w-2 rounded-[4px] bg-[#FF0931] h-20"
-                  style={{ top: indicator.top, }}
+                <div
+                  onPointerDown={onThumbPointerDown}
+                  className="absolute start-0 w-2 cursor-grab rounded-[4px] bg-black active:cursor-grabbing"
+                  style={{ top: indicator.top, height: indicator.height }}
                 />
               </div>
 
@@ -785,7 +884,7 @@ export default function Locations() {
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 sm:gap-5">
                             <span
-                              className={`font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[26px] font-bold uppercase leading-none tracking-[0.54px] sm:text-[40px] ${
+                              className={`font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[24px] font-bold uppercase leading-none tracking-[0.54px] sm:text-[34px] ${
                                 isActive ? "text-black" : "text-[#B3B3B3]"
                               }`}
                             >
@@ -816,7 +915,7 @@ export default function Locations() {
                           </div>
 
                           <p
-                            className={`m-0 mt-3 max-w-[280px] font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] leading-[1.4] sm:mt-8 sm:text-[20px] ${
+                            className={`m-0 mt-3 max-w-[280px] font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] leading-[1.4] sm:mt-8 sm:text-[16px] ${
                               isActive ? "text-[#999]" : "text-[#D2D2D2]"
                             }`}
                           >
@@ -845,6 +944,15 @@ export default function Locations() {
                   locations={mapLocations}
                   selectedId={selectedId}
                   onSelect={chooseBranch}
+                  origin={origin}
+                  directionsHref={
+                    selectedMapLocation
+                      ? navigationLink(origin, { lat: selectedMapLocation.lat, lng: selectedMapLocation.lng })
+                      : null
+                  }
+                  onPickOrigin={pickOnMap}
+                  onLocate={useCurrentLocation}
+                  locating={locating}
                 />
               </div>
             </div>
