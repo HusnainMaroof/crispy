@@ -199,9 +199,12 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
     }
   }
 
-  function save(section: Section) {
+  // Publishing is a button, not a checkbox. A checkbox that started unticked
+  // let people save images as a draft and wonder why the site never changed.
+  function save(section: Section, publish: boolean) {
     const draft = drafts[section.id];
-    void run(section.id, () => api.patch<PagePayload>(`/admin/cms/sections/${section.id}`, { locale, ...draft }), "Section saved");
+    const message = publish ? "Published. Live on the site in a few seconds." : "Saved as draft. Not live yet.";
+    void run(section.id, () => api.patch<PagePayload>(`/admin/cms/sections/${section.id}`, { locale, ...draft, is_published: publish }), message);
   }
 
   function move(section: Section, direction: "up" | "down") {
@@ -326,22 +329,38 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
       <div className="grid max-w-4xl gap-5">
         {section && (() => {
           const draft = drafts[section.id] ?? draftOf(section);
-          const live = draft.is_active;
           const position = movable.findIndex((item) => item.id === section.id);
           const canMove = payload?.page.sortable && !section.definition.pinned;
+          const edited = dirty.has(section.id);
+          const published = section.translation?.is_published ?? false;
+          const language = LOCALE_LABELS[locale];
+          const status = !section.is_active
+            ? { tone: "muted", label: "Hidden", detail: "Visitors do not see this section." }
+            : !published
+              ? {
+                tone: "amber",
+                label: "Not published",
+                detail: locale === "en"
+                  ? "Visitors see the built-in default. Press Publish to put this content live."
+                  : "Arabic visitors see the English copy. Press Publish to use this Arabic copy.",
+              }
+              : edited
+                ? { tone: "amber", label: "Live, with unpublished changes", detail: "Your latest edits are not live yet. Press Publish to put them live." }
+                : { tone: "green", label: "Live", detail: `Visitors see this ${language} copy.` };
+          const statusClass = status.tone === "green"
+            ? "bg-green-500/15 text-green-300"
+            : status.tone === "amber" ? "bg-amber-400/10 text-amber-200" : "bg-white/10 text-white/50";
+          const dotClass = status.tone === "green" ? "bg-green-400" : status.tone === "amber" ? "bg-amber-300" : "bg-white/40";
           return (
-            <form key={section.id} onSubmit={(event) => { event.preventDefault(); save(section); }} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
+            <form key={section.id} onSubmit={(event) => { event.preventDefault(); save(section, true); }} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
               <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-5 py-4">
-                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${live ? "bg-green-500/15 text-green-300" : "bg-white/10 text-white/50"}`}>
-                  <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${live ? "bg-green-400" : "bg-white/40"}`} />
-                  {live ? "Live on site" : "Hidden"}
-                </span>
-                {dirty.has(section.id) && (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-200">
-                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-amber-300" />
-                    Unsaved changes
+                <div className="min-w-0">
+                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ${statusClass}`}>
+                    <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+                    {status.label}
                   </span>
-                )}
+                  <p className="mt-2 text-xs text-white/50">{status.detail}</p>
+                </div>
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                   {canMove && <>
                     <button type="button" onClick={() => move(section, "up")} disabled={position <= 0 || busyId !== ""} className="h-11 w-11 cursor-pointer rounded-full border border-white/15 text-sm text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent" aria-label="Move section up" title="Move section up">↑</button>
@@ -353,7 +372,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
 
               {section.copied_from_english && (
                 <p className="mb-5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
-                  No {LOCALE_LABELS[locale]} copy yet. The English content is filled in below as a starting point; visitors see English until you save and publish.
+                  No {language} copy yet. The English content is filled in below as a starting point. Visitors see English until you publish.
                 </p>
               )}
 
@@ -374,25 +393,33 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
                 </div>
               )}
 
-              <div className="mb-6 grid gap-3 sm:grid-cols-2">
-                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5 transition-colors hover:border-white/20">
-                  <input type="checkbox" checked={draft.is_active} onChange={(event) => edit(section.id, { is_active: event.target.checked })} className="mt-0.5 h-4 w-4 shrink-0 accent-[#FF0931]" />
-                  <span className="text-sm leading-snug text-white/75">Show this section on the site</span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5 transition-colors hover:border-white/20">
-                  <input type="checkbox" checked={draft.is_published} onChange={(event) => edit(section.id, { is_published: event.target.checked })} className="mt-0.5 h-4 w-4 shrink-0 accent-[#FF0931]" />
-                  <span className="text-sm leading-snug text-white/75">
-                    Publish this {LOCALE_LABELS[locale]} copy
-                    <span className="mt-1 block text-xs font-normal text-white/40">Unpublished copy is saved as a draft. Visitors see the published English copy, or the built-in default if there is none.</span>
-                  </span>
-                </label>
+              <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5">
+                <span className="text-sm leading-snug text-white/75">
+                  Show this section on the website
+                  <span className="mt-1 block text-xs font-normal text-white/40">Turn off to hide it in every language.</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={draft.is_active}
+                  aria-label="Show this section on the website"
+                  onClick={() => edit(section.id, { is_active: !draft.is_active })}
+                  className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${draft.is_active ? "bg-[#FF0931]" : "bg-white/15"}`}
+                >
+                  <span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${draft.is_active ? "left-6" : "left-1"}`} />
+                </button>
               </div>
 
               <div className="sticky bottom-4 -mx-1 flex flex-wrap items-center gap-3 rounded-full border border-white/10 bg-black/85 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur">
-                <ActionButton type="submit" busy={busyId === section.id} busyLabel="Saving…" disabled={!dirty.has(section.id)} className="rounded-full px-6">
-                  Save section
+                <ActionButton type="submit" busy={busyId === section.id} busyLabel="Publishing…" disabled={busyId !== "" || (published && !edited)} className="rounded-full px-6">
+                  {published && !edited ? "Published" : "Publish"}
                 </ActionButton>
-                {dirty.has(section.id) && (
+                {edited && !published && (
+                  <button type="button" onClick={() => save(section, false)} disabled={busyId !== ""} className="cursor-pointer rounded-full border border-white/15 px-4 py-2 text-sm text-white/75 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">
+                    Save as draft
+                  </button>
+                )}
+                {edited && (
                   <button type="button" onClick={() => edit(section.id, draftOf(section))} className="cursor-pointer rounded-full px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/10 hover:text-white">Discard changes</button>
                 )}
                 {section.translation && (
