@@ -7,6 +7,7 @@ import { useAdminSession } from "@/lib/admin/session";
 import { defaultAdminPath } from "@/lib/admin/tabs";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import CrispiesWordmark from "@/app/components/brand/crispies-wordmark";
 
 gsap.registerPlugin(useGSAP);
 
@@ -45,8 +46,8 @@ export default function AdminLoginPage() {
     <div ref={containerRef} className="flex min-h-screen items-center justify-center bg-black px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="login-title font-[family-name:var(--font-korolev)] text-4xl uppercase text-white">
-            Crispies
+          <h1 aria-label="Crispies" className="login-title flex justify-center">
+            <CrispiesWordmark className="h-12 w-[137px]" />
           </h1>
           <p className="login-subtitle mt-2 text-sm text-white/50">Sign in to manage your restaurant.</p>
         </div>

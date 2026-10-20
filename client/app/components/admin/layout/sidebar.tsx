@@ -13,6 +13,8 @@ import { useAdminSession } from "@/lib/admin/session";
 import { NAV_SECTIONS, adminTab, tabHref, type AdminTabId } from "@/lib/admin/tabs";
 import { splitPanel } from "@/lib/admin/paths";
 import { SidebarSkeleton } from "@/app/components/admin/ui/skeleton";
+import CrispiesWordmark from "@/app/components/brand/crispies-wordmark";
+import { roleLabel } from "@/lib/admin/roles";
 
 const ICONS: Record<string, (props: { className?: string }) => ReactNode> = {
   dashboard: DashboardIcon,
@@ -110,8 +112,9 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
           {!collapsed && (
-            <Link href={logoHref} className="font-display text-2xl tracking-wider text-white cursor-pointer">
-              CRISP<span className="text-brand-red">IES</span>
+            <Link href={logoHref} aria-label="Crispies admin home" className="flex min-w-0 flex-col gap-1 cursor-pointer">
+              <CrispiesWordmark className="h-7 w-[95px]" />
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{roleLabel(user?.role ?? "staff")}</span>
             </Link>
           )}
           {collapsed && (
@@ -279,6 +282,13 @@ export default function Sidebar({ isOpen, collapsed, onClose, onToggleCollapse, 
               </Link>
             );
           })}
+
+          {!collapsed && user && (
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5">
+              <p className="truncate text-sm font-medium text-white">{user.name}</p>
+              <p className="truncate text-xs text-white/40">{user.email}</p>
+            </div>
+          )}
 
           {/* Logout */}
           <button
