@@ -96,9 +96,8 @@ export const metadata: Metadata = {
       "100% halal smash burgers and crispy chicken, delivered across London.",
     images: ["/images/og-logo.png"],
   },
-  icons: {
-    icon: "/images/blacksvglogo.svg",
-  },
+  // Icons come from app/favicon.ico, app/icon.png, app/apple-icon.png and
+  // app/manifest.ts. Rebuild them with: node scripts/generate-icons.mjs
 };
 
 export default async function RootLayout({
