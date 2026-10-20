@@ -17,23 +17,11 @@ type InstagramContent = {
   followLabel?: string;
 };
 
-const DEFAULT_POSTS = [
-  { url: "https://www.instagram.com/reel/DXohuMwDTw3/", thumbnailUrl: "/images/heroimage.png" },
-  { url: "https://www.instagram.com/reel/DcgNQ9xNZzU/", thumbnailUrl: "/images/aboutimage.jpg" },
-  { url: "https://www.instagram.com/reel/DcA2VEfs3cf/", thumbnailUrl: "/images/frienchies.png" },
-  { url: "https://www.instagram.com/reel/DbYdlyNNaRR/", thumbnailUrl: "/images/partnerImages.jpg" },
-  { url: "https://www.instagram.com/reel/DauQEe8NqlT/", thumbnailUrl: "/images/heroimage.png" },
-  { url: "https://www.instagram.com/reel/DZzxwhstJp6/", thumbnailUrl: "/images/aboutimage.jpg" },
-  { url: "https://www.instagram.com/reel/DXRFf4nCidl/", thumbnailUrl: "/images/frienchies.png" },
-  { url: "https://www.instagram.com/reel/CjatkkYjtRf/", thumbnailUrl: "/images/partnerImages.jpg" },
-];
-
 const MARQUEE_COPIES = 3;
 
 export default function Instagram({ content, followLabel = "Follow" }: { content?: InstagramContent; followLabel?: string }) {
-  const posts: NonNullable<InstagramContent["reels"]> = content
-    ? (content.reels ?? []).map((post) => ({ ...post, thumbnailUrl: post.thumbnailUrl || "/images/heroimage.png" }))
-    : DEFAULT_POSTS;
+  // Reels come only from the CMS (Content > Home > Instagram).
+  const posts = content?.reels ?? [];
   const profileUrl = content?.profileUrl || "https://www.instagram.com/crispiesuk";
   const username = content?.username || "crispiesuk";
   const trackRef = useRef<HTMLDivElement>(null);
@@ -194,13 +182,15 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
                   rel="noopener noreferrer"
                   className="group relative flex-shrink-0 aspect-[9/16] w-[200px] overflow-hidden rounded-[50px] bg-black sm:w-[280px]"
                 >
-                  <img
-                    src={post.thumbnailUrl}
-                    alt={`Instagram reel by ${username}`}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  {post.thumbnailUrl && (
+                    <img
+                      src={post.thumbnailUrl}
+                      alt={`Instagram reel by ${username}`}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )}
 
                   <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40" />
                   {(post.likes || post.views) && <div className="absolute bottom-4 start-4 flex gap-3 text-xs font-semibold text-white drop-shadow">{post.views && <span>▶ {post.views}</span>}{post.likes && <span>♥ {post.likes}</span>}</div>}

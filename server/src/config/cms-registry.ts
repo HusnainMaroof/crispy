@@ -153,14 +153,14 @@ export const CMS_PAGES: CmsPage[] = [
           },
           ctaLabel: { ...text("Button label", 80, "Order On The Website"), locked: true },
           ctaUrl: { kind: "link", label: "Button destination", external: true, default: "/menu", locked: true },
-          centerImage: { kind: "image", label: "Center image", hint: "The photo on the white card in the middle of the carousel.", default: "/images/orderOnimage.png" },
+          centerImage: { kind: "image", label: "Center image", hint: "The photo on the white card in the middle of the carousel.", default: "" },
           galleryImages: {
             kind: "list",
             label: "Carousel",
             max: 12,
             hint: "These photos scroll behind the center card. Use at least two.",
             item: { kind: "image", label: "Slide", default: "" },
-            default: ["/images/aboutimage.jpg", "/images/aboutimage.jpg", "/images/aboutimage.jpg", "/images/aboutimage.jpg"],
+            default: [],
           },
         },
       },
@@ -193,7 +193,8 @@ export const CMS_PAGES: CmsPage[] = [
         label: "Instagram",
         hint: "Profile, numbers, and the reels in the row.",
         fields: {
-          title: text("Section heading", 120, "Instagram"),
+          // The storefront has no visible heading for this section.
+          title: { ...text("Section heading", 120, "Instagram"), locked: true },
           username: text("Username", 50, "crispiesuk"),
           profileUrl: { kind: "url", label: "Profile URL", hosts: INSTAGRAM_HOSTS, default: "https://www.instagram.com/crispiesuk" },
           posts: text("Posts", 40, "557"),

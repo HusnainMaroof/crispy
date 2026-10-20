@@ -108,7 +108,7 @@ export default function DeliveryOverlay({
   product?: { name: string; image?: string; redirects?: MenuItemRedirects };
 }) {
   const { locale, t } = useLocale();
-  const { locations } = useStoreLocations();
+  const { locations, loading: locationsLoading } = useStoreLocations();
   const { resolveOrdering } = useStoreOrdering();
   const { selectBranch } = useBranchSelection();
   const [selected, setSelected] = useState<string | null>("");
@@ -252,7 +252,24 @@ export default function DeliveryOverlay({
                 )}
               </div>
 
-              <div className="mx-auto mt-4 grid w-full max-w-[85%] grid-cols-1 gap-2 sm:grid-cols-2 md:mt-5 md:max-w-[75%] lg:max-w-[70%]">
+              <div
+                className="mx-auto mt-4 grid w-full max-w-[85%] grid-cols-1 gap-2 sm:grid-cols-2 md:mt-5 md:max-w-[75%] lg:max-w-[70%]"
+                aria-busy={locationsLoading}
+              >
+                {locationsLoading &&
+                  Array.from({ length: 6 }, (_, i) => (
+                    <div
+                      key={`skeleton-${i}`}
+                      aria-hidden
+                      className="flex min-h-[60px] items-center justify-between rounded-xl border border-[#242424] bg-[#161616] px-4 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[95px]"
+                    >
+                      <span className="flex flex-col items-start gap-1.5 sm:gap-3">
+                        <span className="h-3.5 w-32 animate-pulse rounded bg-[#2b2b2b] sm:w-40 md:h-4" />
+                        <span className="h-4 w-16 animate-pulse rounded-full bg-[#2b2b2b] md:h-5" />
+                      </span>
+                      <span className="size-[18px] shrink-0 animate-pulse rounded-full bg-[#2b2b2b] sm:size-[20px] md:size-[22px]" />
+                    </div>
+                  ))}
                 {locations.map((loc, i) => {
                   const isSelected = selected === loc.id;
 
