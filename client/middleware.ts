@@ -26,8 +26,22 @@ function withDefaultLocale(request: NextRequest, response: NextResponse) {
   return response;
 }
 
+/** Staff panels must never show up in search, including the /{branch}/... rewrites. */
+function noindex(response: NextResponse) {
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
+}
+
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+
+  // One host for search engines: www.crispiesuk.com served the same pages as a
+  // duplicate site, so it now redirects permanently to the bare domain.
+  const host = request.headers.get("host") ?? "";
+  if (host.startsWith("www.")) {
+    return NextResponse.redirect(`https://${host.slice(4)}${pathname}${search}`, 308);
+  }
+
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
     return withDefaultLocale(request, NextResponse.next());
   }
@@ -44,7 +58,7 @@ export function middleware(request: NextRequest) {
   if (pathname === "/login" || (parts.length === 2 && parts[1] === "login" && !RESERVED.has(parts[0]))) {
     const url = request.nextUrl.clone();
     url.pathname = "/super-admin/login";
-    return withDefaultLocale(request, NextResponse.rewrite(url));
+    return noindex(withDefaultLocale(request, NextResponse.rewrite(url)));
   }
 
   if (parts.length >= 2 && !RESERVED.has(parts[0])) {
@@ -53,7 +67,11 @@ export function middleware(request: NextRequest) {
     const rest = parts.slice(2);
     const url = request.nextUrl.clone();
     url.pathname = rest.length > 0 ? `/super-admin/${rest.join("/")}` : "/super-admin";
-    return withDefaultLocale(request, NextResponse.rewrite(url));
+    return noindex(withDefaultLocale(request, NextResponse.rewrite(url)));
+  }
+
+  if (pathname === "/super-admin" || pathname.startsWith("/super-admin/")) {
+    return noindex(withDefaultLocale(request, NextResponse.next()));
   }
 
   return withDefaultLocale(request, NextResponse.next());

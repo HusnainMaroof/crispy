@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Plus_Jakarta_Sans, Inter, Poppins } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/app/components/providers";
 import { localeDir, resolveLocale } from "@/lib/i18n";
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const korolev = localFont({
@@ -40,24 +41,41 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://crispies.co.uk"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Crispies — Halal Burgers & Chicken in London",
-    template: "%s | Crispies",
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Crispies serves 100% halal smash burgers and crispy chicken across London. Order delivery or click & collect — crispy on the outside, juicy on the inside.",
+  description: DEFAULT_DESCRIPTION,
   keywords: [
+    "halal burgers",
     "halal burgers London",
-    "chicken London",
-    "smash burger",
-    "fast food London",
-    "Crispies",
-    "delivery",
+    "halal chicken London",
+    "fried chicken London",
+    "smash burgers",
+    "burger delivery London",
+    "halal food near me",
     "click and collect",
+    "Crispies",
   ],
-  applicationName: "Crispies",
-  authors: [{ name: "Crispies" }],
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "restaurant",
+  formatDetection: { telephone: true, address: true, email: true },
+  // Search Console and Bing Webmaster ownership codes. Set them in the client
+  // env; an empty value renders no tag.
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION }
+      : undefined,
+  },
+  other: {
+    "geo.region": "GB-LND",
+    "geo.placename": "London",
+  },
   robots: {
     index: true,
     follow: true,
@@ -69,35 +87,31 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  alternates: {
-    canonical: "/",
-  },
+  // No canonical here on purpose: a canonical in the root layout is inherited by
+  // every page and tells Google they are all copies of the homepage. Each page
+  // sets its own through pageMetadata() in lib/site.ts.
   openGraph: {
     type: "website",
-    siteName: "Crispies",
-    title: "Crispies — Halal Burgers & Chicken in London",
-    description:
-      "100% halal smash burgers and crispy chicken, delivered across London. Order delivery or click & collect.",
-    url: "https://crispies.co.uk",
+    siteName: SITE_NAME,
     locale: "en_GB",
-    images: [
-      {
-        url: "/images/og-logo.png",
-        width: 1200,
-        height: 630,
-        alt: "Crispies",
-      },
-    ],
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: [{ url: "/images/og-logo.png", width: 1200, height: 630, alt: SITE_NAME }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Crispies — Halal Burgers & Chicken in London",
-    description:
-      "100% halal smash burgers and crispy chicken, delivered across London.",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
     images: ["/images/og-logo.png"],
   },
   // Icons come from app/favicon.ico, app/icon.png, app/apple-icon.png and
   // app/manifest.ts. Rebuild them with: node scripts/generate-icons.mjs
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#000000",
 };
 
 export default async function RootLayout({

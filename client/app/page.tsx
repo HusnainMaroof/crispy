@@ -6,6 +6,11 @@ import type { NavbarContent } from "@/app/components/store/navbar";
 import StoreStatus from "@/app/components/store/store-status";
 import type { OrderingContent } from "@/lib/use-store-ordering";
 import HomeView, { type Homepage } from "@/app/components/store/home-view";
+import { OrganizationJsonLd, RestaurantsJsonLd } from "@/app/components/store/structured-data";
+import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/site";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = pageMetadata({ description: DEFAULT_DESCRIPTION, path: "/" });
 
 const FALLBACK: Homepage = { order: ["hero", "welcome", "flavours", "locations", "partner", "instagram"], sections: {} };
 
@@ -31,6 +36,8 @@ const Page = async () => {
   ]);
   return (
     <StoreLocationsProvider initial={branches}>
+      <OrganizationJsonLd />
+      <RestaurantsJsonLd branches={branches} />
       <HomeView
         home={{ en: homeEn ?? FALLBACK, ar: homeAr ?? homeEn ?? FALLBACK }}
         navbar={{ en: navEn?.sections, ar: navAr?.sections }}

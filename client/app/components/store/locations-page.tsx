@@ -632,9 +632,9 @@ export default function Locations() {
                     {feat.icon}
                   </div>
                   <div className="min-w-0">
-                    <h4 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-black capitalize leading-[100%] text-black">
+                    <h2 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-black capitalize leading-[100%] text-black">
                       {t(feat.title)}
-                    </h4>
+                    </h2>
                     <p className=" max-w-[180px]  ps-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal leading-normal text-[#6B6B6B]">
                       {t(feat.desc)}
                     </p>
@@ -682,9 +682,9 @@ export default function Locations() {
                 />
               </svg>
               <div>
-                <h3 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[26px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
+                <h2 className="m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[26px] font-black uppercase leading-[100%] tracking-[0.54px] text-[#010101] sm:text-[50px]">
                   Cant find us
-                </h3>
+                </h2>
                 <p className="m-0 mt-2 font-[family-name:var(--font-inter),Inter,sans-serif] text-[16px] font-normal capitalize leading-[100%] tracking-[0.54px] text-[#696969]  sm:text-[17px]">
                   Search for your area and
                   <br />
