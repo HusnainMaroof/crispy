@@ -342,6 +342,15 @@ const SCALE_ITEMS = [
   { label: "BBQ & Jerk Sauce", Icon: BBQSauceIcone },
 ];
 
+// Used when the CMS has no carousel or center image saved, so the band is never empty.
+const FALLBACK_SLIDER_IMAGES = [
+  "/images/aboutimage.jpg",
+  "/images/aboutimage.jpg",
+  "/images/aboutimage.jpg",
+  "/images/aboutimage.jpg",
+];
+const FALLBACK_CENTER_IMAGE = "/images/orderOnimage.png";
+
 export default function DiscoverFlavours({
   title = "Crispies Original Flavours",
   discoverTitle = "Discover Your Crispy Flavor",
@@ -368,9 +377,11 @@ export default function DiscoverFlavours({
   ctaUrl?: string;
 }) {
   const { locale } = useLocale();
-  // Images come only from the CMS (Content > Home > Discover your flavor).
-  const sliderImages = galleryImages?.filter(Boolean) ?? [];
-  const centerSrc = centerImage.trim();
+  // CMS images (Content > Home > Discover your flavor) win. The built-in photos
+  // only fill in when nothing is saved there.
+  const cmsSlides = galleryImages?.filter(Boolean) ?? [];
+  const sliderImages = cmsSlides.length ? cmsSlides : FALLBACK_SLIDER_IMAGES;
+  const centerSrc = centerImage.trim() || FALLBACK_CENTER_IMAGE;
   const flavourTiles = FLAVOUR_TILES.map((tile, index) => ({
     ...tile,
     label: localizedText(locale, flavourLabels?.[index] || tile.label),
@@ -599,15 +610,13 @@ export default function DiscoverFlavours({
                       Takeaway Only Pick Up From 10+ Locations
                     </p>
                   </div>
-                  {centerSrc && (
-                    <img
-                      src={centerSrc}
-                      alt="Order on website"
-                      // sm:h-fit resolved to the intrinsic 712x474, so from sm up
-                      // the small logo filled and overflowed the whole 260px card.
-                      className="absolute bottom-0 start-1/2 h-[80px] w-auto -translate-x-1/2 rtl:translate-x-1/2 object-contain sm:h-[100px]"
-                    />
-                  )}
+                  <img
+                    src={centerSrc}
+                    alt="Order on website"
+                    // sm:h-fit resolved to the intrinsic 712x474, so from sm up
+                    // the small logo filled and overflowed the whole 260px card.
+                    className="absolute bottom-0 start-1/2 h-[80px] w-auto -translate-x-1/2 rtl:translate-x-1/2 object-contain sm:h-[100px]"
+                  />
                 </a>
                 <div className="pointer-events-none absolute inset-y-0 end-0 translate-x-full rtl:-translate-x-full z-20 w-20 bg-linear-to-r rtl:bg-linear-to-l from-black to-transparent sm:w-32" />
                 <div className="pointer-events-none absolute inset-y-0 start-0 z-20 w-20 -translate-x-full rtl:translate-x-full bg-linear-to-l rtl:bg-linear-to-r from-black to-transparent sm:w-32" />

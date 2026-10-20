@@ -20,8 +20,9 @@ type InstagramContent = {
 const MARQUEE_COPIES = 3;
 
 export default function Instagram({ content, followLabel = "Follow" }: { content?: InstagramContent; followLabel?: string }) {
-  // Reels come only from the CMS (Content > Home > Instagram).
-  const posts = content?.reels ?? [];
+  // Reels come only from the CMS (Content > Home > Instagram). A reel saved
+  // without a thumbnail gets the built-in photo so it never shows as a blank card.
+  const posts = (content?.reels ?? []).map((post) => ({ ...post, thumbnailUrl: post.thumbnailUrl || "/images/heroimage.png" }));
   const profileUrl = content?.profileUrl || "https://www.instagram.com/crispiesuk";
   const username = content?.username || "crispiesuk";
   const trackRef = useRef<HTMLDivElement>(null);
@@ -182,15 +183,13 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
                   rel="noopener noreferrer"
                   className="group relative flex-shrink-0 aspect-[9/16] w-[200px] overflow-hidden rounded-[50px] bg-black sm:w-[280px]"
                 >
-                  {post.thumbnailUrl && (
-                    <img
-                      src={post.thumbnailUrl}
-                      alt={`Instagram reel by ${username}`}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  )}
+                  <img
+                    src={post.thumbnailUrl}
+                    alt={`Instagram reel by ${username}`}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    decoding="async"
+                  />
 
                   <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/40" />
                   {(post.likes || post.views) && <div className="absolute bottom-4 start-4 flex gap-3 text-xs font-semibold text-white drop-shadow">{post.views && <span>▶ {post.views}</span>}{post.likes && <span>♥ {post.likes}</span>}</div>}
