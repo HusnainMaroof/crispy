@@ -19,6 +19,7 @@ import { dietaryTags, type DietaryOption } from "@/lib/dietary";
 import { compressImage } from "@/lib/image-compress";
 import type { MenuItemRedirects } from "@/lib/redux/types";
 import OptimizedImage from "@/app/components/ui/optimized-image";
+import { titleCase } from "@/lib/utils";
 
 /** The three delivery platforms, in the order the popup lists them. */
 const REDIRECT_PLATFORMS: { key: keyof MenuItemRedirects; name: string; brand: string }[] = [
@@ -87,7 +88,15 @@ export default function MenuPage() {
     try {
       await deleteCategory(deletingCategory);
       toast.success("Category removed");
-      await fetchItems();
+      // The filter, the item form and the rows all read from these two lists.
+      if (categoryFilter === deletingCategory) setCategoryFilter("all");
+      // A dish filed under that category was removed with it, so an open
+      // editor for one of them has nothing left to save.
+      if (editingItem && items.find((item) => item.id === editingItem)?.categoryId === deletingCategory) {
+        setShowForm(false);
+        setEditingItem(null);
+      }
+      await Promise.all([fetchItems(), fetchCategories()]);
       setDeletingCategory(null);
     } catch {
       toast.error("Failed to remove category");
@@ -257,6 +266,8 @@ export default function MenuPage() {
           <label htmlFor="category-filter" className="mb-2 block text-sm text-white/60">
             Category
           </label>
+          {/* Each row carries its own delete button. It opens the same
+              confirmation dialog, so a stray click still has a way back. */}
           <SearchableSelect
             id="category-filter"
             value={categoryFilter}
@@ -266,19 +277,19 @@ export default function MenuPage() {
             emptyLabel="No categories match"
             options={[
               { value: "all", label: "All categories" },
-              ...categories.map((category) => ({ value: category.id, label: category.title })),
+              ...categories.map((category) => ({ value: category.id, label: titleCase(category.title), deletable: true })),
             ]}
+            onDeleteOption={branchScoped ? undefined : setDeletingCategory}
           />
-          {/* Deleting a category is destructive and takes its items with it, so it
-              is a separate action below the filter rather than a row hidden
-              inside the dropdown, where a stray click could hit it. */}
+          {/* Repeated below the filter for the open category, so deleting does
+              not depend on finding the small row button. */}
           {!branchScoped && categoryFilter !== "all" && (
             <button
               type="button"
               onClick={() => setDeletingCategory(categoryFilter)}
               className="mt-2 cursor-pointer text-xs text-white/45 underline-offset-4 transition-colors hover:text-brand-red hover:underline"
             >
-              Delete “{categories.find((category) => category.id === categoryFilter)?.title}”
+              Delete “{titleCase(categories.find((category) => category.id === categoryFilter)?.title ?? "")}”
             </button>
           )}
         </div>
@@ -357,24 +368,6 @@ export default function MenuPage() {
         </Modal>
       )}
 
-      {/* Form Modal */}
-      {deletingCategory && (
-        <Modal onClose={() => setDeletingCategory(null)} title="Remove category" busy={removingCategory}>
-          <p className="mb-6 text-sm text-white/70">Remove {categories.find((category) => category.id === deletingCategory)?.title}? Items in it are removed too.</p>
-          <div className="flex justify-end gap-3">
-            <ActionButton type="button" variant="secondary" onClick={() => setDeletingCategory(null)} disabled={removingCategory}>Cancel</ActionButton>
-            <ActionButton
-              type="button"
-              onClick={() => void handleRemoveCategory()}
-              busy={removingCategory}
-              busyLabel="Removing…"
-            >
-              Remove
-            </ActionButton>
-          </div>
-        </Modal>
-      )}
-
       {showCategoryForm && (
         <Modal onClose={() => setShowCategoryForm(false)} title="Add category" busy={addingCategory}>
           <form onSubmit={handleAddCategory} className="space-y-4">
@@ -405,11 +398,31 @@ export default function MenuPage() {
           locations={locations}
           initialCategoryId={newItemCategoryId}
           onSave={handleSave}
+          onDeleteCategory={branchScoped ? undefined : setDeletingCategory}
           onClose={() => {
             setShowForm(false);
             setEditingItem(null);
           }}
         />
+      )}
+
+      {/* Last in the tree on purpose: it opens on top of the item form when a
+          category is deleted from that form's dropdown. */}
+      {deletingCategory && (
+        <Modal onClose={() => setDeletingCategory(null)} title="Remove category" busy={removingCategory}>
+          <p className="mb-6 text-sm text-white/70">Remove {titleCase(categories.find((category) => category.id === deletingCategory)?.title ?? "")}? Items in it are removed too.</p>
+          <div className="flex justify-end gap-3">
+            <ActionButton type="button" variant="secondary" onClick={() => setDeletingCategory(null)} disabled={removingCategory}>Cancel</ActionButton>
+            <ActionButton
+              type="button"
+              onClick={() => void handleRemoveCategory()}
+              busy={removingCategory}
+              busyLabel="Removing…"
+            >
+              Remove
+            </ActionButton>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -442,7 +455,7 @@ function MenuList({
   onDelete: (id: string) => void;
   onRemoveCategory?: (id: string) => void;
 }) {
-  const categoryName = categories.find((category) => category.id === categoryFilter)?.title;
+  const categoryName = titleCase(categories.find((category) => category.id === categoryFilter)?.title ?? "");
   const matchesDiet = (badge?: string, badgeVariant?: "default" | "vegan") =>
     dietaryFilter === "all" || dietaryTags(badge, badgeVariant).some((tag) => tag.toLowerCase() === dietaryFilter.toLowerCase());
   const catalogue = items.filter((item) => (categoryFilter === "all" || item.categoryId === categoryFilter) && matchesDiet(item.badge, item.badgeVariant));
@@ -564,6 +577,7 @@ function MenuForm({
   initialCategoryId = "",
   onSave,
   onClose,
+  onDeleteCategory,
 }: {
   itemId: string | null;
   items: { id: string; name: string; nameAr?: string; description: string; descriptionAr?: string; price: string; priceValue: number; image: string; categoryId: string; badge?: string; badgeVariant?: "default" | "vegan"; redirects: MenuItemRedirects; locations: { id: string; name: string }[] }[];
@@ -572,6 +586,8 @@ function MenuForm({
   initialCategoryId?: string;
   onSave: (data: { name: string; nameAr: string; description: string; descriptionAr: string; price: string; priceValue: number; image: string; categoryId: string; badge: string | null; badgeVariant: "vegan" | null; redirects: MenuItemRedirects; locationIds: string[] }) => Promise<void>;
   onClose: () => void;
+  /** Removes a category from this form's dropdown. Shown only to roles that may delete. */
+  onDeleteCategory?: (id: string) => void;
 }) {
   const existing = itemId ? items.find((i) => i.id === itemId) : null;
 
@@ -599,9 +615,26 @@ function MenuForm({
   const [submitting, setSubmitting] = useState(false);
   const redirectCount = REDIRECT_PLATFORMS.filter(({ key }) => redirects[key].trim() !== "").length;
 
+  // A category can be removed from the dropdown while this form is open, so the
+  // selected id can stop existing. Fall back to the first one left.
+  useEffect(() => {
+    if (categories.length === 0) {
+      if (categoryId) setCategoryId("");
+      return;
+    }
+    if (!categories.some((category) => category.id === categoryId)) {
+      setCategoryId(categories[0].id);
+    }
+  }, [categories, categoryId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Deleting the last category leaves nothing to file this dish under.
+    if (!categories.some((category) => category.id === categoryId)) {
+      toast.error("Add a category before saving this dish");
+      return;
+    }
     // A dish with no branch sells nowhere, so block the save rather than
     // creating a record that will never show up on the storefront.
     if (locationIds.length === 0) {
@@ -762,12 +795,13 @@ function MenuForm({
               </label>
               <SearchableSelect
                 id="item-category"
-                options={categories.map((cat) => ({ value: cat.id, label: cat.title }))}
+                options={categories.map((cat) => ({ value: cat.id, label: titleCase(cat.title), deletable: true }))}
                 value={categoryId}
                 onChange={setCategoryId}
                 placeholder="Select category"
                 searchPlaceholder="Search categories..."
                 emptyLabel="No categories match"
+                onDeleteOption={onDeleteCategory}
               />
             </div>
             <div>

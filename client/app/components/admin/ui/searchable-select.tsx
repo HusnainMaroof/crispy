@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown, Search, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SearchableSelectOption = {
@@ -10,6 +10,8 @@ export type SearchableSelectOption = {
   label: string;
   /** Optional secondary line, e.g. how many items sit in the category. */
   hint?: string;
+  /** Shows a delete button on the row. Only works with `onDeleteOption`. */
+  deletable?: boolean;
 };
 
 type SearchableSelectProps = {
@@ -25,6 +27,11 @@ type SearchableSelectProps = {
   "aria-label"?: string;
   /** Rendered in a sticky row under the search field, above the results. */
   footer?: React.ReactNode;
+  /**
+   * Adds a delete button to rows marked `deletable`. The click never selects
+   * the row, so removing an option cannot change the current value by accident.
+   */
+  onDeleteOption?: (value: string) => void;
 };
 
 /**
@@ -47,6 +54,7 @@ export default function SearchableSelect({
   id,
   "aria-label": ariaLabel,
   footer,
+  onDeleteOption,
 }: SearchableSelectProps) {
   const listId = useId();
   const [open, setOpen] = useState(false);
@@ -217,6 +225,21 @@ export default function SearchableSelect({
                       <span className="shrink-0 text-xs tabular-nums text-white/40">
                         {option.hint}
                       </span>
+                    )}
+                    {onDeleteOption && option.deletable && (
+                      <button
+                        type="button"
+                        aria-label={`Delete ${option.label}`}
+                        title={`Delete ${option.label}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpen(false);
+                          onDeleteOption(option.value);
+                        }}
+                        className="shrink-0 cursor-pointer rounded-md p-1 text-white/35 transition-colors hover:bg-brand-red/15 hover:text-brand-red focus-visible:outline-2 focus-visible:outline-brand-red"
+                      >
+                        <Trash2 aria-hidden className="size-3.5" />
+                      </button>
                     )}
                   </div>
                 );

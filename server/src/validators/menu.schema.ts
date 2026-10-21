@@ -17,9 +17,28 @@ const platformRedirects = {
   redirect_just_eat: redirectUrl.optional(),
 };
 
+/**
+ * Titles are stored in title case, however they were typed. "chickens",
+ * "CHICKENS" and "Chickens" all become "Chickens". Hyphens, slashes and
+ * ampersands start a new word, so "gluten-free" becomes "Gluten-Free".
+ */
+function titleCase(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .replace(/(^|[\s\-/&])(\p{L})/gu, (_match, lead: string, letter: string) => lead + letter.toUpperCase());
+}
+
+/** Trimmed and title-cased before the length check, so "   " is rejected. */
+const categoryTitle = z
+  .string()
+  .transform(titleCase)
+  .pipe(z.string().min(1).max(100));
+
 export const menuCategorySchema = z.object({
   number: z.string().min(1).max(4),
-  title: z.string().min(1).max(100),
+  title: categoryTitle,
   title_ar: z.string().max(100).optional(),
   image: z.string().url(),
   sort_order: z.number().int().min(0).optional(),

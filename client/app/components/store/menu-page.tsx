@@ -17,6 +17,7 @@ import { useBranchSelection } from "@/lib/branch-selection";
 import { localizedName, localizedText } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { dietaryTags } from "@/lib/dietary";
+import { titleCase } from "@/lib/utils";
 
 type MenuCard = MenuItem & { category: string };
 
@@ -90,7 +91,7 @@ export default function MenuPage() {
   const { selectBranch } = useBranchSelection();
   const { locale, t } = useLocale();
   const categoryLabel = (cat: string) =>
-    cat === "All" ? t("menu.dietary.all") : localizedName(locale, cat, menu.categories.find((category) => category.title === cat)?.titleAr);
+    cat === "All" ? t("menu.dietary.all") : localizedName(locale, cat, menu.categories.find((category) => titleCase(category.title) === cat)?.titleAr);
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [dietary, setDietary] = useState("All");
@@ -139,8 +140,9 @@ export default function MenuPage() {
     selectBranch(nextId, localizedName(locale, branch.name));
   };
 
+  // Titles are stored as typed, so the tab row title-cases them for display.
   const categoryNames = useMemo(
-    () => ["All", ...menu.categories.map((category) => category.title)],
+    () => ["All", ...menu.categories.map((category) => titleCase(category.title))],
     [menu.categories],
   );
   const effectiveCategory = categoryNames.includes(activeCategory) ? activeCategory : "All";
@@ -148,7 +150,7 @@ export default function MenuPage() {
   const menuItems = useMemo<MenuCard[]>(
     () =>
       menu.categories.flatMap((category) =>
-        category.items.map((item) => ({ ...item, category: category.title })),
+        category.items.map((item) => ({ ...item, category: titleCase(category.title) })),
       ),
     [menu.categories],
   );
