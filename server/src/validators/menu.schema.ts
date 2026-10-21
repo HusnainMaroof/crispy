@@ -34,7 +34,8 @@ export const menuItemSchema = z.object({
   description: z.string().max(500).optional(),
   description_ar: z.string().max(500).optional(),
   ...platformRedirects,
-  price: z.number().positive(),
+  // min(0): a menu item can be free, and the admin form saves 0 for that.
+  price: z.number().min(0),
   image: z.string().min(1),
   badge: z.string().max(50).nullable().optional(),
   badge_variant: z.enum(["default", "vegan"]).nullable().optional(),

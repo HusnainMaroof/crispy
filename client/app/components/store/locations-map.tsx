@@ -16,6 +16,8 @@ export type MapLocation = {
   name: string;
   lat: number;
   lng: number;
+  /** Manual pin number from the admin. Missing means the map draws the position. */
+  number?: number | null;
 };
 
 export type MapPoint = { lat: number; lng: number };
@@ -200,7 +202,7 @@ export default function LocationsMap({
       const active = loc.id === selectedId;
       try {
         const marker = L.marker([loc.lat, loc.lng], {
-          icon: pinIcon(i + 1, active),
+          icon: pinIcon(loc.number ?? i + 1, active),
           zIndexOffset: active ? 1000 : 0,
         }).addTo(map);
         marker.on("click", () => onSelect?.(loc.id));

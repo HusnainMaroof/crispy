@@ -52,7 +52,9 @@ async function loadLocations(options?: LocationsReadOptions): Promise<Location[]
       ...(options?.activeOnly ? { status: "active" } : {}),
       ...(options?.allowedIds ? { id: { in: options.allowedIds } } : {}),
     },
-    orderBy: { sort_order: "asc" },
+    // id breaks ties so a list of branches with the same sort_order does not
+    // shuffle between requests.
+    orderBy: [{ sort_order: "asc" }, { id: "asc" }],
     take: options?.limit ?? 500,
   });
   return serialize(rows);
@@ -82,12 +84,18 @@ export async function createLocation(input: Record<string, unknown>): Promise<Lo
   try {
     const name = typeof input.name === "string" ? input.name : "";
     const slug = typeof input.slug === "string" && input.slug.length > 0 ? input.slug : slugifyBranchName(name);
+    // A new branch goes to the end of the manually ordered list. The old
+    // hardcoded 0 put every new branch at the top instead.
+    const order =
+      typeof input.sort_order === "number"
+        ? input.sort_order
+        : ((await db().locations.aggregate({ _max: { sort_order: true } }))._max.sort_order ?? -1) + 1;
     const row = await db().locations.create({
       data: {
         ...(input as Prisma.locationsUncheckedCreateInput),
         id: crypto.randomUUID(),
         slug,
-        sort_order: 0,
+        sort_order: order,
       },
     });
     void invalidateLocationsCache();

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Check, Info, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Info, MapPin, Trash2 } from "lucide-react";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import Modal from "@/app/components/admin/ui/modal";
@@ -10,16 +10,19 @@ import Dropdown from "@/app/components/admin/ui/dropdown";
 import ActionButton from "@/app/components/admin/ui/action-button";
 import ConfirmModal from "@/app/components/admin/ui/confirm-modal";
 import { TimePicker } from "@/app/components/ui/time-picker";
-import { useLocations, type AdminLocation } from "@/lib/admin/use-locations";
+import { useLocations, type AdminLocation, type BranchInput } from "@/lib/admin/use-locations";
 import { WEEKDAYS, formatWeekHours, isComingSoonHours, parseWeekHours, type DayHours } from "@/lib/admin/shop-hours";
 
 export default function LocationsPage() {
-  const { locations, loading, error, fetchLocations, addLocation, updateLocation, deleteLocation } = useLocations();
+  const { locations, loading, error, fetchLocations, addLocation, updateLocation, reorderLocations, deleteLocation } = useLocations();
   const [editing, setEditing] = useState<AdminLocation | null>(null);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<AdminLocation | null>(null);
   // Which branch is mid-update, so only that row locks instead of the whole page.
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+  // Position change waiting for the admin to confirm the new live order.
+  const [movePrompt, setMovePrompt] = useState<{ index: number; direction: -1 | 1 } | null>(null);
 
   useEffect(() => {
     void fetchLocations();
@@ -53,7 +56,55 @@ export default function LocationsPage() {
     }
   };
 
-  const saveExisting = async (data: { name: string; address: string; hours: string; phone: string }) => {
+  /** Swaps one branch with its neighbour and saves the whole new order. */
+  const applyMove = async (index: number, direction: -1 | 1): Promise<boolean> => {
+    const target = locations[index + direction];
+    if (!target || reordering) return false;
+    const branch = locations[index];
+    const ordered = [...locations];
+    [ordered[index], ordered[index + direction]] = [ordered[index + direction], ordered[index]];
+    // Disabled branches are not listed live, so they do not take a number.
+    const liveNumber = ordered
+      .slice(0, index + direction + 1)
+      .filter((location) => location.status !== "inactive").length;
+    setReordering(true);
+    try {
+      await reorderLocations(ordered.map((location) => location.id));
+      toast.success(
+        branch.status === "inactive"
+          ? `${branch.name} moved. The live order updates when the branch is active again.`
+          : `${branch.name} now shows as number ${liveNumber} on the live website`
+      );
+      return true;
+    } catch {
+      toast.error("Could not save the branch order");
+      return false;
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const confirmMove = async () => {
+    if (!movePrompt) return;
+    const saved = await applyMove(movePrompt.index, movePrompt.direction);
+    if (saved) setMovePrompt(null);
+  };
+
+  const activeCount = locations.filter((location) => location.status !== "inactive").length;
+  const comingSoonCount = locations.filter(
+    (location) => location.status === "active" && isComingSoonHours(location.hours)
+  ).length;
+  const disabledCount = locations.length - activeCount;
+  const moveLocation = movePrompt ? locations[movePrompt.index] : null;
+  const moveTargetIndex = movePrompt ? movePrompt.index + movePrompt.direction : 0;
+  // The set of branches above the target does not change when two neighbours swap.
+  const moveTargetNumber = movePrompt
+    ? locations
+        .slice(0, moveTargetIndex + 1)
+        .filter((location) => location.status !== "inactive").length
+    : 0;
+
+  const saveExisting = async (data: BranchInput) => {
     if (!editing) return;
     try {
       await updateLocation(editing.id, data);
@@ -64,7 +115,7 @@ export default function LocationsPage() {
     }
   };
 
-  const saveNew = async (data: { name: string; address: string; hours: string; phone: string }) => {
+  const saveNew = async (data: BranchInput) => {
     try {
       await addLocation(data);
       toast.success("Branch added");
@@ -78,7 +129,7 @@ export default function LocationsPage() {
     <div className="admin-fade-in">
       <PageHeader
         title="Branches"
-        description="Address, opening hours, and whether the branch is taking orders. Coming soon branches are listed but shown as Coming Soon. Disabled is for maintenance and is separate from the hours."
+        description="Address, opening hours, live number and availability. The arrows set the order on the live website, and a manual number overrides it on the branch list and map. Coming soon branches stay listed without taking orders. Disabled is for maintenance and is separate from the hours."
         action={
           <ActionButton type="button" onClick={() => setAdding(true)} className="rounded-full px-5">
             Add branch
@@ -91,26 +142,102 @@ export default function LocationsPage() {
           {error}
         </p>
       ) : loading ? <TableSkeleton /> : locations.length === 0 ? (
-        <p className="rounded-2xl border border-white/10 px-5 py-10 text-center text-sm text-white/50">No branches yet. Add one to set its address and hours.</p>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/50">
+            <MapPin aria-hidden className="size-5" />
+          </span>
+          <p className="mt-4 text-base font-medium text-white">No branches yet</p>
+          <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-white/55">
+            Add the first branch to set its address, opening hours and the number customers see on the live website.
+          </p>
+          <ActionButton type="button" onClick={() => setAdding(true)} className="mt-5 rounded-full px-5">
+            Add branch
+          </ActionButton>
+        </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full min-w-[880px] text-left">
+        <div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+              {locations.length} {locations.length === 1 ? "branch" : "branches"}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/25 bg-green-500/10 px-3 py-1 text-xs text-green-200">
+              <span aria-hidden className="size-1.5 rounded-full bg-green-400" />
+              {activeCount} active
+            </span>
+            {comingSoonCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs text-amber-100">
+                <span aria-hidden className="size-1.5 rounded-full bg-amber-300" />
+                {comingSoonCount} coming soon
+              </span>
+            )}
+            {disabledCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50">
+                <span aria-hidden className="size-1.5 rounded-full bg-white/30" />
+                {disabledCount} disabled
+              </span>
+            )}
+            <p className="ms-auto text-xs text-white/40">Numbers and order appear on the live website.</p>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <table className="w-full min-w-[1080px] text-left">
             <thead>
               <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-white/50">
-                <th className="px-4 py-3 font-medium">Branch</th>
-                <th className="px-4 py-3 font-medium">Address</th>
-                <th className="px-4 py-3 font-medium">Opening hours</th>
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th scope="col" className="px-4 py-3 font-medium">Order</th>
+                <th scope="col" className="px-4 py-3 font-medium">Branch</th>
+                <th scope="col" className="px-4 py-3 font-medium">Address</th>
+                <th scope="col" className="px-4 py-3 font-medium">Opening hours</th>
+                <th scope="col" className="px-4 py-3 font-medium">Phone</th>
+                <th scope="col" className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {locations.map((location) => {
+              {locations.map((location, index) => {
                 const active = location.status !== "inactive";
                 const comingSoon = active && isComingSoonHours(location.hours);
+                // Position among the branches the live website actually lists.
+                const liveNumber = locations
+                  .slice(0, index + 1)
+                  .filter((item) => item.status !== "inactive").length;
                 return (
-                  <tr key={location.id} className="text-sm">
+                  <tr
+                    key={location.id}
+                    className={`text-sm transition-colors hover:bg-white/[0.03] ${
+                      pendingId === location.id ? "bg-white/[0.04]" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-xs font-semibold tabular-nums text-white/80"
+                        >
+                          {active ? String(liveNumber).padStart(2, "0") : "—"}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label={`Move ${location.name} up`}
+                            title="Move up"
+                            disabled={index === 0 || reordering}
+                            onClick={() => setMovePrompt({ index, direction: -1 })}
+                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ChevronUp aria-hidden className="size-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Move ${location.name} down`}
+                            title="Move down"
+                            disabled={index === locations.length - 1 || reordering}
+                            onClick={() => setMovePrompt({ index, direction: 1 })}
+                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ChevronDown aria-hidden className="size-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 font-medium text-white">{location.name}</td>
                     <td className="px-4 py-3 text-white/70">{location.address}</td>
                     <td className="px-4 py-3 text-white/70">{location.hours}</td>
@@ -181,6 +308,7 @@ export default function LocationsPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -206,6 +334,58 @@ export default function LocationsPage() {
           }}
         />
       )}
+
+      {movePrompt && moveLocation && (
+        <Modal
+          title="Move this branch on the live website"
+          onClose={() => setMovePrompt(null)}
+          busy={reordering}
+        >
+          <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
+            <span
+              aria-hidden
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF0931]/15 text-base font-semibold tabular-nums text-white"
+            >
+              {String(moveTargetNumber).padStart(2, "0")}
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white">
+                {moveLocation.name} moves {movePrompt.direction === -1 ? "up" : "down"}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-white/65">
+                {moveLocation.status === "inactive"
+                  ? `${moveLocation.name} is disabled, so it is not on the live website right now. The new order applies as soon as the branch is active again.`
+                  : `The branch list and map on the live website use this order, so ${moveLocation.name} will show as number ${moveTargetNumber}. The branches it passes shift by one number.`}
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-white/40">
+            The live website updates as soon as you save.
+          </p>
+
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <ActionButton
+              type="button"
+              variant="secondary"
+              onClick={() => setMovePrompt(null)}
+              disabled={reordering}
+              className="rounded-full"
+            >
+              Keep current order
+            </ActionButton>
+            <ActionButton
+              type="button"
+              busy={reordering}
+              busyLabel="Saving…"
+              onClick={() => void confirmMove()}
+              className="rounded-full"
+            >
+              Move to number {moveTargetNumber}
+            </ActionButton>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -221,12 +401,13 @@ function ShopForm({
 }: {
   title: string;
   shop?: AdminLocation;
-  onSave: (data: { name: string; address: string; hours: string; phone: string }) => Promise<void>;
+  onSave: (data: BranchInput) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState(shop?.name ?? "");
   const [address, setAddress] = useState(shop?.address ?? "");
   const [phone, setPhone] = useState(shop?.phone ?? "");
+  const [mapsUrl, setMapsUrl] = useState(shop?.google_maps_url ?? "");
   const [week, setWeek] = useState<DayHours[]>(() => parseWeekHours(shop?.hours ?? ""));
   const [comingSoon, setComingSoon] = useState(() =>
     shop ? isComingSoonHours(shop.hours) : false,
@@ -254,6 +435,11 @@ function ShopForm({
       setFieldError("Open at least one weekday before saving this branch.");
       return;
     }
+    const link = mapsUrl.trim();
+    if (link !== "" && !/^https:\/\/\S+$/i.test(link)) {
+      setFieldError("Google Maps link must start with https://.");
+      return;
+    }
     setFieldError("");
     setSaving(true);
     try {
@@ -262,6 +448,7 @@ function ShopForm({
         address,
         phone,
         hours: comingSoon ? "Coming Soon" : formatWeekHours(week),
+        google_maps_url: link,
       });
     } finally {
       setSaving(false);
@@ -317,6 +504,24 @@ function ShopForm({
               placeholder="123 High Street, Wembley, HA9 7AA"
               className={fieldCls}
             />
+          </div>
+
+          <div>
+            <label htmlFor="branch-maps" className="mb-1.5 block text-sm text-white/60">
+              Google Maps link
+            </label>
+            <input
+              id="branch-maps"
+              type="url"
+              maxLength={500}
+              value={mapsUrl}
+              onChange={(event) => setMapsUrl(event.target.value)}
+              placeholder="https://maps.app.goo.gl/..."
+              className={fieldCls}
+            />
+            <p className="mt-1 text-xs leading-relaxed text-white/40">
+              Used by the Google Maps button on the store location page. Empty builds a link from the address.
+            </p>
           </div>
         </fieldset>
 

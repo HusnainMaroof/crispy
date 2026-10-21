@@ -48,6 +48,14 @@ export const locationSchema = z.object({
   delivery_fee: z.number().min(0).nullable().optional(),
   free_delivery_threshold: z.number().min(0).nullable().optional(),
   sort_order: z.number().int().min(0).optional(),
+  // The number shown on the store location card and the map marker.
+  pin_number: z.number().int().min(1).max(999).nullable().optional(),
+  // Empty means the storefront builds the link from lat/lng or the address.
+  google_maps_url: z
+    .string()
+    .max(500)
+    .refine((value) => value === "" || /^https:\/\/\S+$/i.test(value), "Google Maps link must start with https://")
+    .optional(),
 });
 
 export const locationUpdateSchema = locationSchema.partial();

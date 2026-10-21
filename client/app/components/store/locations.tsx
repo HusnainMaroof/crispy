@@ -212,7 +212,7 @@ export default function Locations({
                   : "text-[#B0B0B0]";
                 const statusBg =
                   loc.status === "coming_soon"
-                    ? "bg-[#6B6B6B]"
+                    ? "bg-[#FF0931]"
                     : loc.status === "closed"
                       ? "bg-[#8B6F5E]"
                       : isActive

@@ -791,6 +791,7 @@ function MenuForm({
                   className={`${inputCls} ps-7 tabular-nums`}
                 />
               </div>
+              <p className="mt-1 text-xs text-white/40">Enter 0 to list this item as free.</p>
             </div>
             <div>
               <label htmlFor="item-dietary" className="mb-1.5 block text-sm text-white/60">

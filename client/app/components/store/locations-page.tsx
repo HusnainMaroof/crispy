@@ -312,6 +312,7 @@ export default function Locations() {
   );
   const [selectedId, setSelectedId] = useState("");
   const selectedMapLocation = mapLocations.find((l) => l.id === selectedId) ?? null;
+  const selectedBranch = locations.find((location) => location.id === selectedId) ?? null;
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState<SearchMessage | null>(null);
@@ -862,7 +863,10 @@ export default function Locations() {
                       }`}
                     >
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${loc.lat != null && loc.lng != null ? `${loc.lat},${loc.lng}` : encodeURIComponent(loc.address)}`}
+                        href={
+                          loc.mapsUrl ||
+                          `https://www.google.com/maps/search/?api=1&query=${loc.lat != null && loc.lng != null ? `${loc.lat},${loc.lng}` : encodeURIComponent(loc.address)}`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Open ${localizedText(locale, loc.name)} in Google Maps`}
@@ -893,7 +897,7 @@ export default function Locations() {
                             <span
                               className={`inline-flex items-center gap-2  rounded-full px-[12px] py-[4px] text-[14px] font-medium text-white sm:text-[14px] ${
                                 loc.status === "coming_soon"
-                                  ? "bg-[#6B6B6B]"
+                                  ? "bg-[#FF0931]"
                                   : isActive
                                     ? "bg-[#1F5C2E]"
                                     : "bg-[#A9C4AE]"
@@ -946,8 +950,11 @@ export default function Locations() {
                   onSelect={chooseBranch}
                   origin={origin}
                   directionsHref={
-                    selectedMapLocation
-                      ? navigationLink(origin, { lat: selectedMapLocation.lat, lng: selectedMapLocation.lng })
+                    selectedBranch
+                      ? selectedBranch.mapsUrl ||
+                        (selectedMapLocation
+                          ? navigationLink(origin, { lat: selectedMapLocation.lat, lng: selectedMapLocation.lng })
+                          : null)
                       : null
                   }
                   onPickOrigin={pickOnMap}

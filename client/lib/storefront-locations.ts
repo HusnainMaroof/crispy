@@ -12,6 +12,10 @@ export type StoreLocationCard = {
   lat: number | null;
   lng: number | null;
   phone: string;
+  /** The number on the store card and map marker. Null uses the card position. */
+  pinNumber: number | null;
+  /** Google Maps link from the admin. Empty means build one from the address. */
+  mapsUrl: string;
 };
 
 export function mapStoreLocation(raw: Record<string, unknown>): Location | null {
@@ -26,6 +30,8 @@ export function mapStoreLocation(raw: Record<string, unknown>): Location | null 
     lat: coord(raw.lat),
     lng: coord(raw.lng),
     sort_order: typeof raw.sort_order === "number" ? raw.sort_order : 0,
+    pin_number: typeof raw.pin_number === "number" ? raw.pin_number : null,
+    google_maps_url: typeof raw.google_maps_url === "string" ? raw.google_maps_url : "",
   };
 }
 
@@ -58,5 +64,7 @@ export function toStoreLocationCard(location: Location): StoreLocationCard {
     lat: location.lat,
     lng: location.lng,
     phone: location.phone,
+    pinNumber: location.pin_number ?? null,
+    mapsUrl: location.google_maps_url?.trim() ?? "",
   };
 }

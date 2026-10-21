@@ -84,6 +84,12 @@ model locations {
   delivery_fee             Decimal?              @db.Decimal(10, 2)
   free_delivery_threshold  Decimal?              @db.Decimal(10, 2)
   sort_order               Int                   @default(0)
+  /// Manual pin number shown on the store location list and the map marker.
+  /// Null falls back to the branch's position in the ordered list.
+  pin_number               Int?
+  /// Google Maps link pasted in the branch form. Empty falls back to a link
+  /// built from lat/lng, or the address when coordinates are missing.
+  google_maps_url          String                @default("")
   created_at               DateTime              @default(now())
   updated_at               DateTime              @updatedAt
   orders                   orders[]

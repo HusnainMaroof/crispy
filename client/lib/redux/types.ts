@@ -44,6 +44,10 @@ export type Location = {
   lat: number | null;
   lng: number | null;
   sort_order: number;
+  /** Manual pin number set in the admin. Null means the list position. */
+  pin_number?: number | null;
+  /** Google Maps link set in the admin. Empty means build one. */
+  google_maps_url?: string;
 };
 
 export type Settings = {

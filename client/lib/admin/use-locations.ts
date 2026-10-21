@@ -10,6 +10,11 @@ export type AdminLocation = {
   hours: string;
   phone: string;
   status: "active" | "inactive";
+  sort_order: number;
+  /** Manual pin number. Null means the branch uses its list position. */
+  pin_number: number | null;
+  /** Google Maps link. Empty means the storefront builds one. */
+  google_maps_url: string;
 };
 
 function mapLocation(raw: Record<string, unknown>): AdminLocation {
@@ -20,8 +25,20 @@ function mapLocation(raw: Record<string, unknown>): AdminLocation {
     hours: raw.hours as string,
     phone: raw.phone as string,
     status: raw.status === "inactive" ? "inactive" : "active",
+    sort_order: typeof raw.sort_order === "number" ? raw.sort_order : 0,
+    pin_number: typeof raw.pin_number === "number" ? raw.pin_number : null,
+    google_maps_url: typeof raw.google_maps_url === "string" ? raw.google_maps_url : "",
   };
 }
+
+export type BranchInput = {
+  name: string;
+  address: string;
+  hours: string;
+  phone: string;
+  pin_number?: number | null;
+  google_maps_url?: string;
+};
 
 export function useLocations() {
   const [locations, setLocations] = useState<AdminLocation[]>([]);
@@ -52,6 +69,9 @@ export function useLocations() {
       if (updates.hours !== undefined) body.hours = updates.hours;
       if (updates.phone !== undefined) body.phone = updates.phone;
       if (updates.status !== undefined) body.status = updates.status;
+      if (updates.sort_order !== undefined) body.sort_order = updates.sort_order;
+      if (updates.pin_number !== undefined) body.pin_number = updates.pin_number;
+      if (updates.google_maps_url !== undefined) body.google_maps_url = updates.google_maps_url;
       const data = await api.patch<Record<string, unknown>>(`/admin/locations/${id}`, body);
       const updated = mapLocation(data);
       setLocations((prev) => prev.map((loc) => (loc.id === id ? updated : loc)));
@@ -60,16 +80,32 @@ export function useLocations() {
   );
 
   const addLocation = useCallback(
-    async (location: { name: string; address: string; hours: string; phone: string }) => {
+    async (location: BranchInput) => {
       const data = await api.post<Record<string, unknown>>("/admin/locations", {
         name: location.name,
         address: location.address,
         hours: location.hours,
         phone: location.phone,
+        pin_number: location.pin_number ?? null,
+        google_maps_url: location.google_maps_url ?? "",
       });
       setLocations((prev) => [...prev, mapLocation(data)]);
     },
     []
+  );
+
+  /**
+   * Saves a new order for every branch. The server returns the rows ordered by
+   * sort_order, so one refetch keeps the list in the same order it was dropped.
+   */
+  const reorderLocations = useCallback(
+    async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, index) => api.patch(`/admin/locations/${id}`, { sort_order: index }))
+      );
+      await fetchLocations();
+    },
+    [fetchLocations]
   );
 
   const deleteLocation = useCallback(async (id: string) => {
@@ -77,5 +113,14 @@ export function useLocations() {
     setLocations((prev) => prev.filter((loc) => loc.id !== id));
   }, []);
 
-  return { locations, loading, error, fetchLocations, addLocation, updateLocation, deleteLocation };
+  return {
+    locations,
+    loading,
+    error,
+    fetchLocations,
+    addLocation,
+    updateLocation,
+    reorderLocations,
+    deleteLocation,
+  };
 }

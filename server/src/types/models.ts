@@ -61,6 +61,10 @@ export interface Location {
   delivery_fee: number | null;
   free_delivery_threshold: number | null;
   sort_order: number;
+  /** Manual storefront pin number. Null means use the branch's list position. */
+  pin_number: number | null;
+  /** Google Maps link pasted in the branch form. Empty means build one. */
+  google_maps_url: string;
   created_at: string;
   updated_at: string;
 }
