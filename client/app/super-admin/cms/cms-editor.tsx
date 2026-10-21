@@ -381,7 +381,13 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
                   const wide = field.kind === "list" || field.kind === "branches" || field.kind === "image" || field.kind === "video" || (field.kind === "text" && field.multiline) || (field.kind === "select" && field.options.length === 2);
                   return (
                     <div key={name} className={wide ? "md:col-span-2" : ""}>
-                      <FieldInput field={field} value={draft.content[name]} onChange={(value) => edit(section.id, { content: { ...draft.content, [name]: value } })} />
+                      <FieldInput
+                        field={field}
+                        value={draft.content[name]}
+                        // Pictures and links live on the English copy only.
+                        sharedLocale={locale !== "en"}
+                        onChange={(value) => edit(section.id, { content: { ...draft.content, [name]: value } })}
+                      />
                     </div>
                   );
                 })}

@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import gsap from "gsap";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { Play } from "lucide-react";
 
 type InstagramContent = {
@@ -19,7 +20,8 @@ type InstagramContent = {
 
 const MARQUEE_COPIES = 3;
 
-export default function Instagram({ content, followLabel = "Follow" }: { content?: InstagramContent; followLabel?: string }) {
+export default function Instagram({ content, followLabel }: { content?: InstagramContent; followLabel?: string }) {
+  const { t } = useLocale();
   // Reels come only from the CMS (Content > Home > Instagram). A reel saved
   // without a thumbnail gets the built-in photo so it never shows as a blank card.
   const posts = (content?.reels ?? []).map((post) => ({ ...post, thumbnailUrl: post.thumbnailUrl || "/images/heroimage.png" }));
@@ -125,22 +127,22 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
 
               <div className="flex items-center gap-3 text-[13px] text-[#414040]">
                 <span>
-                  <strong className="font-semibold text-black">{content?.posts ?? "557"}</strong>{" "}
-                  Posts
+                  <strong className="font-semibold text-black">{content?.posts || "557"}</strong>{" "}
+                  {t("instagram.posts")}
                 </span>
                 <span>
-                  <strong className="font-semibold text-black">{content?.followers ?? "16.1k"}</strong>{" "}
-                  Followers
+                  <strong className="font-semibold text-black">{content?.followers || "16.1k"}</strong>{" "}
+                  {t("instagram.followers")}
                 </span>
                 <span>
-                  <strong className="font-semibold text-black">{content?.following ?? "19"}</strong>{" "}
-                  Following
+                  <strong className="font-semibold text-black">{content?.following || "19"}</strong>{" "}
+                  {t("instagram.following")}
                 </span>
               </div>
 
               <div className="text-start text-[12px] leading-[1.5] text-[#414040]">
                 <p className="font-[family-name:var(--font-korolev),Korolev,sans-serif] font-normal">
-                  {content?.bio ?? "Good Mood Food 🍔🍟"}
+                  {content?.bio || t("instagram.bio")}
                 </p>
               </div>
             </div>
@@ -152,7 +154,7 @@ export default function Instagram({ content, followLabel = "Follow" }: { content
             rel="noopener noreferrer"
             className="shrink-0 rounded-[5px] bg-[#FF0931] px-5 py-1.5 font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] font-semibold text-white hover:bg-[#E0082C]"
           >
-            {followLabel}
+            {followLabel || t("instagram.follow")}
           </a>
         </div>
 

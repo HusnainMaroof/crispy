@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { compressImage } from "@/lib/image-compress";
 
-export type CmsField =
+export type CmsField = (
   | { kind: "text"; label: string; max: number; multiline?: boolean; hint?: string; default: string }
   | { kind: "image" | "video"; label: string; hint?: string; default: string }
   | { kind: "link"; label: string; external?: boolean; hint?: string; default: string }
@@ -15,7 +15,8 @@ export type CmsField =
   | { kind: "select"; label: string; options: { value: string; label: string }[]; hint?: string; default: string }
   | { kind: "toggle"; label: string; hint?: string; default: boolean }
   | { kind: "branches"; label: string; max: number; hint?: string; default: string[] }
-  | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] };
+  | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] }
+) & { shared?: boolean };
 
 export type CmsListItem = Exclude<CmsField, { kind: "list" } | { kind: "branches" }> | { kind: "object"; label: string; fields: Record<string, CmsField> };
 
@@ -39,14 +40,14 @@ function Hint({ text }: { text?: string }) {
   return text ? <p className="mt-1.5 text-xs leading-relaxed text-white/40">{text}</p> : null;
 }
 
-function MediaInput({ field, value, onChange }: { field: Extract<CmsField, { kind: "image" | "video" }>; value: string; onChange: (value: string) => void }) {
+function MediaInput({ field, value, onChange, disabled = false }: { field: Extract<CmsField, { kind: "image" | "video" }>; value: string; onChange: (value: string) => void; disabled?: boolean }) {
   const [uploading, setUploading] = useState(false);
   const isVideo = field.kind === "video";
 
   async function upload(file?: File) {
     // Without this a second pick fired a second upload while the first was
     // still running, and the slower one could win.
-    if (!file || uploading) return;
+    if (!file || uploading || disabled) return;
     const limit = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
     if (file.size > limit) {
       toast.error(`File must be ${limit / 1024 / 1024} MB or smaller.`);
@@ -77,16 +78,16 @@ function MediaInput({ field, value, onChange }: { field: Extract<CmsField, { kin
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" />
         )}
-        <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={isVideo ? "https://… or /images/video.mp4" : "https://… or /images/photo.jpg"} className={`${fieldClass} mt-0`} />
+        <input value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={isVideo ? "https://… or /images/video.mp4" : "https://… or /images/photo.jpg"} className={`${fieldClass} mt-0 disabled:cursor-not-allowed disabled:opacity-50`} />
         <label
-          className={`${smallButton} flex shrink-0 items-center gap-2 ${uploading ? "cursor-progress opacity-60" : ""}`}
+          className={`${smallButton} flex shrink-0 items-center gap-2 ${uploading ? "cursor-progress opacity-60" : ""} ${disabled ? "cursor-not-allowed opacity-40 hover:border-white/15 hover:bg-transparent" : ""}`}
         >
           {uploading && <Loader2 aria-hidden className="size-3.5 animate-spin" />}
           {uploading ? "Uploading…" : "Upload"}
           <input
             type="file"
             accept={isVideo ? VIDEO_TYPES : IMAGE_TYPES}
-            disabled={uploading}
+            disabled={uploading || disabled}
             className="hidden"
             onChange={(event) => {
               void upload(event.target.files?.[0]);
@@ -100,7 +101,23 @@ function MediaInput({ field, value, onChange }: { field: Extract<CmsField, { kin
   );
 }
 
-export function FieldInput({ field, value, onChange }: { field: CmsField | CmsListItem; value: unknown; onChange: (value: unknown) => void }) {
+const lockedClass = "disabled:cursor-not-allowed disabled:opacity-50";
+
+function isSharedInput(field: CmsField | CmsListItem): boolean {
+  if ((field as { shared?: boolean }).shared === true) return true;
+  if (field.kind === "image" || field.kind === "video" || field.kind === "url" || field.kind === "link") return true;
+  return field.kind === "list" && isSharedInput(field.item);
+}
+
+/**
+ * `sharedLocale` marks the non-English editor: pictures, links and shared rows
+ * belong to the English copy, so they are shown but cannot be changed here.
+ * `readOnly` disables every input, for the fields inside a shared row.
+ */
+export function FieldInput({ field, value, onChange, sharedLocale = false, readOnly = false }: { field: CmsField | CmsListItem; value: unknown; onChange: (value: unknown) => void; sharedLocale?: boolean; readOnly?: boolean }) {
+  const locked = readOnly || (sharedLocale && isSharedInput(field));
+  const note = locked && !readOnly ? "Shared with English. Change it in the English copy." : undefined;
+
   switch (field.kind) {
     case "text": {
       const text = typeof value === "string" ? value : "";
@@ -108,47 +125,52 @@ export function FieldInput({ field, value, onChange }: { field: CmsField | CmsLi
         <label className="block text-sm font-medium text-white/75">
           {field.label}
           {field.multiline
-            ? <textarea value={text} maxLength={field.max} rows={4} onChange={(event) => onChange(event.target.value)} className={fieldClass} />
-            : <input value={text} maxLength={field.max} onChange={(event) => onChange(event.target.value)} className={fieldClass} />}
+            ? <textarea value={text} maxLength={field.max} rows={4} disabled={locked} onChange={(event) => onChange(event.target.value)} className={`${fieldClass} ${lockedClass}`} />
+            : <input value={text} maxLength={field.max} disabled={locked} onChange={(event) => onChange(event.target.value)} className={`${fieldClass} ${lockedClass}`} />}
           <Hint text={field.hint} />
         </label>
       );
     }
     case "image":
     case "video":
-      return <MediaInput field={field} value={typeof value === "string" ? value : ""} onChange={onChange} />;
+      return (
+        <div>
+          <MediaInput field={field} value={typeof value === "string" ? value : ""} onChange={onChange} disabled={locked} />
+          {note && <p className="mt-1 text-xs text-white/40">{note}</p>}
+        </div>
+      );
     case "link":
       return (
         <label className="block text-sm font-medium text-white/75">
           {field.label}
-          <input value={typeof value === "string" ? value : ""} list="cms-storefront-paths" onChange={(event) => onChange(event.target.value)} placeholder={field.external ? "/menu or https://…" : "/menu"} className={fieldClass} />
+          <input value={typeof value === "string" ? value : ""} list="cms-storefront-paths" disabled={locked} onChange={(event) => onChange(event.target.value)} placeholder={field.external ? "/menu or https://…" : "/menu"} className={`${fieldClass} ${lockedClass}`} />
           <datalist id="cms-storefront-paths">{STOREFRONT_PATHS.map((path) => <option key={path} value={path} />)}</datalist>
-          <Hint text={field.hint ?? (field.external ? "A storefront page or an https link." : "A storefront page, e.g. /menu.")} />
+          <Hint text={note ?? (field.hint ?? (field.external ? "A storefront page or an https link." : "A storefront page, e.g. /menu."))} />
         </label>
       );
     case "url":
       return (
         <label className="block text-sm font-medium text-white/75">
           {field.label}
-          <input type="url" value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)} placeholder="https://…" className={fieldClass} />
-          <Hint text={field.hint ?? (field.hosts ? `Must be an https link on ${field.hosts.join(" or ")}.` : undefined)} />
+          <input type="url" value={typeof value === "string" ? value : ""} disabled={locked} onChange={(event) => onChange(event.target.value)} placeholder="https://…" className={`${fieldClass} ${lockedClass}`} />
+          <Hint text={note ?? (field.hint ?? (field.hosts ? `Must be an https link on ${field.hosts.join(" or ")}.` : undefined))} />
         </label>
       );
     case "number":
       return (
         <label className="block text-sm font-medium text-white/75">
           {field.label}
-          <input type="number" min={field.min} max={field.max} value={typeof value === "number" ? value : field.default} onChange={(event) => onChange(Number(event.target.value))} className={fieldClass} />
+          <input type="number" min={field.min} max={field.max} value={typeof value === "number" ? value : field.default} disabled={locked} onChange={(event) => onChange(Number(event.target.value))} className={`${fieldClass} ${lockedClass}`} />
           <Hint text={field.hint ?? `Between ${field.min} and ${field.max}.`} />
         </label>
       );
     case "select":
       return field.options.length === 2
-        ? <Choice field={field} value={typeof value === "string" ? value : field.default} onChange={onChange} />
+        ? <Choice field={field} value={typeof value === "string" ? value : field.default} onChange={onChange} disabled={locked} />
         : (
           <label className="block text-sm font-medium text-white/75">
             {field.label}
-            <select value={typeof value === "string" ? value : field.default} onChange={(event) => onChange(event.target.value)} className={fieldClass}>
+            <select value={typeof value === "string" ? value : field.default} disabled={locked} onChange={(event) => onChange(event.target.value)} className={`${fieldClass} ${lockedClass}`}>
               {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
             <Hint text={field.hint} />
@@ -158,8 +180,8 @@ export function FieldInput({ field, value, onChange }: { field: CmsField | CmsLi
       return <BranchPicker field={field} value={Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []} onChange={onChange} />;
     case "toggle":
       return (
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white/75 transition-colors hover:border-white/20">
-          <input type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 shrink-0 accent-[#FF0931]" />
+        <label className={`flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white/75 transition-colors hover:border-white/20 ${locked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
+          <input type="checkbox" checked={value === true} disabled={locked} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 shrink-0 accent-[#FF0931]" />
           {field.label}
         </label>
       );
@@ -169,18 +191,26 @@ export function FieldInput({ field, value, onChange }: { field: CmsField | CmsLi
         <div className="grid gap-3 sm:grid-cols-2">
           {Object.entries(field.fields).map(([name, child]) => (
             <div key={name} className={child.kind === "text" && child.multiline ? "sm:col-span-2" : ""}>
-              <FieldInput field={child} value={object[name]} onChange={(next) => onChange({ ...object, [name]: next })} />
+              <FieldInput field={child} value={object[name]} sharedLocale={sharedLocale} readOnly={locked} onChange={(next) => onChange({ ...object, [name]: next })} />
             </div>
           ))}
         </div>
       );
     }
     case "list":
-      return <ListInput field={field} value={Array.isArray(value) ? value : []} onChange={onChange} />;
+      return (
+        <ListInput
+          field={field}
+          value={Array.isArray(value) ? value : []}
+          onChange={onChange}
+          sharedLocale={sharedLocale}
+          readOnly={locked}
+        />
+      );
   }
 }
 
-function Choice({ field, value, onChange }: { field: Extract<CmsField, { kind: "select" }>; value: string; onChange: (value: string) => void }) {
+function Choice({ field, value, onChange, disabled = false }: { field: Extract<CmsField, { kind: "select" }>; value: string; onChange: (value: string) => void; disabled?: boolean }) {
   return (
     <div className="text-sm font-medium text-white/75">
       {field.label}
@@ -192,8 +222,9 @@ function Choice({ field, value, onChange }: { field: Extract<CmsField, { kind: "
               key={option.value}
               type="button"
               aria-pressed={selected}
+              disabled={disabled}
               onClick={() => onChange(option.value)}
-              className={`h-11 cursor-pointer rounded-xl px-3 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${selected ? "bg-[#FF0931] text-white shadow-[0_6px_20px_rgba(255,9,49,0.35)]" : "text-white/55 hover:bg-white/5 hover:text-white"}`}
+              className={`h-11 rounded-xl px-3 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] disabled:cursor-not-allowed disabled:opacity-60 ${disabled ? "" : "cursor-pointer"} ${selected ? "bg-[#FF0931] text-white shadow-[0_6px_20px_rgba(255,9,49,0.35)]" : "text-white/55 hover:bg-white/5 hover:text-white"}`}
             >
               {option.label}
             </button>
@@ -263,7 +294,7 @@ function BranchPicker({ field, value, onChange }: { field: Extract<CmsField, { k
   );
 }
 
-function ListInput({ field, value, onChange }: { field: Extract<CmsField, { kind: "list" }>; value: unknown[]; onChange: (value: unknown[]) => void }) {
+function ListInput({ field, value, onChange, sharedLocale = false, readOnly = false }: { field: Extract<CmsField, { kind: "list" }>; value: unknown[]; onChange: (value: unknown[]) => void; sharedLocale?: boolean; readOnly?: boolean }) {
   const itemLabel = field.item.label || "Item";
   function move(index: number, offset: number) {
     const next = [...value];
@@ -277,22 +308,23 @@ function ListInput({ field, value, onChange }: { field: Extract<CmsField, { kind
         <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-white/45">{value.length} / {field.max}</span>
       </div>
       <Hint text={field.hint} />
+      {readOnly && <p className="mt-1.5 text-xs leading-relaxed text-white/40">Shared with English. Change these in the English copy.</p>}
       <div className="mt-3 space-y-3">
         {value.map((entry, index) => (
           <div key={index} className="rounded-2xl border border-white/10 bg-black/40 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-white/50"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-[11px] normal-case tracking-normal">{index + 1}</span>{itemLabel}</span>
               <div className="flex gap-1">
-                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} className={smallButton} aria-label="Move up">↑</button>
-                <button type="button" onClick={() => move(index, 1)} disabled={index === value.length - 1} className={smallButton} aria-label="Move down">↓</button>
-                <button type="button" onClick={() => onChange(value.filter((_, position) => position !== index))} className={`${smallButton} text-red-300`}>Remove</button>
+                <button type="button" onClick={() => move(index, -1)} disabled={readOnly || index === 0} className={smallButton} aria-label="Move up">↑</button>
+                <button type="button" onClick={() => move(index, 1)} disabled={readOnly || index === value.length - 1} className={smallButton} aria-label="Move down">↓</button>
+                <button type="button" onClick={() => onChange(value.filter((_, position) => position !== index))} disabled={readOnly} className={`${smallButton} text-red-300`}>Remove</button>
               </div>
             </div>
-            <FieldInput field={{ ...field.item, label: field.item.kind === "object" ? field.item.label : "" } as CmsListItem} value={entry} onChange={(next) => onChange(value.map((item, position) => position === index ? next : item))} />
+            <FieldInput field={{ ...field.item, label: field.item.kind === "object" ? field.item.label : "" } as CmsListItem} value={entry} sharedLocale={sharedLocale} readOnly={readOnly} onChange={(next) => onChange(value.map((item, position) => position === index ? next : item))} />
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => onChange([...value, newItem(field.item)])} disabled={value.length >= field.max} className={`${smallButton} mt-3 border-dashed px-4 py-2.5`}>
+      <button type="button" onClick={() => onChange([...value, newItem(field.item)])} disabled={readOnly || value.length >= field.max} className={`${smallButton} mt-3 border-dashed px-4 py-2.5`}>
         + Add {itemLabel.toLowerCase()}
       </button>
     </div>

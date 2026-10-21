@@ -13,6 +13,7 @@ import {
   type CmsPage,
   type CmsSection,
 } from "../config/cms-registry.js";
+import { hasTranslatableFields, mergeSectionContent, stripSharedFields } from "./cms-merge.js";
 import { sectionContentSchema } from "../validators/cms.schema.js";
 import { resolveTabs } from "../config/admin-tabs.js";
 import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error.js";
@@ -61,22 +62,16 @@ function resolveContent(section: CmsSection, stored: Record<string, unknown>) {
   return content;
 }
 
+/**
+ * The published copy for one locale: the English content with the translated
+ * values laid over it. Shared media and links always come from English.
+ */
 function publishedContent(section: CmsSection, row: SectionRow | undefined, locale: AppLocale) {
   const english = asObject(publishedCopy(row, DEFAULT_LOCALE)?.content);
   if (locale === DEFAULT_LOCALE) return english;
   const requested = row?.translations.find((item) => item.locale === locale && item.is_published);
   if (!requested) return english;
-  const local = asObject(requested.content);
-  const merged = { ...english };
-  for (const [name, field] of Object.entries(section.fields)) {
-    if (local[name] === undefined) continue;
-    // Links and media are shared. An empty Arabic value must not wipe the
-    // English destination, or the redirect system has nowhere to send people.
-    const shared = field.kind === "url" || field.kind === "link" || field.kind === "image" || field.kind === "video";
-    if (shared && local[name] === "") continue;
-    merged[name] = local[name];
-  }
-  return merged;
+  return mergeSectionContent(section, english, asObject(requested.content));
 }
 
 function publishedCopy(row: SectionRow | undefined, locale: AppLocale) {
@@ -207,10 +202,13 @@ export async function getCmsPageForEditing(actor: Actor, pageId: string, request
   const locale = requireLocale(requested ?? DEFAULT_LOCALE);
   await ensureSections(page);
   const rows = await loadRows(page.id);
+  // Hidden sections and sections with only locked or shared fields cannot be
+  // translated, so counting them left the gauge stuck below 100% forever.
+  const translatable = page.sections.filter((section) => !section.hidden && hasTranslatableFields(section));
   const coverage = SUPPORTED_LOCALES.map((code) => ({
     locale: code,
-    translated: page.sections.filter((section) => rows.find((row) => row.key === section.key)?.translations.some((item) => item.locale === code)).length,
-    total: page.sections.length,
+    translated: translatable.filter((section) => rows.find((row) => row.key === section.key)?.translations.some((item) => item.locale === code)).length,
+    total: translatable.length,
   }));
   return serialize({
     page: publicDefinition(page),
@@ -221,13 +219,18 @@ export async function getCmsPageForEditing(actor: Actor, pageId: string, request
       const translation = row.translations.find((item) => item.locale === locale) ?? null;
       const english = row.translations.find((item) => item.locale === DEFAULT_LOCALE);
       const base = translation ?? (locale === DEFAULT_LOCALE ? null : english);
+      // The editor shows the English pictures in every language, because those
+      // are the ones the storefront uses for this locale too.
+      const content = locale === DEFAULT_LOCALE
+        ? asObject(base?.content)
+        : mergeSectionContent(section, asObject(english?.content), asObject(base?.content));
       return {
         id: row.id,
         key: section.key,
         sort_order: row.sort_order,
         is_active: row.is_active,
         definition: sectionDefinition(section),
-        content: resolveContent(section, asObject(base?.content)),
+        content: resolveContent(section, content),
         translation: translation
           ? { is_published: translation.is_published, updated_at: translation.updated_at }
           : null,
@@ -279,7 +282,10 @@ export async function updateCmsSection(actor: Actor, id: string, input: CmsSecti
       where: { section_id_locale: { section_id: id, locale } },
       select: { content: true },
     });
-    content = validateContent(section, restoreLocked(section, input.content, asObject(current?.content)));
+    const restored = restoreLocked(section, input.content, asObject(current?.content));
+    // A translation stores only what is translated; media and links stay in English.
+    const cleaned = locale === DEFAULT_LOCALE ? restored : stripSharedFields(section, restored);
+    content = validateContent(section, cleaned);
   }
   if (input.is_active !== undefined) {
     await getPrisma().cms_sections.update({ where: { id }, data: { is_active: input.is_active } });

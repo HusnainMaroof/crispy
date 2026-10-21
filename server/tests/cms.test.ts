@@ -43,8 +43,9 @@ describe("cms registry", () => {
   it("rejects html, unknown fields, unsafe links, and bad media", () => {
     assert.equal(schemaFor("home", "welcome").safeParse({ description: "<script>alert(1)</script>" }).success, false);
     assert.equal(schemaFor("home", "welcome").safeParse({ banner: "x" }).success, false);
-    assert.equal(schemaFor("home", "locations").safeParse({ ctaUrl: "/admin" }).success, false);
-    assert.equal(schemaFor("home", "locations").safeParse({ ctaUrl: "/locations" }).success, true);
+    // The locations button always opens /locations, so it has no destination field.
+    assert.equal("ctaUrl" in (findCmsSection("home", "locations")?.fields ?? {}), false);
+    assert.equal(schemaFor("home", "locations").safeParse({ ctaUrl: "/locations" }).success, false);
     assert.equal(schemaFor("home", "flavours").safeParse({ centerImage: "https://cdn.example.com/card.png" }).success, true);
     assert.equal(schemaFor("home", "flavours").safeParse({ galleryImages: ["javascript:alert(1)"] }).success, false);
     assert.equal(schemaFor("home", "welcome").safeParse({ backImage: "javascript:alert(1)" }).success, false);
@@ -181,6 +182,16 @@ describe("cms pages", { concurrency: 1 }, () => {
         });
       }
     }
+  });
+
+  it("counts only sections that can be translated", async () => {
+    const page = await getCmsPageForEditing(superadmin, "home", "ar");
+    const arabic = page.coverage.find((item) => item.locale === "ar")!;
+    assert.ok(arabic.total > 0);
+    assert.equal(arabic.translated, arabic.total);
+    // Flavours holds only locked and shared fields, so it cannot be translated
+    // and must not sit in the total as a permanent missing section.
+    assert.equal(arabic.total < page.sections.length, true);
   });
 
   it("serves navbar defaults before anything is saved", async () => {

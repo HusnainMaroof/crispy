@@ -5,6 +5,12 @@
  */
 type Lockable = { locked?: boolean };
 
+/**
+ * A shared field is the same in every language: pictures, links, and rows like
+ * the Instagram reels. It is edited on the English copy and never translated.
+ */
+type Sharable = { shared?: boolean };
+
 export type CmsField = (
   | { kind: "text"; label: string; max: number; multiline?: boolean; hint?: string; default: string }
   | { kind: "image" | "video"; label: string; hint?: string; default: string }
@@ -15,7 +21,7 @@ export type CmsField = (
   | { kind: "toggle"; label: string; hint?: string; default: boolean }
   | { kind: "branches"; label: string; max: number; hint?: string; default: string[] }
   | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] }
-) & Lockable;
+) & Lockable & Sharable;
 
 export type CmsListItem = Exclude<CmsField, { kind: "list" } | { kind: "branches" }> | { kind: "object"; label: string; fields: Record<string, CmsField> };
 
@@ -171,8 +177,8 @@ export const CMS_PAGES: CmsPage[] = [
         fields: {
           title: text("Heading", 120, "Find Your Nearest Crispies"),
           locationIds: { kind: "branches", label: "Branches", max: 12, hint: "Leave this empty to show every branch. Otherwise only the ticked branches appear, in this order.", default: [] },
+          // No destination field: the button always opens the locations page.
           ctaLabel: text("Button label", 80, "View All Locations"),
-          ctaUrl: { kind: "link", label: "Button destination", default: "/locations" },
         },
       },
       {
@@ -205,6 +211,8 @@ export const CMS_PAGES: CmsPage[] = [
           reels: {
             kind: "list",
             label: "Reels",
+            // The reel row is identical in every language, counts included.
+            shared: true,
             max: 12,
             item: {
               kind: "object",
