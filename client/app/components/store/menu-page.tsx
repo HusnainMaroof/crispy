@@ -113,7 +113,11 @@ export default function MenuPage() {
     void dispatch(fetchFullMenu(cart.locationId ?? undefined));
   }, [dispatch, menu.status, cart.locationId]);
 
-  const isFirstLoad = menu.status !== "ready" && menu.status !== "failed";
+  // Skeletons only on the very first load. A branch change keeps the tabs and
+  // grid on screen (dimmed) instead of flashing them away and back.
+  const hasMenu = menu.categories.length > 0;
+  const isFirstLoad = menu.status !== "ready" && menu.status !== "failed" && !hasMenu;
+  const refreshing = menu.status === "loading" && hasMenu;
 
   // The cart's location is the single source of truth for the current branch, so
   // the dropdown is a controlled read of it. An empty id means "All branches",
@@ -394,12 +398,19 @@ export default function MenuPage() {
 
           {!isFirstLoad && menu.status === "ready" && filteredItems.length === 0 && (
             <div className="py-20 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-[#999]">
-              {menuItems.length === 0 ? t("menu.emptyCatalogue") : t("menu.empty")}
+              {menuItems.length === 0 && effectiveCategory === "All"
+                ? t("menu.emptyCatalogue")
+                : effectiveCategory !== "All" && !search.trim() && dietary === "All"
+                  ? t("menu.emptyCategory")
+                  : t("menu.empty")}
             </div>
           )}
 
           {!isFirstLoad && filteredItems.length > 0 && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 ">
+            <div
+              aria-busy={refreshing}
+              className={`grid grid-cols-2 gap-4 transition-opacity duration-200 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 ${refreshing ? "opacity-50" : ""}`}
+            >
               {filteredItems.map((item) => (
                 <div
                   key={item.id}

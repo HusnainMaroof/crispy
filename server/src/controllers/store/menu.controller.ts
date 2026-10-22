@@ -10,7 +10,9 @@ const PUBLIC_READ = { read: true, cache: true } as const;
 export const MenuController = {
   async full(req: Request, res: Response) {
     const queryId = req.query.location_id;
-    const cookieId = req.cookies?.crispy_location_id;
+    // scope=all is the store's "All branches" choice. It must win over a
+    // branch cookie left behind by the locations page or delivery popup.
+    const cookieId = req.query.scope === "all" ? undefined : req.cookies?.crispy_location_id;
     const menu = typeof queryId === "string" && queryId
       ? await getFullMenu({ locationId: queryId, required: true }, PUBLIC_READ)
       : typeof cookieId === "string" && cookieId
@@ -39,7 +41,9 @@ export const MenuController = {
 
   async deals(req: Request, res: Response) {
     const queryId = req.query.location_id;
-    const cookieId = req.cookies?.crispy_location_id;
+    // scope=all is the store's "All branches" choice. It must win over a
+    // branch cookie left behind by the locations page or delivery popup.
+    const cookieId = req.query.scope === "all" ? undefined : req.cookies?.crispy_location_id;
     const deals = typeof queryId === "string" && queryId
       ? await getDeals(true, { locationId: queryId, required: true }, PUBLIC_READ)
       : typeof cookieId === "string" && cookieId

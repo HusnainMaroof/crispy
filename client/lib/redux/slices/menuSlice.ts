@@ -44,7 +44,9 @@ function mapMenuCategory(raw: Record<string, unknown>): MenuCategory {
 }
 
 function menuPath(path: string, locationId?: string) {
-  if (!locationId) return path;
+  // No branch means "All branches". Say so, or the server falls back to a
+  // remembered branch cookie and the menu looks half empty.
+  if (!locationId) return `${path}?scope=all`;
   return `${path}?location_id=${encodeURIComponent(locationId)}`;
 }
 
