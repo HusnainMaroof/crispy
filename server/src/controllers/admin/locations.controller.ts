@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { getLocations, createLocation, updateLocation } from "../../services/admin.service.js";
+import { getLocations, createLocation, updateLocation, reorderLocations } from "../../services/admin.service.js";
 import { getLocationById } from "../../services/store.service.js";
 import { assertLocationAccess, getAccessibleLocationIds } from "../../services/branch-access.service.js";
 import { isBranchScoped } from "../../config/admin-roles.js";
@@ -45,6 +45,12 @@ export const LocationsController = {
     const locationId = req.params.id as string;
     const location = await updateLocation(locationId, req.body);
     sendSuccess(res, location);
+  },
+
+  async reorder(req: Request, res: Response) {
+    assertBranchAdmin(req.admin?.role);
+    const locations = await reorderLocations(req.body.ids as string[]);
+    sendSuccess(res, locations);
   },
 
   async remove(req: Request, res: Response) {

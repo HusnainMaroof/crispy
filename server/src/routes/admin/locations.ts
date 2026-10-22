@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { requireTab, requireRole } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
-import { locationSchema, locationUpdateSchema, branchMenuWriteSchema, branchDealWriteSchema } from "../../validators/order.schema.js";
+import { locationSchema, locationUpdateSchema, locationOrderSchema, branchMenuWriteSchema, branchDealWriteSchema } from "../../validators/order.schema.js";
 import { asyncHandler } from "../../utils/async-handler.js";
 import { LocationsController } from "../../controllers/admin/locations.controller.js";
 
 const router = Router();
 
 router.get("/", asyncHandler(LocationsController.list));
+router.put("/order", requireRole("superadmin"), requireTab("locations", "branches"), validate(locationOrderSchema), asyncHandler(LocationsController.reorder));
 router.get("/:id/menu", asyncHandler(LocationsController.menu));
 router.put("/:id/menu", requireRole("superadmin", "branch_manager"), requireTab("menu", "branch-menu"), validate(branchMenuWriteSchema), asyncHandler(LocationsController.saveMenu));
 router.get("/:id/deals", asyncHandler(LocationsController.deals));

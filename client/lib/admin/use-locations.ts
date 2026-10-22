@@ -95,18 +95,13 @@ export function useLocations() {
   );
 
   /**
-   * Saves a new order for every branch. The server returns the rows ordered by
-   * sort_order, so one refetch keeps the list in the same order it was dropped.
+   * Saves a new branch order in one request. The server returns the list in
+   * the saved order, so no extra refetch is needed.
    */
-  const reorderLocations = useCallback(
-    async (orderedIds: string[]) => {
-      await Promise.all(
-        orderedIds.map((id, index) => api.patch(`/admin/locations/${id}`, { sort_order: index }))
-      );
-      await fetchLocations();
-    },
-    [fetchLocations]
-  );
+  const reorderLocations = useCallback(async (orderedIds: string[]) => {
+    const data = await api.put<Record<string, unknown>[]>("/admin/locations/order", { ids: orderedIds });
+    setLocations(data.map(mapLocation));
+  }, []);
 
   const deleteLocation = useCallback(async (id: string) => {
     await api.delete(`/admin/locations/${id}`);

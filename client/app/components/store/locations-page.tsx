@@ -303,9 +303,9 @@ export default function Locations() {
   const { locations } = useStoreLocations();
   const mapLocations = useMemo(
     () =>
-      locations.flatMap((location) =>
+      locations.flatMap((location, index) =>
         location.lat != null && location.lng != null
-          ? [{ id: location.id, name: location.name, lat: location.lat, lng: location.lng }]
+          ? [{ id: location.id, name: location.name, lat: location.lat, lng: location.lng, number: location.pinNumber ?? index + 1 }]
           : [],
       ),
     [locations],
@@ -840,7 +840,8 @@ export default function Locations() {
               >
                 {locations.map((loc, i) => {
                   const isActive = loc.id === selectedId;
-                  const displayNum = String(i + 1).padStart(2, "0");
+                  // Same number as the admin Branches tab: manual pin, else list position.
+                  const displayNum = String(loc.pinNumber ?? i + 1).padStart(2, "0");
 
                   return (
                     <div

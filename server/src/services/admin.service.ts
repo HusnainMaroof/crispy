@@ -66,6 +66,26 @@ export async function getLocationById(id: string, options?: { read?: boolean }):
   return serialize(row);
 }
 
+/**
+ * Saves the branch order in one transaction. Only rows whose position changed
+ * are written, and the public cache is cleared once.
+ */
+export async function reorderLocations(ids: string[]): Promise<Location[]> {
+  if (new Set(ids).size !== ids.length) throw new BadRequestException("Branch order has duplicate ids");
+  const current = await db().locations.findMany({ select: { id: true, sort_order: true } });
+  const known = new Map(current.map((row) => [row.id, row.sort_order]));
+  if (ids.some((id) => !known.has(id))) throw new BadRequestException("Branch order has an unknown branch");
+  const changed = ids.flatMap((id, index) => (known.get(id) === index ? [] : [{ id, index }]));
+  if (changed.length > 0) {
+    await db().$transaction(
+      changed.map(({ id, index }) => db().locations.update({ where: { id }, data: { sort_order: index } }))
+    );
+    void invalidateLocationsCache();
+    void invalidateCatalogueCache();
+  }
+  return loadLocations();
+}
+
 export async function updateLocation(id: string, input: Record<string, unknown>): Promise<Location> {
   try {
     const row = await db().locations.update({

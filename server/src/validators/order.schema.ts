@@ -60,6 +60,11 @@ export const locationSchema = z.object({
 
 export const locationUpdateSchema = locationSchema.partial();
 
+/** Full branch order from the admin Branches tab, first id shows first. */
+export const locationOrderSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(500),
+});
+
 export const customerProfileSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   email: z.string().email().optional(),

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Check, ChevronDown, ChevronUp, Info, MapPin, Trash2 } from "lucide-react";
+import { Check, GripVertical, Info, MapPin, Trash2 } from "lucide-react";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import { TableSkeleton } from "@/app/components/admin/ui/skeleton";
 import Modal from "@/app/components/admin/ui/modal";
@@ -21,8 +21,12 @@ export default function LocationsPage() {
   // Which branch is mid-update, so only that row locks instead of the whole page.
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
-  // Position change waiting for the admin to confirm the new live order.
-  const [movePrompt, setMovePrompt] = useState<{ index: number; direction: -1 | 1 } | null>(null);
+  // Branch being dragged, and the order shown while the drag is in progress.
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<AdminLocation[] | null>(null);
+  // Branch whose new position is being saved, so its row shows a loading state.
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const rows = preview ?? locations;
 
   useEffect(() => {
     void fetchLocations();
@@ -56,38 +60,64 @@ export default function LocationsPage() {
     }
   };
 
-  /** Swaps one branch with its neighbour and saves the whole new order. */
-  const applyMove = async (index: number, direction: -1 | 1): Promise<boolean> => {
-    const target = locations[index + direction];
-    if (!target || reordering) return false;
-    const branch = locations[index];
-    const ordered = [...locations];
-    [ordered[index], ordered[index + direction]] = [ordered[index + direction], ordered[index]];
+  /** Saves a new branch order. The dragged branch decides the toast text. */
+  const saveOrder = async (ordered: AdminLocation[], movedId: string) => {
+    const changed = ordered.some((location, index) => location.id !== locations[index]?.id);
+    if (!changed || reordering) {
+      setPreview(null);
+      return;
+    }
+    const branch = ordered.find((location) => location.id === movedId);
+    const position = ordered.findIndex((location) => location.id === movedId);
     // Disabled branches are not listed live, so they do not take a number.
-    const liveNumber = ordered
-      .slice(0, index + direction + 1)
-      .filter((location) => location.status !== "inactive").length;
+    const liveNumber = ordered.slice(0, position + 1).filter((location) => location.status !== "inactive").length;
+    setPreview(ordered);
+    setSavingId(movedId);
     setReordering(true);
     try {
       await reorderLocations(ordered.map((location) => location.id));
-      toast.success(
-        branch.status === "inactive"
-          ? `${branch.name} moved. The live order updates when the branch is active again.`
-          : `${branch.name} now shows as number ${liveNumber} on the live website`
-      );
-      return true;
+      if (branch) {
+        toast.success(
+          branch.status === "inactive"
+            ? `${branch.name} moved. The live order updates when the branch is active again.`
+            : `${branch.name} now shows as number ${liveNumber} on the live website`
+        );
+      }
     } catch {
       toast.error("Could not save the branch order");
-      return false;
     } finally {
+      setPreview(null);
+      setSavingId(null);
       setReordering(false);
     }
   };
 
-  const confirmMove = async () => {
-    if (!movePrompt) return;
-    const saved = await applyMove(movePrompt.index, movePrompt.direction);
-    if (saved) setMovePrompt(null);
+  /** Moves the dragged branch to the slot of the branch under the pointer. */
+  const dragOver = (targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    const current = [...rows];
+    const from = current.findIndex((location) => location.id === dragId);
+    const to = current.findIndex((location) => location.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [moved] = current.splice(from, 1);
+    current.splice(to, 0, moved);
+    setPreview(current);
+  };
+
+  const endDrag = () => {
+    const id = dragId;
+    setDragId(null);
+    if (id && preview) void saveOrder(preview, id);
+    else setPreview(null);
+  };
+
+  /** Keyboard fallback on the drag handle: arrow keys move one step. */
+  const moveByKey = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= rows.length || reordering) return;
+    const ordered = [...rows];
+    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+    void saveOrder(ordered, ordered[target].id);
   };
 
   const activeCount = locations.filter((location) => location.status !== "inactive").length;
@@ -95,14 +125,6 @@ export default function LocationsPage() {
     (location) => location.status === "active" && isComingSoonHours(location.hours)
   ).length;
   const disabledCount = locations.length - activeCount;
-  const moveLocation = movePrompt ? locations[movePrompt.index] : null;
-  const moveTargetIndex = movePrompt ? movePrompt.index + movePrompt.direction : 0;
-  // The set of branches above the target does not change when two neighbours swap.
-  const moveTargetNumber = movePrompt
-    ? locations
-        .slice(0, moveTargetIndex + 1)
-        .filter((location) => location.status !== "inactive").length
-    : 0;
 
   const saveExisting = async (data: BranchInput) => {
     if (!editing) return;
@@ -129,7 +151,7 @@ export default function LocationsPage() {
     <div className="admin-fade-in">
       <PageHeader
         title="Branches"
-        description="Address, opening hours, live number and availability. The arrows set the order on the live website, and a manual number overrides it on the branch list and map. Coming soon branches stay listed without taking orders. Disabled is for maintenance and is separate from the hours."
+        description="Address, opening hours, live number and availability. Drag a branch by its handle to set the order on the live website, and a manual number overrides it on the branch list and map. Coming soon branches stay listed without taking orders. Disabled is for maintenance and is separate from the hours."
         action={
           <ActionButton type="button" onClick={() => setAdding(true)} className="rounded-full px-5">
             Add branch
@@ -178,7 +200,12 @@ export default function LocationsPage() {
             )}
             <p className="ms-auto text-xs text-white/40">Numbers and order appear on the live website.</p>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="relative overflow-x-auto rounded-xl border border-white/10" aria-busy={reordering}>
+          {reordering && (
+            <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-white/5" aria-hidden>
+              <div className="h-full w-1/3 animate-pulse bg-brand-red" />
+            </div>
+          )}
           <table className="w-full min-w-[1080px] text-left">
             <thead>
               <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-white/50">
@@ -192,18 +219,30 @@ export default function LocationsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {locations.map((location, index) => {
+              {rows.map((location, index) => {
                 const active = location.status !== "inactive";
                 const comingSoon = active && isComingSoonHours(location.hours);
                 // Position among the branches the live website actually lists.
-                const liveNumber = locations
+                const liveNumber = rows
                   .slice(0, index + 1)
                   .filter((item) => item.status !== "inactive").length;
                 return (
                   <tr
                     key={location.id}
+                    onDragOver={(event) => {
+                      if (!dragId) return;
+                      event.preventDefault();
+                      dragOver(location.id);
+                    }}
+                    onDrop={(event) => event.preventDefault()}
                     className={`text-sm transition-colors hover:bg-white/[0.03] ${
-                      pendingId === location.id ? "bg-white/[0.04]" : ""
+                      dragId === location.id
+                        ? "bg-white/[0.02] [&>td]:relative [&>td>*]:invisible [&>td]:after:absolute [&>td]:after:inset-x-4 [&>td]:after:top-1/2 [&>td]:after:h-4 [&>td]:after:-translate-y-1/2 [&>td]:after:animate-pulse [&>td]:after:rounded-md [&>td]:after:bg-white/10 [&>td]:after:content-['']"
+                        : savingId === location.id
+                          ? "bg-white/[0.05]"
+                          : reordering
+                            ? "opacity-60"
+                            : pendingId === location.id ? "bg-white/[0.04]" : ""
                     }`}
                   >
                     <td className="px-4 py-3">
@@ -212,33 +251,41 @@ export default function LocationsPage() {
                           aria-hidden
                           className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-xs font-semibold tabular-nums text-white/80"
                         >
-                          {active ? String(liveNumber).padStart(2, "0") : "—"}
+                          {savingId === location.id ? (
+                            <span className="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+                          ) : active ? String(liveNumber).padStart(2, "0") : "—"}
                         </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            aria-label={`Move ${location.name} up`}
-                            title="Move up"
-                            disabled={index === 0 || reordering}
-                            onClick={() => setMovePrompt({ index, direction: -1 })}
-                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            <ChevronUp aria-hidden className="size-4" />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Move ${location.name} down`}
-                            title="Move down"
-                            disabled={index === locations.length - 1 || reordering}
-                            onClick={() => setMovePrompt({ index, direction: 1 })}
-                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            <ChevronDown aria-hidden className="size-4" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          draggable={!reordering}
+                          disabled={reordering || rows.length < 2}
+                          aria-label={`Reorder ${location.name}. Drag, or use the up and down arrow keys.`}
+                          title="Drag to reorder"
+                          onDragStart={(event) => {
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/plain", location.id);
+                            const row = event.currentTarget.closest("tr");
+                            if (row) event.dataTransfer.setDragImage(row, 24, 24);
+                            // Hiding the source in the same tick cancels the drag in Chrome,
+                            // so the skeleton starts on the next frame.
+                            const id = location.id;
+                            requestAnimationFrame(() => setDragId(id));
+                          }}
+                          onDragEnd={endDrag}
+                          onKeyDown={(event) => {
+                            if (event.key === "ArrowUp") { event.preventDefault(); moveByKey(index, -1); }
+                            if (event.key === "ArrowDown") { event.preventDefault(); moveByKey(index, 1); }
+                          }}
+                          className="inline-flex size-9 cursor-grab items-center justify-center rounded-lg border border-white/10 text-white/60 transition-colors hover:bg-white/10 hover:text-white active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          <GripVertical aria-hidden className="size-4" />
+                        </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-white">{location.name}</td>
+                    <td className="px-4 py-3 font-medium text-white">
+                      {location.name}
+                      {savingId === location.id && <span className="ms-2 text-xs font-normal text-white/50">Saving order…</span>}
+                    </td>
                     <td className="px-4 py-3 text-white/70">{location.address}</td>
                     <td className="px-4 py-3 text-white/70">{location.hours}</td>
                     <td className="px-4 py-3 text-white/70">{location.phone || "—"}</td>
@@ -335,57 +382,6 @@ export default function LocationsPage() {
         />
       )}
 
-      {movePrompt && moveLocation && (
-        <Modal
-          title="Move this branch on the live website"
-          onClose={() => setMovePrompt(null)}
-          busy={reordering}
-        >
-          <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
-            <span
-              aria-hidden
-              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF0931]/15 text-base font-semibold tabular-nums text-white"
-            >
-              {String(moveTargetNumber).padStart(2, "0")}
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white">
-                {moveLocation.name} moves {movePrompt.direction === -1 ? "up" : "down"}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-white/65">
-                {moveLocation.status === "inactive"
-                  ? `${moveLocation.name} is disabled, so it is not on the live website right now. The new order applies as soon as the branch is active again.`
-                  : `The branch list and map on the live website use this order, so ${moveLocation.name} will show as number ${moveTargetNumber}. The branches it passes shift by one number.`}
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-3 text-xs leading-relaxed text-white/40">
-            The live website updates as soon as you save.
-          </p>
-
-          <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <ActionButton
-              type="button"
-              variant="secondary"
-              onClick={() => setMovePrompt(null)}
-              disabled={reordering}
-              className="rounded-full"
-            >
-              Keep current order
-            </ActionButton>
-            <ActionButton
-              type="button"
-              busy={reordering}
-              busyLabel="Saving…"
-              onClick={() => void confirmMove()}
-              className="rounded-full"
-            >
-              Move to number {moveTargetNumber}
-            </ActionButton>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ export {
   updateOrderStatusSchema,
   locationSchema,
   locationUpdateSchema,
+  locationOrderSchema,
 } from "./order.schema.js";
 
 export {
