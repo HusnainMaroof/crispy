@@ -6,6 +6,8 @@ export type MenuItem = {
   descriptionAr?: string;
   price: string;
   priceValue: number;
+  /** False when the admin hid the price. A price of 0 is never shown either. */
+  showPrice: boolean;
   image: string;
   badge?: string;
   badgeVariant?: "default" | "vegan";
@@ -48,6 +50,10 @@ export type Location = {
   pin_number?: number | null;
   /** Google Maps link set in the admin. Empty means build one. */
   google_maps_url?: string;
+  /** Delivery partner links for this branch. Empty uses the site-wide link. */
+  redirect_uber_eats?: string;
+  redirect_deliveroo?: string;
+  redirect_just_eat?: string;
 };
 
 export type Settings = {

@@ -4,6 +4,7 @@ import { BadRequestException, InternalServerException, NotFoundException } from 
 import { slugifyBranchName } from "../utils/slug.js";
 import { rethrow, serialize } from "../utils/db.js";
 import { getAccessibleLocationIds } from "./branch-access.service.js";
+import { geocoder, logGeocoderFailure } from "./geocoding.service.js";
 import type { PageRequest } from "../utils/pagination.js";
 import type { AuthPayload } from "../types/responses.js";
 import type { Location, BusinessSettings, JobPost, JobApplication, ContactMessage } from "../types/models.js";
@@ -86,8 +87,60 @@ export async function reorderLocations(ids: string[]): Promise<Location[]> {
   return loadLocations();
 }
 
+const UK_POSTCODE = /\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b/i;
+
+/**
+ * Fills lat/lng from the postcode in the address when the admin left them
+ * empty, so every branch gets a pin on the store map. A failed lookup saves
+ * the branch anyway, it just stays off the map.
+ */
+async function withCoordinates(
+  input: Record<string, unknown>,
+  current?: { address: string; lat: unknown; lng: unknown },
+): Promise<Record<string, unknown>> {
+  if (typeof input.lat === "number" && typeof input.lng === "number") return input;
+  const address = typeof input.address === "string" ? input.address : current?.address ?? "";
+  const addressChanged = current !== undefined && typeof input.address === "string" && input.address !== current.address;
+  const hasCoords = current !== undefined && current.lat != null && current.lng != null;
+  if (hasCoords && !addressChanged) return input;
+  const match = address.match(UK_POSTCODE);
+  if (!match) return input;
+  try {
+    const found = await geocoder.postcode(`${match[1]}${match[2]}`.toUpperCase());
+    return found ? { ...input, lat: found.lat, lng: found.lng } : input;
+  } catch (error) {
+    logGeocoderFailure("branch-save", error);
+    return input;
+  }
+}
+
+/**
+ * Gives a map pin to every branch saved without coordinates. Runs at startup.
+ * Only rows with no lat/lng are touched, so running it again changes nothing.
+ */
+export async function backfillLocationCoordinates(): Promise<number> {
+  const rows = await db().locations.findMany({
+    where: { OR: [{ lat: null }, { lng: null }] },
+    select: { id: true, address: true },
+  });
+  let filled = 0;
+  for (const row of rows) {
+    const next = await withCoordinates({}, { address: row.address, lat: null, lng: null });
+    if (typeof next.lat !== "number" || typeof next.lng !== "number") continue;
+    await db().locations.update({ where: { id: row.id }, data: { lat: next.lat, lng: next.lng } });
+    filled += 1;
+  }
+  if (filled > 0) {
+    void invalidateLocationsCache();
+    void invalidateCatalogueCache();
+  }
+  return filled;
+}
+
 export async function updateLocation(id: string, input: Record<string, unknown>): Promise<Location> {
   try {
+    const current = await db().locations.findUnique({ where: { id }, select: { address: true, lat: true, lng: true } });
+    if (current) input = await withCoordinates(input, current);
     const row = await db().locations.update({
       where: { id },
       data: input as Prisma.locationsUncheckedUpdateInput,
@@ -102,6 +155,7 @@ export async function updateLocation(id: string, input: Record<string, unknown>)
 
 export async function createLocation(input: Record<string, unknown>): Promise<Location> {
   try {
+    input = await withCoordinates(input);
     const name = typeof input.name === "string" ? input.name : "";
     const slug = typeof input.slug === "string" && input.slug.length > 0 ? input.slug : slugifyBranchName(name);
     // A new branch goes to the end of the manually ordered list. The old

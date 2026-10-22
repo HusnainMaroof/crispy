@@ -34,6 +34,8 @@ model menu_items {
   redirect_deliveroo  String        @default("")
   redirect_just_eat   String        @default("")
   price         Decimal          @db.Decimal(10, 2)
+  // False hides the price on the store menu. A price of 0 is hidden too.
+  show_price    Boolean          @default(true)
   image         String           @default("")
   badge         String?
   badge_variant String?
@@ -90,6 +92,10 @@ model locations {
   /// Google Maps link pasted in the branch form. Empty falls back to a link
   /// built from lat/lng, or the address when coordinates are missing.
   google_maps_url          String                @default("")
+  // Delivery partner links for this branch. Empty falls back to the site-wide link.
+  redirect_uber_eats       String                @default("")
+  redirect_deliveroo       String                @default("")
+  redirect_just_eat        String                @default("")
   created_at               DateTime              @default(now())
   updated_at               DateTime              @updatedAt
   orders                   orders[]

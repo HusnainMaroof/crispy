@@ -30,6 +30,12 @@ export const updateOrderStatusSchema = z.object({
   status: z.enum(["pending", "preparing", "ready", "out-for-delivery", "delivered", "cancelled"]),
 });
 
+const httpsLink = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => value === "" || /^https:\/\/\S+$/i.test(value), "Link must start with https://");
+
 const branchSlug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
 
 export const locationSchema = z.object({
@@ -56,6 +62,10 @@ export const locationSchema = z.object({
     .max(500)
     .refine((value) => value === "" || /^https:\/\/\S+$/i.test(value), "Google Maps link must start with https://")
     .optional(),
+  // Delivery partner links for this branch. Empty falls back to the site-wide link.
+  redirect_uber_eats: httpsLink.optional(),
+  redirect_deliveroo: httpsLink.optional(),
+  redirect_just_eat: httpsLink.optional(),
 });
 
 export const locationUpdateSchema = locationSchema.partial();

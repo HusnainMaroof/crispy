@@ -15,7 +15,13 @@ export type AdminLocation = {
   pin_number: number | null;
   /** Google Maps link. Empty means the storefront builds one. */
   google_maps_url: string;
+  /** Delivery partner links for this branch. Empty uses the site-wide link. */
+  redirect_uber_eats: string;
+  redirect_deliveroo: string;
+  redirect_just_eat: string;
 };
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
 
 function mapLocation(raw: Record<string, unknown>): AdminLocation {
   return {
@@ -27,7 +33,10 @@ function mapLocation(raw: Record<string, unknown>): AdminLocation {
     status: raw.status === "inactive" ? "inactive" : "active",
     sort_order: typeof raw.sort_order === "number" ? raw.sort_order : 0,
     pin_number: typeof raw.pin_number === "number" ? raw.pin_number : null,
-    google_maps_url: typeof raw.google_maps_url === "string" ? raw.google_maps_url : "",
+    google_maps_url: text(raw.google_maps_url),
+    redirect_uber_eats: text(raw.redirect_uber_eats),
+    redirect_deliveroo: text(raw.redirect_deliveroo),
+    redirect_just_eat: text(raw.redirect_just_eat),
   };
 }
 
@@ -38,6 +47,9 @@ export type BranchInput = {
   phone: string;
   pin_number?: number | null;
   google_maps_url?: string;
+  redirect_uber_eats?: string;
+  redirect_deliveroo?: string;
+  redirect_just_eat?: string;
 };
 
 export function useLocations() {
@@ -72,6 +84,9 @@ export function useLocations() {
       if (updates.sort_order !== undefined) body.sort_order = updates.sort_order;
       if (updates.pin_number !== undefined) body.pin_number = updates.pin_number;
       if (updates.google_maps_url !== undefined) body.google_maps_url = updates.google_maps_url;
+      if (updates.redirect_uber_eats !== undefined) body.redirect_uber_eats = updates.redirect_uber_eats;
+      if (updates.redirect_deliveroo !== undefined) body.redirect_deliveroo = updates.redirect_deliveroo;
+      if (updates.redirect_just_eat !== undefined) body.redirect_just_eat = updates.redirect_just_eat;
       const data = await api.patch<Record<string, unknown>>(`/admin/locations/${id}`, body);
       const updated = mapLocation(data);
       setLocations((prev) => prev.map((loc) => (loc.id === id ? updated : loc)));
@@ -88,6 +103,9 @@ export function useLocations() {
         phone: location.phone,
         pin_number: location.pin_number ?? null,
         google_maps_url: location.google_maps_url ?? "",
+        redirect_uber_eats: location.redirect_uber_eats ?? "",
+        redirect_deliveroo: location.redirect_deliveroo ?? "",
+        redirect_just_eat: location.redirect_just_eat ?? "",
       });
       setLocations((prev) => [...prev, mapLocation(data)]);
     },

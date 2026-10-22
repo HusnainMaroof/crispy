@@ -15,7 +15,7 @@ import { useCategories } from "@/lib/admin/use-categories";
 import { useLocations } from "@/lib/admin/use-locations";
 import { useAdminSession } from "@/lib/admin/session";
 import { isBranchScoped } from "@/lib/admin/roles";
-import { dietaryTags, type DietaryOption } from "@/lib/dietary";
+import { dietaryTags } from "@/lib/dietary";
 import { compressImage } from "@/lib/image-compress";
 import type { MenuItemRedirects } from "@/lib/redux/types";
 import OptimizedImage from "@/app/components/ui/optimized-image";
@@ -580,11 +580,11 @@ function MenuForm({
   onDeleteCategory,
 }: {
   itemId: string | null;
-  items: { id: string; name: string; nameAr?: string; description: string; descriptionAr?: string; price: string; priceValue: number; image: string; categoryId: string; badge?: string; badgeVariant?: "default" | "vegan"; redirects: MenuItemRedirects; locations: { id: string; name: string }[] }[];
+  items: { id: string; name: string; nameAr?: string; description: string; descriptionAr?: string; price: string; priceValue: number; showPrice: boolean; image: string; categoryId: string; badge?: string; badgeVariant?: "default" | "vegan"; redirects: MenuItemRedirects; locations: { id: string; name: string }[] }[];
   categories: { id: string; title: string }[];
   locations: { id: string; name: string }[];
   initialCategoryId?: string;
-  onSave: (data: { name: string; nameAr: string; description: string; descriptionAr: string; price: string; priceValue: number; image: string; categoryId: string; badge: string | null; badgeVariant: "vegan" | null; redirects: MenuItemRedirects; locationIds: string[] }) => Promise<void>;
+  onSave: (data: { name: string; nameAr: string; description: string; descriptionAr: string; price: string; priceValue: number; showPrice: boolean; image: string; categoryId: string; badge: string | null; badgeVariant: "vegan" | null; redirects: MenuItemRedirects; locationIds: string[] }) => Promise<void>;
   onClose: () => void;
   /** Removes a category from this form's dropdown. Shown only to roles that may delete. */
   onDeleteCategory?: (id: string) => void;
@@ -601,7 +601,7 @@ function MenuForm({
   );
   const [categoryId, setCategoryId] = useState(existing?.categoryId || initialCategoryId || categories[0]?.id || "");
   const [image, setImage] = useState(existing?.image || "");
-  const [dietary, setDietary] = useState<DietaryOption[]>(dietaryTags(existing?.badge, existing?.badgeVariant));
+  const [showPrice, setShowPrice] = useState(existing?.showPrice ?? true);
   // A new dish starts with no branch ticked. Defaulting to every branch meant a
   // dish silently went on sale everywhere the moment it was saved, which is
   // rarely what the person adding it meant.
@@ -663,10 +663,12 @@ function MenuForm({
         descriptionAr,
         price: `£${priceValue.toFixed(2)}`,
         priceValue,
+        showPrice,
         categoryId,
         image: image || "/placeholder.jpg",
-        badge: dietary.length > 0 ? dietary.join(", ") : null,
-        badgeVariant: dietary.includes("Vegan") ? "vegan" : null,
+        // The dietary picker is gone from this form. Keep any tags a dish already has.
+        badge: existing?.badge ?? null,
+        badgeVariant: existing?.badgeVariant === "vegan" ? "vegan" : null,
         redirects: {
           uberEats: redirects.uberEats.trim(),
           deliveroo: redirects.deliveroo.trim(),
@@ -825,29 +827,25 @@ function MenuForm({
                   className={`${inputCls} ps-7 tabular-nums`}
                 />
               </div>
-              <p className="mt-1 text-xs text-white/40">Enter 0 to list this item as free.</p>
+              <p className="mt-1 text-xs text-white/40">Enter 0 to hide the price on the website.</p>
             </div>
-            <div>
-              <label htmlFor="item-dietary" className="mb-1.5 block text-sm text-white/60">
-                Dietary
-              </label>
-              <Dropdown
-                id="item-dietary"
-                aria-label="Dietary preference"
-                options={[
-                  { value: "none", label: "None" },
-                  { value: "Halal", label: "Halal" },
-                  { value: "Vegan", label: "Vegan" },
-                  { value: "Vegetarian", label: "Vegetarian" },
-                  { value: "Halal,Vegan", label: "Halal and Vegan" },
-                  { value: "Halal,Vegetarian", label: "Halal and Vegetarian" },
-                  { value: "Vegan,Vegetarian", label: "Vegetarian and Vegan" },
-                  { value: "Halal,Vegan,Vegetarian", label: "Halal, Vegan and Vegetarian" },
-                ]}
-                value={dietary.length === 0 ? "none" : [...dietary].sort().join(",")}
-                onChange={(value) => setDietary(value === "none" ? [] : value.split(",") as DietaryOption[])}
-                placeholder="Dietary preference"
-              />
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/40 px-4 py-3 sm:col-span-2">
+              <span className="text-sm leading-snug text-white/75">
+                Show price on the website
+                <span className="mt-1 block text-xs font-normal text-white/40">
+                  Turn off to hide the price on the store menu. A price of 0 is always hidden.
+                </span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showPrice}
+                aria-label="Show price on the website"
+                onClick={() => setShowPrice((value) => !value)}
+                className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${showPrice ? "bg-[#FF0931]" : "bg-white/15"}`}
+              >
+                <span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${showPrice ? "left-6" : "left-1"}`} />
+              </button>
             </div>
           </div>
         </FormSection>

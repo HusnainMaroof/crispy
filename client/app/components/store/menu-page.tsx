@@ -458,9 +458,12 @@ export default function MenuPage() {
                       </div>
                     )}
                     <div className="min-w-0 flex justify-between items-center gap-2 pt-2">
-                      <p className="mt-1 m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-black leading-[1] tracking-[0.54px] text-black sm:text-[25px] capitalize">
-                        {item.price}
-                      </p>
+                      {/* Hidden price leaves nothing behind: no £0.00, no dash. */}
+                      {item.showPrice && item.priceValue > 0 ? (
+                        <p className="mt-1 m-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[20px] font-black leading-[1] tracking-[0.54px] text-black sm:text-[25px] capitalize">
+                          {item.price}
+                        </p>
+                      ) : <span aria-hidden />}
                       <button
                         type="button"
                         onClick={() => void handleAddToCart(item)}

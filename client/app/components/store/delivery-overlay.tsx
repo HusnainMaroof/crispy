@@ -452,8 +452,8 @@ export default function DeliveryOverlay({
                   if (!platform) return;
                   void (async () => {
                     // Destination order: this product's link for the chosen
-                    // platform, then that platform's site-wide link, then the
-                    // fallback external order URL.
+                    // platform, then the chosen branch's link, then that
+                    // platform's site-wide link, then the fallback order URL.
                     const resolved = await resolveOrdering();
                     const field = PLATFORM_URL_FIELDS[platform];
                     const platformUrl = field ? resolved[field] : "";
@@ -461,8 +461,12 @@ export default function DeliveryOverlay({
                     const productUrl = productKey
                       ? product?.redirects?.[productKey]
                       : undefined;
+                    const branchUrl = productKey
+                      ? locations.find((l) => l.id === selected)?.deliveryLinks[productKey]
+                      : undefined;
                     const target = [
                       productUrl,
+                      branchUrl,
                       platformUrl,
                       resolved.redirectUrl,
                     ].find(

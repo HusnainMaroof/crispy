@@ -27,6 +27,11 @@ export default function LocationsPage() {
   // Branch whose new position is being saved, so its row shows a loading state.
   const [savingId, setSavingId] = useState<string | null>(null);
   const rows = preview ?? locations;
+  // Shows one group at a time. Numbers still come from the full order.
+  const [view, setView] = useState<"all" | "active" | "coming_soon" | "disabled">("all");
+  const groupOf = (location: AdminLocation) =>
+    location.status === "inactive" ? "disabled" : isComingSoonHours(location.hours) ? "coming_soon" : "active";
+  const inView = (location: AdminLocation) => view === "all" || groupOf(location) === view;
 
   useEffect(() => {
     void fetchLocations();
@@ -104,20 +109,26 @@ export default function LocationsPage() {
     setPreview(current);
   };
 
-  const endDrag = () => {
+  /** A drop outside the table or Esc reports "none", so the old order comes back. */
+  const endDrag = (cancelled: boolean) => {
     const id = dragId;
     setDragId(null);
-    if (id && preview) void saveOrder(preview, id);
+    if (id && preview && !cancelled) void saveOrder(preview, id);
     else setPreview(null);
   };
 
   /** Keyboard fallback on the drag handle: arrow keys move one step. */
   const moveByKey = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= rows.length || reordering) return;
+    if (reordering) return;
+    // Jump to the next branch the admin can see, so a filtered view never
+    // swaps with a hidden row.
+    let target = index + direction;
+    while (target >= 0 && target < rows.length && !inView(rows[target])) target += direction;
+    if (target < 0 || target >= rows.length) return;
     const ordered = [...rows];
-    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
-    void saveOrder(ordered, ordered[target].id);
+    const [moved] = ordered.splice(index, 1);
+    ordered.splice(target, 0, moved);
+    void saveOrder(ordered, moved.id);
   };
 
   const activeCount = locations.filter((location) => location.status !== "inactive").length;
@@ -151,7 +162,7 @@ export default function LocationsPage() {
     <div className="admin-fade-in">
       <PageHeader
         title="Branches"
-        description="Address, opening hours, live number and availability. Drag a branch by its handle to set the order on the live website, and a manual number overrides it on the branch list and map. Coming soon branches stay listed without taking orders. Disabled is for maintenance and is separate from the hours."
+        description="Address, opening hours, live number and availability. Drag a branch by its handle to set its order and number on the live website branch list and map. Coming soon branches stay listed without taking orders. Disabled is for maintenance and is separate from the hours."
         action={
           <ActionButton type="button" onClick={() => setAdding(true)} className="rounded-full px-5">
             Add branch
@@ -198,13 +209,33 @@ export default function LocationsPage() {
                 {disabledCount} disabled
               </span>
             )}
-            <p className="ms-auto text-xs text-white/40">Numbers and order appear on the live website.</p>
+            <div className="ms-auto flex items-center gap-3">
+              <p className="hidden text-xs text-white/40 md:block">
+                Numbers and order appear on the live website.
+              </p>
+              <Dropdown
+                aria-label="Show branches"
+                value={view}
+                disabled={reordering}
+                onChange={(value) => setView(value as typeof view)}
+                options={[
+                  { value: "all", label: "All branches" },
+                  { value: "active", label: "Active" },
+                  { value: "coming_soon", label: "Coming soon" },
+                  { value: "disabled", label: "Disabled" },
+                ]}
+                className="h-10 min-w-40"
+              />
+            </div>
           </div>
           <div className="relative overflow-x-auto rounded-xl border border-white/10" aria-busy={reordering}>
           {reordering && (
             <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden bg-white/5" aria-hidden>
               <div className="h-full w-1/3 animate-pulse bg-brand-red" />
             </div>
+          )}
+          {!rows.some(inView) && (
+            <p className="px-4 py-6 text-center text-sm text-white/50">No branches in this group.</p>
           )}
           <table className="w-full min-w-[1080px] text-left">
             <thead>
@@ -222,6 +253,7 @@ export default function LocationsPage() {
               {rows.map((location, index) => {
                 const active = location.status !== "inactive";
                 const comingSoon = active && isComingSoonHours(location.hours);
+                if (!inView(location)) return null;
                 // Position among the branches the live website actually lists.
                 const liveNumber = rows
                   .slice(0, index + 1)
@@ -232,6 +264,7 @@ export default function LocationsPage() {
                     onDragOver={(event) => {
                       if (!dragId) return;
                       event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
                       dragOver(location.id);
                     }}
                     onDrop={(event) => event.preventDefault()}
@@ -258,7 +291,7 @@ export default function LocationsPage() {
                         <button
                           type="button"
                           draggable={!reordering}
-                          disabled={reordering || rows.length < 2}
+                          disabled={reordering || rows.filter(inView).length < 2}
                           aria-label={`Reorder ${location.name}. Drag, or use the up and down arrow keys.`}
                           title="Drag to reorder"
                           onDragStart={(event) => {
@@ -271,7 +304,7 @@ export default function LocationsPage() {
                             const id = location.id;
                             requestAnimationFrame(() => setDragId(id));
                           }}
-                          onDragEnd={endDrag}
+                          onDragEnd={(event) => endDrag(event.dataTransfer.dropEffect === "none")}
                           onKeyDown={(event) => {
                             if (event.key === "ArrowUp") { event.preventDefault(); moveByKey(index, -1); }
                             if (event.key === "ArrowDown") { event.preventDefault(); moveByKey(index, 1); }
@@ -389,6 +422,12 @@ export default function LocationsPage() {
 const fieldCls =
   "h-11 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition-colors placeholder:text-white/30 hover:border-white/20 focus:border-[#FF0931] focus:ring-2 focus:ring-[#FF0931]/25";
 
+const DELIVERY_PARTNERS = [
+  { key: "redirect_uber_eats", name: "Uber Eats" },
+  { key: "redirect_deliveroo", name: "Deliveroo" },
+  { key: "redirect_just_eat", name: "Just Eat" },
+] as const;
+
 function ShopForm({
   title,
   shop,
@@ -404,6 +443,11 @@ function ShopForm({
   const [address, setAddress] = useState(shop?.address ?? "");
   const [phone, setPhone] = useState(shop?.phone ?? "");
   const [mapsUrl, setMapsUrl] = useState(shop?.google_maps_url ?? "");
+  const [partners, setPartners] = useState({
+    redirect_uber_eats: shop?.redirect_uber_eats ?? "",
+    redirect_deliveroo: shop?.redirect_deliveroo ?? "",
+    redirect_just_eat: shop?.redirect_just_eat ?? "",
+  });
   const [week, setWeek] = useState<DayHours[]>(() => parseWeekHours(shop?.hours ?? ""));
   const [comingSoon, setComingSoon] = useState(() =>
     shop ? isComingSoonHours(shop.hours) : false,
@@ -415,6 +459,17 @@ function ShopForm({
 
   const setDay = (day: number, next: DayHours) => {
     setWeek((current) => current.map((hours, index) => index === day ? next : hours));
+  };
+
+  /** Hours for a newly ticked day: the closest open day before it, so a run of days takes one click each. */
+  const nearestHours = (day: number): { open: string; close: string } => {
+    const order: number[] = WEEKDAYS.map((weekday) => weekday.day);
+    const at = order.indexOf(day);
+    for (let step = 1; step < order.length; step += 1) {
+      const source = week[order[(at - step + order.length) % order.length]];
+      if (source) return { ...source };
+    }
+    return { open: "11:00", close: "23:00" };
   };
 
   /** Copies one day's hours onto every other day. Saves setting seven rows by hand. */
@@ -436,6 +491,14 @@ function ShopForm({
       setFieldError("Google Maps link must start with https://.");
       return;
     }
+    const badPartner = DELIVERY_PARTNERS.find(({ key }) => {
+      const value = partners[key].trim();
+      return value !== "" && !/^https:\/\/\S+$/i.test(value);
+    });
+    if (badPartner) {
+      setFieldError(`${badPartner.name} link must start with https://.`);
+      return;
+    }
     setFieldError("");
     setSaving(true);
     try {
@@ -445,6 +508,9 @@ function ShopForm({
         phone,
         hours: comingSoon ? "Coming Soon" : formatWeekHours(week),
         google_maps_url: link,
+        redirect_uber_eats: partners.redirect_uber_eats.trim(),
+        redirect_deliveroo: partners.redirect_deliveroo.trim(),
+        redirect_just_eat: partners.redirect_just_eat.trim(),
       });
     } finally {
       setSaving(false);
@@ -518,6 +584,33 @@ function ShopForm({
             <p className="mt-1 text-xs leading-relaxed text-white/40">
               Used by the Google Maps button on the store location page. Empty builds a link from the address.
             </p>
+          </div>
+        </fieldset>
+
+        <fieldset disabled={saving} className="space-y-4">
+          <div>
+            <legend className="text-sm font-medium text-white">Delivery partner links</legend>
+            <p className="mt-1 text-xs leading-relaxed text-white/40">
+              Where customers go when they pick this branch and a delivery app. Empty uses the site-wide link.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {DELIVERY_PARTNERS.map(({ key, name }) => (
+              <div key={key}>
+                <label htmlFor={`branch-${key}`} className="mb-1.5 block text-sm text-white/60">
+                  {name}
+                </label>
+                <input
+                  id={`branch-${key}`}
+                  type="url"
+                  maxLength={500}
+                  value={partners[key]}
+                  onChange={(event) => setPartners((current) => ({ ...current, [key]: event.target.value }))}
+                  placeholder="https://..."
+                  className={fieldCls}
+                />
+              </div>
+            ))}
           </div>
         </fieldset>
 
@@ -597,8 +690,9 @@ function ShopForm({
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => applyToAll(week[0])}
-                className="cursor-pointer rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white"
+                onClick={() => applyToAll(week[1])}
+                disabled={!week[1]}
+                className="cursor-pointer rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Copy Monday to all days
               </button>
@@ -632,7 +726,7 @@ function ShopForm({
                           checked={Boolean(hours)}
                           onChange={() => {
                             setFieldError("");
-                            setDay(day, hours ? null : { open: "11:00", close: "23:00" });
+                            setDay(day, hours ? null : nearestHours(day));
                           }}
                         />
                         <span
@@ -651,12 +745,19 @@ function ShopForm({
                             value={hours.open}
                             onChange={(open) => setDay(day, { ...hours, open })}
                           />
-                          <TimePicker
-                            compact
-                            labelText={`${label} closes`}
-                            value={hours.close}
-                            onChange={(close) => setDay(day, { ...hours, close })}
-                          />
+                          <div className="relative">
+                            <TimePicker
+                              compact
+                              labelText={`${label} closes`}
+                              value={hours.close}
+                              onChange={(close) => setDay(day, { ...hours, close })}
+                            />
+                            {hours.close <= hours.open && (
+                              <span className="pointer-events-none absolute end-9 top-1/2 -translate-y-1/2 rounded bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-200">
+                                Next day
+                              </span>
+                            )}
+                          </div>
                         </>
                       ) : (
                         <p className="col-span-2 text-sm text-white/35 sm:pl-8">

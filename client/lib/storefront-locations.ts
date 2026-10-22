@@ -16,7 +16,16 @@ export type StoreLocationCard = {
   pinNumber: number | null;
   /** Google Maps link from the admin. Empty means build one from the address. */
   mapsUrl: string;
+  /** Delivery partner links for this branch. Empty uses the site-wide link. */
+  deliveryLinks: { uberEats: string; deliveroo: string; justEat: string };
 };
+
+/** Google Maps link for a branch: the admin link, else coordinates, else the address. */
+export function branchMapsUrl(location: Pick<StoreLocationCard, "mapsUrl" | "lat" | "lng" | "address">): string {
+  if (location.mapsUrl) return location.mapsUrl;
+  const query = location.lat != null && location.lng != null ? `${location.lat},${location.lng}` : location.address;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
 
 export function mapStoreLocation(raw: Record<string, unknown>): Location | null {
   if (typeof raw.id !== "string" || !raw.id || typeof raw.name !== "string" || !raw.name.trim()) return null;
@@ -32,6 +41,9 @@ export function mapStoreLocation(raw: Record<string, unknown>): Location | null 
     sort_order: typeof raw.sort_order === "number" ? raw.sort_order : 0,
     pin_number: typeof raw.pin_number === "number" ? raw.pin_number : null,
     google_maps_url: typeof raw.google_maps_url === "string" ? raw.google_maps_url : "",
+    redirect_uber_eats: typeof raw.redirect_uber_eats === "string" ? raw.redirect_uber_eats : "",
+    redirect_deliveroo: typeof raw.redirect_deliveroo === "string" ? raw.redirect_deliveroo : "",
+    redirect_just_eat: typeof raw.redirect_just_eat === "string" ? raw.redirect_just_eat : "",
   };
 }
 
@@ -66,5 +78,10 @@ export function toStoreLocationCard(location: Location): StoreLocationCard {
     phone: location.phone,
     pinNumber: location.pin_number ?? null,
     mapsUrl: location.google_maps_url?.trim() ?? "",
+    deliveryLinks: {
+      uberEats: location.redirect_uber_eats?.trim() ?? "",
+      deliveroo: location.redirect_deliveroo?.trim() ?? "",
+      justEat: location.redirect_just_eat?.trim() ?? "",
+    },
   };
 }

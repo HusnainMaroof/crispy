@@ -54,6 +54,7 @@ const ITEM_SELECT = {
   redirect_deliveroo: true,
   redirect_just_eat: true,
   price: true,
+  show_price: true,
   image: true,
   badge: true,
   badge_variant: true,

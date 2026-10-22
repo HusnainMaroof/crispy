@@ -8,6 +8,9 @@ import { useBranchSelection } from "@/lib/branch-selection";
 import { useScrollReveal } from "@/lib/use-scroll-reveal";
 import { localizedText } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/locale-context";
+import { useWeekday } from "@/lib/use-weekday";
+import { dayHoursLabel } from "@/lib/admin/shop-hours";
+import { branchMapsUrl } from "@/lib/storefront-locations";
 
 import LocationsMap from "./client-locations-map";
 function LocationPinIcon(props: SVGProps<SVGSVGElement>) {
@@ -123,6 +126,7 @@ export default function Locations({
   locationIds?: string[];
 }) {
   const { locale, t } = useLocale();
+  const weekday = useWeekday();
   const { locations: allLocations } = useStoreLocations();
   const locations = useMemo(() => {
     const chosen = locationIds.map((id) => id.trim()).filter(Boolean);
@@ -198,7 +202,7 @@ export default function Locations({
         {/* Content */}
         <div className="mt-10 sm:mt-12 md:mt-14 flex flex-col lg:flex-row gap-8 lg:gap-10 xl:gap-12 items-stretch">
           {/* Left — list + CTA */}
-          <div className="flex-1 min-w-0 flex flex-col">
+          <div className="loc-list-box flex-1 min-w-0 flex flex-col">
             <ul className="m-0 p-0 list-none loc-list">
               {locations.map((loc, i) => {
                 const isActive = loc.id === activeSelectedId;
@@ -245,26 +249,20 @@ export default function Locations({
                     data-reveal="lift"
                     data-delay={String(i * 0.06)}
                   >
-                    <div className="loc-slide loc-row-grid grid items-center gap-x-2 ">
+                    <div className="loc-slide loc-row-grid">
                       {/* 01 */}
                       <span
-                        className={`loc-hover-red ${numColor} font-normal leading-none`}
-                        style={{
-                          fontFamily:
-                            "var(--font-korolev), Korolev, sans-serif",
-                          fontSize: "clamp(16px, 1.8vw, 16px)",
-                        }}
+                        className={`loc-num loc-hover-red ${numColor} font-normal leading-none`}
+                        style={{ fontFamily: "var(--font-korolev), Korolev, sans-serif" }}
                       >
                         {displayNum}
                       </span>
 
                       {/* NAME */}
                       <span
-                        className={`loc-hover-red loc-row-name ${nameColor} uppercase font-normal leading-none whitespace-nowrap truncate`}
+                        className={`loc-name loc-hover-red ${nameColor} uppercase font-normal leading-none`}
                         style={{
-                          fontFamily:
-                            "var(--font-korolev), Korolev, sans-serif",
-                          fontSize: "clamp(20px, 2.4vw, 24px)",
+                          fontFamily: "var(--font-korolev), Korolev, sans-serif",
                           letterSpacing: "0.54px",
                         }}
                       >
@@ -272,7 +270,7 @@ export default function Locations({
                       </span>
 
                       {/* Address — stays 2-line clamp */}
-                      <div className="flex items-start gap-1.5 min-w-0">
+                      <div className="loc-addr flex items-start gap-1.5">
                         <PinIcon
                           className={`w-3.5 h-3.5 shrink-0 mt-[2px] ${
                             isActive ? "text-[#B0B0B0]" : "text-[#D0D0D0]"
@@ -280,10 +278,7 @@ export default function Locations({
                         />
                         <span
                           className={`loc-hover-red ${addrColor} font-normal leading-[140%] whitespace-pre-line line-clamp-2`}
-                          style={{
-                            fontFamily: "var(--font-inter), Inter, sans-serif",
-                            fontSize: "clamp(11px, 1.15vw, 10px)",
-                          }}
+                          style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                         >
                           {localizedText(locale, loc.address)}
                         </span>
@@ -291,11 +286,8 @@ export default function Locations({
 
                       {/* Status */}
                       <span
-                        className={`${statusBg} inline-flex items-center justify-center gap-1.5 w-fit rounded-full px-3 py-[5px] text-white font-medium leading-none whitespace-nowrap`}
-                        style={{
-                          fontFamily: "var(--font-inter), Inter, sans-serif",
-                          fontSize: "clamp(11px, 1.15vw, 10px)",
-                        }}
+                        className={`loc-status ${statusBg} inline-flex items-center justify-center gap-1.5 w-fit rounded-full py-[5px] text-white font-medium leading-none whitespace-nowrap`}
+                        style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                       >
                         <span
                           className={`w-[6px] h-[6px] rounded-full ${statusDot} shrink-0`}
@@ -309,24 +301,20 @@ export default function Locations({
 
                       {/* Hours */}
                       <span
-                        className={`loc-row-hours loc-hover-red ${hoursColor} font-normal leading-[130%] min-w-0`}
-                        style={{
-                          fontFamily: "var(--font-inter), Inter, sans-serif",
-                          fontSize: "12px",
-                        }}
+                        className={`loc-hours loc-hover-red ${hoursColor} font-normal leading-[130%]`}
+                        style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
                       >
-                        {localizedText(locale, loc.hours)}
+                        {localizedText(locale, weekday === null ? loc.hours : dayHoursLabel(loc.hours, weekday, true))}
                       </span>
 
                       {/* Arrow */}
-                      <button
-                        type="button"
-                        aria-label={`Show ${localizedText(locale, loc.name)} on map`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          chooseBranch(loc.id);
-                        }}
-                        className="w-[38px] h-[38px] shrink-0 flex items-center justify-center text-[#FF0931] hover:text-white transition-colors duration-200"
+                      <a
+                        href={branchMapsUrl(loc)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${localizedText(locale, loc.name)} in Google Maps`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="loc-arrow shrink-0 flex items-center justify-center text-[#FF0931] hover:text-white transition-colors duration-200"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -348,7 +336,7 @@ export default function Locations({
                             fill="#FF0931"
                           />
                         </svg>
-                      </button>
+                      </a>
                     </div>
                   </li>
                 );

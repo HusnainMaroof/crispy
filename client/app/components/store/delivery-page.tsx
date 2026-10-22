@@ -35,6 +35,13 @@ const PLATFORM_URL_FIELDS: Record<string, "uberEatsUrl" | "deliverooUrl" | "just
   "just-eat": "justEatUrl",
 };
 
+/** The branch link for each platform card, keyed by the same platform ids. */
+const PLATFORM_BRANCH_LINKS: Record<string, "uberEats" | "deliveroo" | "justEat"> = {
+  "uber-eats": "uberEats",
+  deliveroo: "deliveroo",
+  "just-eat": "justEat",
+};
+
 export default function DeliveryPage() {
   const { locale, t } = useLocale();
   const { locations } = useStoreLocations();
@@ -340,13 +347,15 @@ export default function DeliveryPage() {
             disabled={!platform}
             onClick={() => {
               if (!platform) return;
-              // Same destination order as the popup: the platform link first,
-              // then the external order URL. Without this the step 3 spinner
+              // Same destination order as the popup: the chosen branch's link,
+              // then the site-wide platform link, then the external order URL. Without this the step 3 spinner
               // never resolves and the page dead-ends.
               void (async () => {
                 const resolved = await resolveOrdering();
                 const field = PLATFORM_URL_FIELDS[platform];
-                const target = [field ? resolved[field] : "", resolved.redirectUrl].find(
+                const branchKey = PLATFORM_BRANCH_LINKS[platform];
+                const branchUrl = branchKey ? locations.find((l) => l.id === selected)?.deliveryLinks[branchKey] : "";
+                const target = [branchUrl, field ? resolved[field] : "", resolved.redirectUrl].find(
                   (value) => Boolean(value) && /^https:\/\//i.test(value ?? ""),
                 );
                 if (!target) {

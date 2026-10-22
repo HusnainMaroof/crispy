@@ -20,6 +20,7 @@ export interface MenuItem {
   redirect_deliveroo: string;
   redirect_just_eat: string;
   price: number;
+  show_price: boolean;
   image: string;
   badge: string | null;
   badge_variant: "default" | "vegan" | null;
@@ -65,6 +66,9 @@ export interface Location {
   pin_number: number | null;
   /** Google Maps link pasted in the branch form. Empty means build one. */
   google_maps_url: string;
+  redirect_uber_eats: string;
+  redirect_deliveroo: string;
+  redirect_just_eat: string;
   created_at: string;
   updated_at: string;
 }

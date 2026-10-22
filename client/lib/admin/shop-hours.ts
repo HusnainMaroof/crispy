@@ -104,3 +104,17 @@ export const WEEKDAYS = [
   { day: 6, label: "Saturday" },
   { day: 0, label: "Sunday" },
 ] as const;
+
+/**
+ * One day's line from the saved week, for the store. "Coming Soon" and text
+ * the parser cannot read are returned as they are.
+ */
+const SHORT_DAY_NAMES = ["Sun", "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat"];
+
+export function dayHoursLabel(hours: string, day: number, short = false): string {
+  const text = hours.trim();
+  if (!text || isComingSoonHours(text) || !/\d{1,2}:\d{2}/.test(text)) return text;
+  const name = short ? SHORT_DAY_NAMES[day] : WEEKDAYS.find((weekday) => weekday.day === day)?.label ?? "";
+  const today = parseWeekHours(text)[day];
+  return today ? `${name} · ${to12Hour(today.open)} – ${to12Hour(today.close)}` : `${name} · Closed`;
+}

@@ -53,6 +53,13 @@ export function TimePicker({
         <Popover.Portal>
           {/* z above the admin modal (z-60) so the list stays clickable in dialogs. */}
           <Popover.Content
+            onOpenAutoFocus={(event) => {
+              // Start on the chosen time instead of 12:00 AM at the top.
+              event.preventDefault();
+              const chosen = (event.currentTarget as HTMLElement).querySelector<HTMLElement>('[aria-pressed="true"]');
+              chosen?.scrollIntoView({ block: "center" });
+              chosen?.focus();
+            }}
             sideOffset={6}
             align="start"
             collisionPadding={12}

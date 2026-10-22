@@ -50,10 +50,17 @@ const PIN_SVG = (num: number) => `
   >${num}</text>
 </svg>`;
 
-function pinIcon(num: number, active = false): L.DivIcon {
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+
+function pinIcon(num: number, active = false, name = ""): L.DivIcon {
+  // The active pin carries the branch name in a small label under its tip.
+  const label = active && name
+    ? `<span style="position:absolute;left:50%;top:100%;margin-top:6px;transform:translateX(-50%);white-space:nowrap;padding:3px 8px;border-radius:999px;background:#1E1E1E;color:#fff;font:600 11px/1.3 Poppins,sans-serif;letter-spacing:0.2px;box-shadow:0 4px 10px rgba(0,0,0,0.3);pointer-events:none;">${escapeHtml(name)}</span>`
+    : "";
   return L.divIcon({
     className: "crispy-pin-wrap",
-    html: `<span style="display:block;transform:scale(${
+    html: `${label}<span style="display:block;transform:scale(${
       active ? 1.18 : 1
     });transform-origin:50% 100%;transition:transform 200ms ease;${
       active ? "filter:drop-shadow(0 6px 10px rgba(0,0,0,0.45));" : ""
@@ -202,7 +209,7 @@ export default function LocationsMap({
       const active = loc.id === selectedId;
       try {
         const marker = L.marker([loc.lat, loc.lng], {
-          icon: pinIcon(loc.number ?? i + 1, active),
+          icon: pinIcon(loc.number ?? i + 1, active, loc.name),
           zIndexOffset: active ? 1000 : 0,
         }).addTo(map);
         marker.on("click", () => onSelect?.(loc.id));

@@ -11,6 +11,7 @@ export function mapMenuItem(raw: Record<string, unknown>): MenuItem {
     descriptionAr: (raw.description_ar as string) ?? undefined,
     price: `£${price.toFixed(2)}`,
     priceValue: price,
+    showPrice: raw.show_price !== false,
     image: raw.image as string,
     badge: (raw.badge as string) ?? undefined,
     badgeVariant: (raw.badge_variant as "default" | "vegan") ?? undefined,

@@ -13,6 +13,7 @@ export type AdminMenuItem = {
   descriptionAr?: string;
   price: string;
   priceValue: number;
+  showPrice: boolean;
   image: string;
   categoryId: string;
   badge?: string;
@@ -31,6 +32,7 @@ function mapMenuItem(raw: Record<string, unknown>): AdminMenuItem {
     descriptionAr: (raw.description_ar as string) ?? undefined,
     price: `£${price.toFixed(2)}`,
     priceValue: price,
+    showPrice: raw.show_price !== false,
     image: raw.image as string,
     categoryId: raw.category_id as string,
     badge: (raw.badge as string) ?? undefined,
@@ -71,7 +73,7 @@ export function useMenu() {
   }, []);
 
   const addItem = useCallback(
-    async (item: { name: string; nameAr?: string; description: string; descriptionAr?: string; price?: string; priceValue: number; image: string; categoryId: string; badge?: string | null; badgeVariant?: "default" | "vegan" | null; redirects?: MenuItemRedirects; locationIds: string[] }) => {
+    async (item: { name: string; nameAr?: string; description: string; descriptionAr?: string; price?: string; priceValue: number; showPrice?: boolean; image: string; categoryId: string; badge?: string | null; badgeVariant?: "default" | "vegan" | null; redirects?: MenuItemRedirects; locationIds: string[] }) => {
       const data = await api.post<Record<string, unknown>>("/admin/menu", {
         category_id: item.categoryId,
         name: item.name,
@@ -79,6 +81,7 @@ export function useMenu() {
         description: item.description,
         description_ar: item.descriptionAr ?? "",
         price: item.priceValue,
+        show_price: item.showPrice ?? true,
         image: item.image,
         badge: item.badge ?? null,
         badge_variant: item.badgeVariant ?? null,
@@ -97,13 +100,14 @@ export function useMenu() {
   );
 
   const updateItem = useCallback(
-    async (id: string, updates: { name?: string; nameAr?: string; description?: string; descriptionAr?: string; price?: string; priceValue?: number; image?: string; categoryId?: string; badge?: string | null; badgeVariant?: "default" | "vegan" | null; redirects?: MenuItemRedirects; locationIds?: string[] }) => {
+    async (id: string, updates: { name?: string; nameAr?: string; description?: string; descriptionAr?: string; price?: string; priceValue?: number; showPrice?: boolean; image?: string; categoryId?: string; badge?: string | null; badgeVariant?: "default" | "vegan" | null; redirects?: MenuItemRedirects; locationIds?: string[] }) => {
       const body: Record<string, unknown> = {};
       if (updates.name !== undefined) body.name = updates.name;
       if (updates.nameAr !== undefined) body.name_ar = updates.nameAr;
       if (updates.description !== undefined) body.description = updates.description;
       if (updates.descriptionAr !== undefined) body.description_ar = updates.descriptionAr;
       if (updates.priceValue !== undefined) body.price = updates.priceValue;
+      if (updates.showPrice !== undefined) body.show_price = updates.showPrice;
       if (updates.image !== undefined) body.image = updates.image;
       if (updates.categoryId !== undefined) body.category_id = updates.categoryId;
       if (updates.badge !== undefined) body.badge = updates.badge;

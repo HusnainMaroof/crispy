@@ -22,6 +22,7 @@ import { assertProductionConfig } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { reportError } from "./utils/error-tracker.js";
 import routes from "./routes/index.js";
+import { backfillLocationCoordinates } from "./services/admin.service.js";
 
 assertProductionConfig();
 
@@ -157,6 +158,10 @@ app.use(errorHandler);
 
 const server = app.listen(SERVER.PORT, "127.0.0.1", () => {
   logger.info({ port: SERVER.PORT, env: SERVER.NODE_ENV }, "Server started");
+  // Branches saved without coordinates get their map pin from the postcode.
+  backfillLocationCoordinates()
+    .then((filled) => { if (filled > 0) logger.info({ filled }, "branch coordinates filled"); })
+    .catch((error: unknown) => logger.warn({ err: error }, "branch coordinate backfill failed"));
 });
 
 server.requestTimeout = 60_000;
