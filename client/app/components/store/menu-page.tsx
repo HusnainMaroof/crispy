@@ -21,7 +21,6 @@ import { titleCase } from "@/lib/utils";
 
 type MenuCard = MenuItem & { category: string };
 
-const DIETARY_OPTIONS = ["All", "Halal", "Vegan", "Vegetarian"];
 const SORT_OPTIONS = [
   { value: "name-asc", label: "Name A-Z" },
   { value: "name-desc", label: "Name Z-A" },
@@ -94,7 +93,6 @@ export default function MenuPage() {
     cat === "All" ? t("menu.dietary.all") : localizedName(locale, cat, menu.categories.find((category) => titleCase(category.title) === cat)?.titleAr);
   const [activeCategory, setActiveCategory] = useState("All");
   const [search, setSearch] = useState("");
-  const [dietary, setDietary] = useState("All");
   const [sort, setSort] = useState("name-asc");
 
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -194,12 +192,6 @@ export default function MenuPage() {
       );
     }
 
-    if (dietary !== "All") {
-      items = items.filter((item) =>
-        dietaryTags(item.badge, item.badgeVariant).some((tag) => tag.toLowerCase() === dietary.toLowerCase()),
-      );
-    }
-
     const sorted = [...items];
     switch (sort) {
       case "name-asc":
@@ -219,7 +211,7 @@ export default function MenuPage() {
     return sorted;
     // `locale` sorts on the translated name, so the order has to be recomputed
     // when the language changes, not just when the data does.
-  }, [effectiveCategory, search, dietary, sort, menuItems, locale]);
+  }, [effectiveCategory, search, sort, menuItems, locale]);
 
   const handleAddToCart = async (item: MenuCard) => {
     const resolved = await resolveOrdering();
@@ -262,7 +254,7 @@ export default function MenuPage() {
           ) : (
             <div
               ref={tabContainerRef}
-              className="relative flex gap-6 overflow-x-auto"
+              className="category-scroll relative flex gap-6 overflow-x-auto"
             >
               {categoryNames.map((cat, i) => {
                 const isActive = effectiveCategory === cat;
@@ -310,23 +302,6 @@ export default function MenuPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="h-12 w-full rounded-xl border border-black/15 bg-white ps-11 pe-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] placeholder:text-black/40"
               />
-            </div>
-
-            {/* Dietary Preference */}
-            <div className="relative w-full max-w-full md:w-[419px]">
-              <select
-                value={dietary}
-                aria-label={t("menu.dietary.label")}
-                onChange={(e) => setDietary(e.target.value)}
-                className={SELECT_CLS}
-              >
-                {DIETARY_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt === "All" ? t("menu.dietary.label") : t(`menu.dietary.${opt.toLowerCase()}`)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
             </div>
 
             {/* Sort By */}
@@ -400,7 +375,7 @@ export default function MenuPage() {
             <div className="py-20 text-center font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] text-[#999]">
               {menuItems.length === 0 && effectiveCategory === "All"
                 ? t("menu.emptyCatalogue")
-                : effectiveCategory !== "All" && !search.trim() && dietary === "All"
+                : effectiveCategory !== "All" && !search.trim()
                   ? t("menu.emptyCategory")
                   : t("menu.empty")}
             </div>

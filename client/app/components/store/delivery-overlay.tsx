@@ -108,7 +108,12 @@ export default function DeliveryOverlay({
   product?: { name: string; image?: string; redirects?: MenuItemRedirects };
 }) {
   const { locale, t } = useLocale();
-  const { locations, loading: locationsLoading } = useStoreLocations();
+  const { locations: allLocations, loading: locationsLoading } = useStoreLocations();
+  // Real branches only: open ones first, then coming soon. Closed ones are hidden.
+  const locations = [
+    ...allLocations.filter((l) => l.status === "open"),
+    ...allLocations.filter((l) => l.status === "coming_soon"),
+  ];
   const { resolveOrdering } = useStoreOrdering();
   const { selectBranch } = useBranchSelection();
   const [selected, setSelected] = useState<string | null>("");
@@ -272,11 +277,13 @@ export default function DeliveryOverlay({
                   ))}
                 {locations.map((loc, i) => {
                   const isSelected = selected === loc.id;
+                  const comingSoon = loc.status === "coming_soon";
 
                   return (
                     <button
                       key={loc.id}
                       type="button"
+                      disabled={comingSoon}
                       onClick={() => {
                         if (
                           !selectBranch(loc.id, localizedText(locale, loc.name))
@@ -285,7 +292,7 @@ export default function DeliveryOverlay({
                         setSelected(loc.id);
                       }}
                       aria-pressed={isSelected}
-                      className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] cursor-pointer items-center justify-between overflow-hidden rounded-xl border px-4 text-start transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[95px] ${
+                      className={`overlay-scale-in stagger-${Math.min(i + 2, 7)} relative flex min-h-[60px] ${comingSoon ? "cursor-not-allowed opacity-70" : "cursor-pointer"} items-center justify-between overflow-hidden rounded-xl border px-4 text-start transition-all duration-200 sm:h-16 sm:px-5 md:h-20 md:px-6 lg:h-[95px] ${
                         isSelected
                           ? "border-[#FF0931] bg-[#FF0931]/[0.07] shadow-[0_0_18px_rgba(255,9,49,0.15)]"
                           : "border-[#242424] bg-[#161616] hover:border-[#3a3a3a]"
@@ -295,9 +302,9 @@ export default function DeliveryOverlay({
                         <span className="text-[13px] font-semibold leading-snug text-white sm:text-[14px] md:text-[15px] lg:text-[18px] @max-3xl:text-[24px]">
                           {localizedText(locale, loc.name)}
                         </span>
-                        <span className="inline-flex items-center justify-center gap-2 rounded-full bg-[#085B1F] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[8px] @max-3xl:text-[12px] ">
-                          <span className="size-[4px] rounded-full bg-[#22c55e] sm:size-[8px]" />
-                          Open Now
+                        <span className={`inline-flex items-center justify-center gap-2 rounded-full ${comingSoon ? "bg-[#5B4A08]" : "bg-[#085B1F]"} px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-white sm:px-2.5 sm:py-1 sm:text-[9px] md:px-3 md:py-2 md:text-[8px] @max-3xl:text-[12px]`}>
+                          <span className={`size-[4px] rounded-full sm:size-[8px] ${comingSoon ? "bg-[#facc15]" : "bg-[#22c55e]"}`} />
+                          {comingSoon ? t("locations.comingSoon") : t("locations.openNow")}
                         </span>
                       </span>
 

@@ -12,6 +12,8 @@ export type StoreLocationCard = {
   lat: number | null;
   lng: number | null;
   phone: string;
+  /** False hides the phone number on the store card. */
+  showPhone: boolean;
   /** The number on the store card and map marker. Null uses the card position. */
   pinNumber: number | null;
   /** Google Maps link from the admin. Empty means build one from the address. */
@@ -35,6 +37,7 @@ export function mapStoreLocation(raw: Record<string, unknown>): Location | null 
     address: typeof raw.address === "string" ? raw.address : "",
     hours: typeof raw.hours === "string" ? raw.hours : "",
     phone: typeof raw.phone === "string" ? raw.phone : "",
+    show_phone: raw.show_phone !== false,
     status: typeof raw.status === "string" ? raw.status : "active",
     lat: coord(raw.lat),
     lng: coord(raw.lng),
@@ -76,6 +79,7 @@ export function toStoreLocationCard(location: Location): StoreLocationCard {
     lat: location.lat,
     lng: location.lng,
     phone: location.phone,
+    showPhone: location.show_phone !== false,
     pinNumber: location.pin_number ?? null,
     mapsUrl: location.google_maps_url?.trim() ?? "",
     deliveryLinks: {

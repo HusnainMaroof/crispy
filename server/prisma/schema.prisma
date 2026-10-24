@@ -78,6 +78,8 @@ model locations {
   city                     String?
   hours                    String
   phone                    String
+  /// Show the phone number on the store location card.
+  show_phone               Boolean               @default(true)
   lat                      Decimal?              @db.Decimal(10, 7)
   lng                      Decimal?              @db.Decimal(10, 7)
   status                   String                @default("active")

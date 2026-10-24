@@ -131,11 +131,12 @@ export default function LocationsPage() {
     void saveOrder(ordered, moved.id);
   };
 
-  const activeCount = locations.filter((location) => location.status !== "inactive").length;
   const comingSoonCount = locations.filter(
     (location) => location.status === "active" && isComingSoonHours(location.hours)
   ).length;
-  const disabledCount = locations.length - activeCount;
+  // Active means open now. Coming soon branches have their own count.
+  const activeCount = locations.filter((location) => location.status !== "inactive").length - comingSoonCount;
+  const disabledCount = locations.filter((location) => location.status === "inactive").length;
 
   const saveExisting = async (data: BranchInput) => {
     if (!editing) return;
@@ -442,6 +443,7 @@ function ShopForm({
   const [name, setName] = useState(shop?.name ?? "");
   const [address, setAddress] = useState(shop?.address ?? "");
   const [phone, setPhone] = useState(shop?.phone ?? "");
+  const [showPhone, setShowPhone] = useState(shop?.show_phone ?? true);
   const [mapsUrl, setMapsUrl] = useState(shop?.google_maps_url ?? "");
   const [partners, setPartners] = useState({
     redirect_uber_eats: shop?.redirect_uber_eats ?? "",
@@ -506,6 +508,7 @@ function ShopForm({
         name,
         address,
         phone,
+        show_phone: showPhone,
         hours: comingSoon ? "Coming Soon" : formatWeekHours(week),
         google_maps_url: link,
         redirect_uber_eats: partners.redirect_uber_eats.trim(),
@@ -550,6 +553,15 @@ function ShopForm({
                 placeholder="020 7946 0000"
                 className={fieldCls}
               />
+              <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-white/70">
+                <input
+                  type="checkbox"
+                  checked={showPhone}
+                  onChange={(event) => setShowPhone(event.target.checked)}
+                  className="size-4 accent-[#FF0931]"
+                />
+                Show phone number on the website
+              </label>
             </div>
           </div>
 

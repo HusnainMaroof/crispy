@@ -54,6 +54,7 @@ export interface Location {
   city: string | null;
   hours: string;
   phone: string;
+  show_phone: boolean;
   lat: number | null;
   lng: number | null;
   status: string;

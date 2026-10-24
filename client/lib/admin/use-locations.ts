@@ -9,6 +9,8 @@ export type AdminLocation = {
   address: string;
   hours: string;
   phone: string;
+  /** Show the phone number on the store location card. */
+  show_phone: boolean;
   status: "active" | "inactive";
   sort_order: number;
   /** Manual pin number. Null means the branch uses its list position. */
@@ -30,6 +32,7 @@ function mapLocation(raw: Record<string, unknown>): AdminLocation {
     address: raw.address as string,
     hours: raw.hours as string,
     phone: raw.phone as string,
+    show_phone: raw.show_phone !== false,
     status: raw.status === "inactive" ? "inactive" : "active",
     sort_order: typeof raw.sort_order === "number" ? raw.sort_order : 0,
     pin_number: typeof raw.pin_number === "number" ? raw.pin_number : null,
@@ -45,6 +48,7 @@ export type BranchInput = {
   address: string;
   hours: string;
   phone: string;
+  show_phone?: boolean;
   pin_number?: number | null;
   google_maps_url?: string;
   redirect_uber_eats?: string;
@@ -80,6 +84,7 @@ export function useLocations() {
       if (updates.address !== undefined) body.address = updates.address;
       if (updates.hours !== undefined) body.hours = updates.hours;
       if (updates.phone !== undefined) body.phone = updates.phone;
+      if (updates.show_phone !== undefined) body.show_phone = updates.show_phone;
       if (updates.status !== undefined) body.status = updates.status;
       if (updates.sort_order !== undefined) body.sort_order = updates.sort_order;
       if (updates.pin_number !== undefined) body.pin_number = updates.pin_number;
@@ -101,6 +106,7 @@ export function useLocations() {
         address: location.address,
         hours: location.hours,
         phone: location.phone,
+        show_phone: location.show_phone ?? true,
         pin_number: location.pin_number ?? null,
         google_maps_url: location.google_maps_url ?? "",
         redirect_uber_eats: location.redirect_uber_eats ?? "",

@@ -49,6 +49,7 @@ export const locationSchema = z.object({
   lat: z.number().nullable().optional(),
   lng: z.number().nullable().optional(),
   status: z.enum(["active", "inactive"]).optional(),
+  show_phone: z.boolean().optional(),
   delivery_enabled: z.boolean().optional(),
   collection_enabled: z.boolean().optional(),
   delivery_fee: z.number().min(0).nullable().optional(),

@@ -756,3 +756,19 @@ html::-webkit-scrollbar {
 .loc-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* Menu category pills: thin black scrollbar. */
+.category-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #000 transparent;
+}
+.category-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.category-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.category-scroll::-webkit-scrollbar-thumb {
+  background: #000;
+  border-radius: 9999px;
+}

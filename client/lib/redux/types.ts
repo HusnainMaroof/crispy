@@ -42,6 +42,7 @@ export type Location = {
   address: string;
   hours: string;
   phone: string;
+  show_phone?: boolean;
   status?: string;
   lat: number | null;
   lng: number | null;

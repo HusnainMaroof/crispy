@@ -37,7 +37,6 @@ export default function MenuPage() {
   const canEditBranch = user?.role === "superadmin" || user?.role === "branch_manager";
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
-  const [dietaryFilter, setDietaryFilter] = useState("all");
   const [branchRows, setBranchRows] = useState<{ id: string; name: string; categoryId: string; globalPrice: number; onBranch: boolean; price: string }[]>([]);
   const [loadingBranch, setLoadingBranch] = useState(false);
   const [savingBranch, setSavingBranch] = useState(false);
@@ -117,7 +116,7 @@ export default function MenuPage() {
       // Re-read just the menu in the background so the new dish shows up in its
       // real category and sort position. addItem appends to local state, which
       // left it stranded at the end of the list and hidden behind the category
-      // and dietary filters that were already applied. Silent, so the list does
+      // filters that were already applied. Silent, so the list does
       // not flip to a skeleton and lose the filters and scroll position.
       await fetchItems({ silent: true });
       // A branch view is derived from the items, so it has to catch up too.
@@ -261,7 +260,7 @@ export default function MenuPage() {
         </p>
       )}
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="category-filter" className="mb-2 block text-sm text-white/60">
             Category
@@ -305,27 +304,12 @@ export default function MenuPage() {
             ]}
           />
         </label>
-        <label className="block text-sm text-white/60">
-          Dietary preference
-          <Dropdown
-            className="mt-2"
-            value={dietaryFilter}
-            onChange={setDietaryFilter}
-            options={[
-              { value: "all", label: "All" },
-              { value: "Halal", label: "Halal" },
-              { value: "Vegan", label: "Vegan" },
-              { value: "Vegetarian", label: "Vegetarian" },
-            ]}
-          />
-        </label>
       </div>
 
       {(loading || categoriesLoading || locationsLoading || loadingBranch) ? <TableSkeleton /> : (
         <MenuList
           branchFilter={branchFilter}
           categoryFilter={categoryFilter}
-          dietaryFilter={dietaryFilter}
           categories={categories}
           locations={locations}
           items={items}
@@ -431,7 +415,6 @@ export default function MenuPage() {
 function MenuList({
   branchFilter,
   categoryFilter,
-  dietaryFilter,
   categories,
   locations,
   items,
@@ -444,7 +427,6 @@ function MenuList({
 }: {
   branchFilter: string;
   categoryFilter: string;
-  dietaryFilter: string;
   categories: { id: string; title: string }[];
   locations: { id: string; name: string }[];
   items: { id: string; name: string; price: string; priceValue: number; image: string; categoryId: string; badge?: string; badgeVariant?: "default" | "vegan"; locations: { id: string; name: string }[] }[];
@@ -456,13 +438,8 @@ function MenuList({
   onRemoveCategory?: (id: string) => void;
 }) {
   const categoryName = titleCase(categories.find((category) => category.id === categoryFilter)?.title ?? "");
-  const matchesDiet = (badge?: string, badgeVariant?: "default" | "vegan") =>
-    dietaryFilter === "all" || dietaryTags(badge, badgeVariant).some((tag) => tag.toLowerCase() === dietaryFilter.toLowerCase());
-  const catalogue = items.filter((item) => (categoryFilter === "all" || item.categoryId === categoryFilter) && matchesDiet(item.badge, item.badgeVariant));
-  const rows = branchRows.filter((row) => {
-    const item = items.find((entry) => entry.id === row.id);
-    return (categoryFilter === "all" || row.categoryId === categoryFilter) && matchesDiet(item?.badge, item?.badgeVariant);
-  });
+  const catalogue = items.filter((item) => categoryFilter === "all" || item.categoryId === categoryFilter);
+  const rows = branchRows.filter((row) => categoryFilter === "all" || row.categoryId === categoryFilter);
 
   if (items.length === 0 && categories.length === 0) {
     return <p className="rounded-2xl border border-white/10 px-5 py-10 text-center text-sm text-white/50">No categories yet. Add one to start the menu.</p>;

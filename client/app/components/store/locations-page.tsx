@@ -928,7 +928,7 @@ export default function Locations() {
                           chooseBranch(loc.id);
                         }
                       }}
-                      className={`relative shrink-0 cursor-pointer flex items-center rounded-[20px] border-2 bg-white px-6 py-6 transition-colors duration-200 sm:h-[240px] sm:px-7 sm:py-10   ${
+                      className={`relative shrink-0 cursor-pointer flex items-center rounded-[20px] border-2 bg-white px-6 py-6 transition-colors duration-200 sm:min-h-[240px] sm:px-7 sm:py-10   ${
                         isActive ? "border-[#FF0931]" : "border-[#EAEAEA]"
                       }`}
                     >
@@ -946,7 +946,7 @@ export default function Locations() {
                         <ArrowIcon className="h-[42px] w-[42px] sm:h-[44px] sm:w-[44px]" />
                       </a>
 
-                      <div className="flex w-full items-center gap-4 pe-14 sm:gap-10 sm:ps-10 sm:pe-0 lg:gap-20 ">
+                      <div className="flex w-full items-center gap-4 pe-14 sm:gap-10 sm:ps-10 sm:pe-0 lg:gap-12 ">
                         <span
                           className={`shrink-0 font-[family-name:var(--font-korolev),Korolev,sans-serif] text-[30px] font-bold leading-none sm:text-[34px] ${
                             isActive ? "text-[#FF0931]" : "text-[#F3B9C3]"
@@ -954,7 +954,10 @@ export default function Locations() {
                         >
                           {displayNum}
                         </span>
-
+  <span
+                    aria-hidden="true"
+                    className="  h-26  w-px bg-linear-to-b from-transparent via-[#FF0931] to-transparent "
+                  />
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 sm:gap-5">
                             <span
@@ -987,9 +990,22 @@ export default function Locations() {
                                   : t("locations.closed")}
                             </span>
                           </div>
-
+                          {loc.showPhone && loc.phone && (
+                            <p className=" mt-3 sm:pt-2">
+                              {" "}
+                              <a
+                                href={`tel:${loc.phone.replace(/\s+/g, "")}`}
+                                onClick={(event) => event.stopPropagation()}
+                                className={`m-0 max-w-[280px] font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] leading-[1.4] sm:text-[16px] ${
+                                  isActive ? "text-[#999]" : "text-[#D2D2D2]"
+                                }`}
+                              >
+                                {loc.phone}
+                              </a>
+                            </p>
+                          )}
                           <p
-                            className={`m-0 mt-3 max-w-[280px] font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] leading-[1.4] sm:mt-8 sm:text-[16px] ${
+                            className={`m-0 mt-3  font-[family-name:var(--font-inter),Inter,sans-serif] text-[13px] leading-[1.4] sm:mt-2 sm:text-[16px] ${
                               isActive ? "text-[#999]" : "text-[#D2D2D2]"
                             }`}
                           >
@@ -997,7 +1013,7 @@ export default function Locations() {
                           </p>
 
                           <p
-                            className={`m-0 mt-2  font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] font-bold sm:mt-4 ${
+                            className={`m-0 mt-2  font-[family-name:var(--font-inter),Inter,sans-serif] text-[14px] font-bold sm:mt-2 ${
                               isActive ? "text-black" : "text-[#D2D2D2]"
                             }`}
                           >
