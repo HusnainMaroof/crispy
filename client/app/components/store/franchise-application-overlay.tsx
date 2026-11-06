@@ -197,13 +197,22 @@ const EMPTY_FORM = {
 
 export default function FranchiseApplicationOverlay({
   onClose,
+  initialName = "",
+  initialEmail = "",
 }: {
   onClose: () => void;
+  /** Prefill from the brochure popup so the visitor does not type them twice. */
+  initialName?: string;
+  initialEmail?: string;
 }) {
   const lenis = useLenis();
   const { locale, t } = useLocale();
   const dir = locale === "ar" ? "rtl" : "ltr";
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_FORM,
+    fullName: initialName,
+    email: initialEmail,
+  }));
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [agreeComms, setAgreeComms] = useState(false);
 

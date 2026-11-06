@@ -15,15 +15,25 @@ const INTER = "font-[family-name:var(--font-inter),Inter,sans-serif]";
 const INPUT_CLS =
   "w-full rounded-[10px] border border-[#2b2b2b] bg-[#161616] px-4 py-3.5 text-[15px] text-white outline-none transition-colors placeholder:text-[#6b6b6b] focus:border-[#FF0931]";
 
-type Status = "idle" | "sending" | "sent" | "error";
+type Status = "idle" | "sending" | "error";
+type Step = "name" | "email";
 
-export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
+export default function BrochureOverlay({
+  onClose,
+  onSent,
+}: {
+  onClose: () => void;
+  /** Called after the brochure is sent, with what the visitor typed. */
+  onSent: (details: { name: string; email: string }) => void;
+}) {
   const { locale, t } = useLocale();
   const lenis = useLenis();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [step, setStep] = useState<Step>("name");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const headingId = useId();
 
@@ -36,7 +46,7 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
-    const focusTimer = window.setTimeout(() => emailRef.current?.focus(), 120);
+    const focusTimer = window.setTimeout(() => nameRef.current?.focus(), 120);
     return () => {
       unlockBodyScroll();
       window.removeEventListener("keydown", onKey);
@@ -44,8 +54,16 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
     };
   }, [onClose, lenis]);
 
+  useEffect(() => {
+    if (step === "email") emailRef.current?.focus();
+  }, [step]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (step === "name") {
+      if (name.trim()) setStep("email");
+      return;
+    }
     if (status === "sending") return;
     setStatus("sending");
     setError("");
@@ -59,7 +77,7 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
       if (!res.ok || !body?.success) {
         throw new Error(body?.error || t("brochure.error"));
       }
-      setStatus("sent");
+      onSent({ name: name.trim(), email: email.trim() });
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : t("brochure.error"));
@@ -108,63 +126,7 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
           </svg>
         </button>
 
-        {status === "sent" ? (
-          <div className="flex flex-col items-center py-2 text-center">
-            <span
-              className="overlay-scale-in flex h-16 w-16 items-center justify-center rounded-full bg-[#FF0931] sm:h-20 sm:w-20"
-              aria-hidden="true"
-            >
-              <svg
-                width="30"
-                height="30"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="sm:h-9 sm:w-9"
-              >
-                <path
-                  d="M5 12.5l4.5 4.5L19 7.5"
-                  stroke="white"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-
-            <h2
-              id={headingId}
-              className={`overlay-fade-up stagger-1 m-0 mt-7 uppercase text-white ${KOROLEV}`}
-              style={{
-                fontSize: "clamp(24px, 4.5vw, 34px)",
-                fontWeight: 900,
-                lineHeight: "110%",
-                letterSpacing: "0.54px",
-              }}
-            >
-              {t("brochure.sentTitle")}
-            </h2>
-
-            <p
-              className={`overlay-fade-up stagger-2 m-0 mt-4 max-w-[380px] text-[#8f8f8f] ${INTER}`}
-              style={{
-                fontSize: "clamp(13px, 1.6vw, 15px)",
-                lineHeight: "160%",
-              }}
-            >
-              {t("brochure.sentBody", { email })}
-            </p>
-
-            <button
-              type="button"
-              onClick={onClose}
-              className={`overlay-fade-up stagger-3 mt-8 h-12 w-full max-w-[280px] cursor-pointer rounded-[10px] bg-[#FF0931] px-6 uppercase text-white transition-colors hover:bg-[#E0082C] ${KOROLEV}`}
-              style={{ fontSize: "clamp(14px, 1.8vw, 16px)", fontWeight: 800 }}
-            >
-              {t("brochure.close")}
-            </button>
-          </div>
-        ) : (
-          <>
+        <>
             <span
               className={`overlay-fade-in inline-flex rounded-md bg-[#FF0931] px-5 py-2.5 uppercase text-white ${KOROLEV}`}
               style={{
@@ -201,42 +163,59 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-4 sm:mt-8 sm:gap-5">
-              <div>
-                <label htmlFor="brochure-name" className={`mb-2 block text-[13px] font-semibold text-white ${INTER}`}>
-                  {t("brochure.name")}
-                </label>
-                <input
-                  id="brochure-name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={INPUT_CLS}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="brochure-email" className={`mb-2 block text-[13px] font-semibold text-white ${INTER}`}>
-                  {t("brochure.email")}
-                  <span className="text-[#FF0931]"> *</span>
-                </label>
-                <input
-                  ref={emailRef}
-                  id="brochure-email"
-                  name="email"
-                  type="email"
-                  required
-                  dir="ltr"
-                  autoComplete="email"
-                  placeholder="john@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-invalid={status === "error"}
-                  aria-describedby={status === "error" ? "brochure-error" : undefined}
-                  className={INPUT_CLS}
-                />
-              </div>
+              {step === "name" ? (
+                <div>
+                  <label htmlFor="brochure-name" className={`mb-2 block text-[13px] font-semibold text-white ${INTER}`}>
+                    {t("brochure.name")}
+                    <span className="text-[#FF0931]"> *</span>
+                  </label>
+                  <input
+                    ref={nameRef}
+                    id="brochure-name"
+                    name="name"
+                    type="text"
+                    required
+                    maxLength={200}
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={INPUT_CLS}
+                  />
+                </div>
+              ) : (
+                <div className="overlay-fade-up">
+                  <label htmlFor="brochure-email" className={`mb-2 block text-[13px] font-semibold text-white ${INTER}`}>
+                    {t("brochure.email")}
+                    <span className="text-[#FF0931]"> *</span>
+                  </label>
+                  <input
+                    ref={emailRef}
+                    id="brochure-email"
+                    name="email"
+                    type="email"
+                    required
+                    dir="ltr"
+                    autoComplete="email"
+                    placeholder="john@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    aria-invalid={status === "error"}
+                    aria-describedby={status === "error" ? "brochure-error" : undefined}
+                    className={INPUT_CLS}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("name");
+                      setStatus("idle");
+                      setError("");
+                    }}
+                    className={`mt-2 cursor-pointer text-[12px] text-[#8f8f8f] underline-offset-2 hover:text-white hover:underline ${INTER}`}
+                  >
+                    {t("brochure.changeName", { name: name.trim() })}
+                  </button>
+                </div>
+              )}
 
               {status === "error" && (
                 <p
@@ -258,7 +237,11 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
                 }`}
                 style={{ fontSize: "clamp(14px, 1.8vw, 16px)", fontWeight: 800, letterSpacing: "0.54px" }}
               >
-                {status === "sending" ? t("brochure.sending") : t("brochure.submit")}
+                {step === "name"
+                  ? t("brochure.next")
+                  : status === "sending"
+                    ? t("brochure.sending")
+                    : t("brochure.submit")}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -280,8 +263,7 @@ export default function BrochureOverlay({ onClose }: { onClose: () => void }) {
                 {t("brochure.privacy")}
               </p>
             </form>
-          </>
-        )}
+        </>
       </div>
     </div>
   );

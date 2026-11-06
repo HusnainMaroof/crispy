@@ -5,6 +5,7 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import BrochureOverlay from "@/app/components/store/brochure-overlay";
+import toast from "react-hot-toast";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
 import HowToGetStarted from "@/app/components/store/how-to-get-started";
 import { ArrowDown, ArrowUp, Download, FilePenLine } from "lucide-react";
@@ -106,6 +107,8 @@ function localizedItems<T extends { title: string; titleAr: string; description:
 export default function PartnerPage() {
   const [applicationOpen, setApplicationOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);
+  // Name and email from the brochure popup, carried into the application.
+  const [lead, setLead] = useState({ name: "", email: "" });
   const { locale, t } = useLocale();
   const whyItems = localizedItems(WHY_CHOOSE_ITEMS, locale);
   const startItems = localizedItems(GET_STARTED_ITEMS, locale);
@@ -341,11 +344,21 @@ export default function PartnerPage() {
       )}
       <Footer />
       {brochureOpen && (
-        <BrochureOverlay onClose={() => setBrochureOpen(false)} />
+        <BrochureOverlay
+          onClose={() => setBrochureOpen(false)}
+          onSent={(details) => {
+            toast.success(t("brochure.sentBody", { email: details.email }));
+            setLead(details);
+            setBrochureOpen(false);
+            setApplicationOpen(true);
+          }}
+        />
       )}
       {applicationOpen && (
         <FranchiseApplicationOverlay
           onClose={() => setApplicationOpen(false)}
+          initialName={lead.name}
+          initialEmail={lead.email}
         />
       )}
     </>
