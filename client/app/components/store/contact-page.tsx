@@ -5,7 +5,6 @@ import { useLocale } from "@/lib/i18n/locale-context";
 import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import BrochureOverlay from "@/app/components/store/brochure-overlay";
-import toast from "react-hot-toast";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
 import HowToGetStarted from "@/app/components/store/how-to-get-started";
 import { ArrowDown, ArrowUp, Download, FilePenLine } from "lucide-react";
@@ -346,8 +345,7 @@ export default function PartnerPage() {
       {brochureOpen && (
         <BrochureOverlay
           onClose={() => setBrochureOpen(false)}
-          onSent={(details) => {
-            toast.success(t("brochure.sentBody", { email: details.email }));
+          onDone={(details) => {
             setLead(details);
             setBrochureOpen(false);
             setApplicationOpen(true);
@@ -359,6 +357,7 @@ export default function PartnerPage() {
           onClose={() => setApplicationOpen(false)}
           initialName={lead.name}
           initialEmail={lead.email}
+          sendBrochure={lead.email !== ""}
         />
       )}
     </>

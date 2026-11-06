@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { addItem, clearCartBranch } from "@/lib/redux/slices/cartSlice";
 import { fetchDeals, fetchFullMenu } from "@/lib/redux/slices/menuSlice";
@@ -20,13 +20,6 @@ import { dietaryTags } from "@/lib/dietary";
 import { titleCase } from "@/lib/utils";
 
 type MenuCard = MenuItem & { category: string };
-
-const SORT_OPTIONS = [
-  { value: "name-asc", label: "Name A-Z" },
-  { value: "name-desc", label: "Name Z-A" },
-  { value: "price-asc", label: "Price Low-High" },
-  { value: "price-desc", label: "Price High-Low" },
-];
 
 /**
  * One box for every inline icon on this page.
@@ -92,12 +85,16 @@ export default function MenuPage() {
   const categoryLabel = (cat: string) =>
     cat === "All" ? t("menu.dietary.all") : localizedName(locale, cat, menu.categories.find((category) => titleCase(category.title) === cat)?.titleAr);
   const [activeCategory, setActiveCategory] = useState("All");
+  // What is typed and what is searched are kept apart: typing alone never
+  // filters the grid. The search runs when the Search button is pressed (or
+  // Enter), and clearing the box brings the full list back.
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("name-asc");
-
-  const tabContainerRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const underlineRef = useRef<HTMLDivElement>(null);
+  const runSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const next = searchInput.trim();
+    if (next !== search) setSearch(next);
+  };
 
   const [collectProduct, setCollectProduct] = useState<MenuCard | null>(null);
 
@@ -157,27 +154,6 @@ export default function MenuPage() {
     [menu.categories],
   );
 
-  /* The measured offset is relative to the container's visible left edge, but the
-     underline is a child of the scrolling content, so scrollLeft has to be added
-     back or the bar drifts sideways once the row has been scrolled. */
-  useEffect(() => {
-    const container = tabContainerRef.current;
-    const underline = underlineRef.current;
-    const activeIndex = categoryNames.indexOf(effectiveCategory);
-    const activeTab = tabRefs.current[activeIndex];
-
-    if (!container || !underline || !activeTab) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const tabRect = activeTab.getBoundingClientRect();
-
-    const offset = tabRect.left - containerRect.left + container.scrollLeft;
-    const width = tabRect.width;
-
-    underline.style.width = `${width}px`;
-    underline.style.transform = `translateX(${offset}px)`;
-  }, [effectiveCategory, categoryNames]);
-
   const filteredItems = useMemo(() => {
     let items = menuItems;
 
@@ -192,26 +168,12 @@ export default function MenuPage() {
       );
     }
 
-    const sorted = [...items];
-    switch (sort) {
-      case "name-asc":
-        sorted.sort((a, b) => localizedName(locale, a.name, a.nameAr).localeCompare(localizedName(locale, b.name, b.nameAr)));
-        break;
-      case "name-desc":
-        sorted.sort((a, b) => localizedName(locale, b.name, b.nameAr).localeCompare(localizedName(locale, a.name, a.nameAr)));
-        break;
-      case "price-asc":
-        sorted.sort((a, b) => a.priceValue - b.priceValue);
-        break;
-      case "price-desc":
-        sorted.sort((a, b) => b.priceValue - a.priceValue);
-        break;
-    }
-
-    return sorted;
-    // `locale` sorts on the translated name, so the order has to be recomputed
-    // when the language changes, not just when the data does.
-  }, [effectiveCategory, search, sort, menuItems, locale]);
+    // Always A-Z on the name the visitor sees. `locale` is a dependency so the
+    // order follows the language.
+    return [...items].sort((a, b) =>
+      localizedName(locale, a.name, a.nameAr).localeCompare(localizedName(locale, b.name, b.nameAr)),
+    );
+  }, [effectiveCategory, search, menuItems, locale]);
 
   const handleAddToCart = async (item: MenuCard) => {
     const resolved = await resolveOrdering();
@@ -247,115 +209,102 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* Category Tabs */}
-        <div className="bg-[#FAFAFA] px-4 py-3 sm:px-6 md:px-12 xl:px-25">
-          {isFirstLoad ? (
-            <MenuTabsSkeleton />
-          ) : (
-            <div
-              ref={tabContainerRef}
-              className="category-scroll relative flex gap-6 overflow-x-auto"
-            >
-              {categoryNames.map((cat, i) => {
-                const isActive = effectiveCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    ref={(el) => {
-                      tabRefs.current[i] = el;
-                    }}
-                    onClick={() => setActiveCategory(cat)}
-                    aria-pressed={isActive}
-                    className={`shrink-0 cursor-pointer whitespace-nowrap pb-3 pt-1 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 sm:text-base ${
-                      isActive ? "text-[#FF0931]" : "text-black/55 hover:text-black"
-                    }`}
+        {/* Categories on the left, search + branch and the
+            grid on the right. Below lg the sidebar stacks on top and the
+            categories scroll sideways. */}
+        <div className="px-4 pb-10 pt-6 sm:px-6 md:px-12 xl:px-25">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
+            <aside className="w-full lg:sticky lg:top-28 lg:w-[240px] lg:shrink-0 xl:w-[260px]">
+              {/* Categories: a sideways row on small screens, a vertical list
+                  on large ones. The active one carries a red bar and red text. */}
+              <div>
+                {isFirstLoad ? (
+                  <MenuTabsSkeleton count={8} className="px-3 py-2.5 lg:flex-col lg:gap-5 lg:px-4" />
+                ) : (
+                  <nav
+                    aria-label={t("menu.categoriesLabel")}
+                    className="category-scroll flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5 lg:overflow-visible"
                   >
-                    {categoryLabel(cat)}
-                  </button>
-                );
-              })}
-              {/* The underline was measured by the effect above all along but
-                  sat on a `hidden` element, so the indicator never appeared.
-                  Sliding tab labels now carry the active state themselves. */}
-              <div
-                ref={underlineRef}
-                aria-hidden="true"
-                className="absolute bottom-0 start-0 h-[2px] rounded-full bg-[#FF0931] transition-[width,transform] duration-300 ease-out"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Filter Bar */}
-        <div className="py-4 px-4 sm:py-6 sm:px-6 md:px-12 xl:px-25">
-          <div className="flex flex-col gap-3 md:flex-row md:flex-wrap sm:items-stretch sm:gap-10">
-            {/* Search. ps-11 is 16px of offset + a 24px icon + a 4px gap, so the
-                glyph no longer butts straight into the typed text. */}
-            <div className="relative w-full max-w-full md:w-[858px]">
-              <SearchIcon className="absolute start-4 top-1/2 -translate-y-1/2 text-black" />
-              <input
-                type="text"
-                aria-label={t("menu.searchLabel")}
-                placeholder={t("menu.search")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-12 w-full rounded-xl border border-black/15 bg-white ps-11 pe-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] placeholder:text-black/40"
-              />
-            </div>
-
-            {/* Sort By */}
-            <div className="relative w-full max-w-full md:w-[419px]">
-              <select
-                value={sort}
-                aria-label={t("menu.sortLabel")}
-                onChange={(e) => setSort(e.target.value)}
-                className={SELECT_CLS}
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {t(`menu.sort.${opt.value}`)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
-            </div>
-
-            {/* Branch. While the branch list is still in flight the select is
-                disabled, so there is no window where it looks empty but is live. */}
-            <div className="relative w-full max-w-full md:w-[419px]">
-              <select
-                value={branchValue}
-                disabled={branchesLoading}
-                onChange={(e) => handleBranchChange(e.target.value)}
-                aria-label={t("menu.branch")}
-                className={SELECT_CLS}
-              >
-                {/* Default view: the whole menu across every branch. Rendered first and
-                    always, so "" is a real choice rather than a blank state. */}
-                <option value="">{t("menu.allBranches")}</option>
-                {/* One option is always rendered that matches the current value,
-                    otherwise the browser falls back to showing nothing at all
-                    when the saved branch id is not in the list yet. Only needed
-                    for a real branch id, since "" already has the row above. */}
-                {branchValue !== "" && !savedBranch && (
-                  <option value={branchValue}>
-                    {branchesLoading ? t("menu.branchesLoading") : t("menu.branchPlaceholder")}
-                  </option>
+                    {categoryNames.map((cat) => {
+                      const isActive = effectiveCategory === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setActiveCategory(cat)}
+                          aria-pressed={isActive}
+                          className={`shrink-0 cursor-pointer whitespace-nowrap border-b-2 px-3 py-2.5 text-start font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 sm:text-base lg:whitespace-normal lg:rounded-e-lg lg:border-b-0 lg:border-s-2 lg:px-4 ${
+                            isActive
+                              ? "border-[#FF0931] text-[#FF0931] lg:bg-[#FF0931]/5"
+                              : "border-transparent text-black/55 hover:text-black lg:hover:bg-black/[0.03]"
+                          }`}
+                        >
+                          {categoryLabel(cat)}
+                        </button>
+                      );
+                    })}
+                  </nav>
                 )}
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {localizedText(locale, branch.name)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
-            </div>
-          </div>
-        </div>
+              </div>
+            </aside>
 
-        {/* Menu Grid */}
-        <div className=" pb-10 px-6  sm:px-10 md:px-12 xl:px-25">
+            <div className="min-w-0 flex-1">
+              {/* Search and branch, one row from sm up. */}
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4">
+                {/* Search. ps-11 is 16px of offset + a 24px icon + a 4px gap. */}
+                <form role="search" onSubmit={runSearch} className="relative min-w-0 flex-1">
+                  <SearchIcon className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-black" />
+                  <input
+                    type="search"
+                    aria-label={t("menu.searchLabel")}
+                    placeholder={t("menu.search")}
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      if (e.target.value.trim() === "") setSearch("");
+                    }}
+                    className={`h-12 w-full rounded-xl border border-black/15 bg-white ps-11 ${searchInput.trim() ? "pe-[104px]" : "pe-4"} font-[family-name:var(--font-inter),Inter,sans-serif] text-sm text-black outline-none transition-colors focus:border-[#FF0931] placeholder:text-black/40 [&::-webkit-search-cancel-button]:hidden`}
+                  />
+                  {/* Hidden until something is typed. Enter still searches. */}
+                  {searchInput.trim() !== "" && (
+                    <button
+                      type="submit"
+                      className="absolute end-1.5 top-1/2 h-9 -translate-y-1/2 cursor-pointer rounded-lg bg-[#FF0931] px-4 font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-semibold text-white transition-colors hover:bg-[#E0082C]"
+                    >
+                      {t("menu.searchButton")}
+                    </button>
+                  )}
+                </form>
+
+                {/* Branch. While the branch list is still in flight the select is
+                    disabled, so there is no window where it looks empty but is live. */}
+                <div className="relative w-full sm:w-[260px] sm:shrink-0">
+                  <select
+                    value={branchValue}
+                    disabled={branchesLoading}
+                    onChange={(e) => handleBranchChange(e.target.value)}
+                    aria-label={t("menu.branch")}
+                    className={SELECT_CLS}
+                  >
+                    {/* Default view: the whole menu across every branch. */}
+                    <option value="">{t("menu.allBranches")}</option>
+                    {/* Always one option matching the current value, so the
+                        select never shows blank while the list is loading. */}
+                    {branchValue !== "" && !savedBranch && (
+                      <option value={branchValue}>
+                        {branchesLoading ? t("menu.branchesLoading") : t("menu.branchPlaceholder")}
+                      </option>
+                    )}
+                    {branches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {localizedText(locale, branch.name)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-black" />
+                </div>
+              </div>
+
           {isFirstLoad && <MenuGridSkeleton />}
 
           {!isFirstLoad && menu.status === "failed" && (
@@ -384,7 +333,7 @@ export default function MenuPage() {
           {!isFirstLoad && filteredItems.length > 0 && (
             <div
               aria-busy={refreshing}
-              className={`grid grid-cols-2 gap-4 transition-opacity duration-200 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 ${refreshing ? "opacity-50" : ""}`}
+              className={`grid grid-cols-2 gap-4 transition-opacity duration-200 sm:grid-cols-3 sm:gap-6 2xl:grid-cols-4 ${refreshing ? "opacity-50" : ""}`}
             >
               {filteredItems.map((item) => (
                 <div
@@ -481,6 +430,8 @@ export default function MenuPage() {
               ))}
             </div>
           )}
+            </div>
+          </div>
         </div>
 
         {/* Download App Banner */}

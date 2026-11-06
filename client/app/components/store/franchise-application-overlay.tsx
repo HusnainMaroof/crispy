@@ -199,11 +199,14 @@ export default function FranchiseApplicationOverlay({
   onClose,
   initialName = "",
   initialEmail = "",
+  sendBrochure = false,
 }: {
   onClose: () => void;
   /** Prefill from the brochure popup so the visitor does not type them twice. */
   initialName?: string;
   initialEmail?: string;
+  /** Came from the brochure popup: email the brochure when this form is submitted. */
+  sendBrochure?: boolean;
 }) {
   const lenis = useLenis();
   const { locale, t } = useLocale();
@@ -215,6 +218,7 @@ export default function FranchiseApplicationOverlay({
   }));
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [agreeComms, setAgreeComms] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     lockBodyScroll({
@@ -244,13 +248,37 @@ export default function FranchiseApplicationOverlay({
     form.vision,
   ].every((v) => v.trim() !== "");
 
-  const canSubmit = textFieldsFilled && confirmAccurate && agreeComms;
+  const canSubmit = textFieldsFilled && confirmAccurate && agreeComms && !submitting;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!confirmAccurate || !agreeComms) {
       toast.error(t("franchise.app.errorConfirm"));
       return;
+    }
+    if (sendBrochure) {
+      setSubmitting(true);
+      try {
+        const res = await fetch("/api/franchise/brochure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.fullName.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            locale,
+          }),
+        });
+        const body = (await res.json().catch(() => null)) as { success?: boolean } | null;
+        if (!res.ok || !body?.success) throw new Error("brochure");
+      } catch {
+        // Keep the form open with everything filled in so they can try again.
+        toast.error(t("brochure.error"));
+        setSubmitting(false);
+        return;
+      }
+      toast.success(t("brochure.sentBody", { email: form.email.trim() }));
     }
     toast.success(t("franchise.app.success"));
     onClose();

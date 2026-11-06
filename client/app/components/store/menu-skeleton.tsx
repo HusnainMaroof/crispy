@@ -10,10 +10,10 @@ function Bar({ className = "" }: { className?: string }) {
 }
 
 /** Stands in for the category tab labels while the catalogue is in flight. */
-export function MenuTabsSkeleton({ count = 5 }: { count?: number }) {
+export function MenuTabsSkeleton({ count = 5, className = "" }: { count?: number; className?: string }) {
   const widths = ["w-16", "w-24", "w-20", "w-28", "w-20", "w-24"];
   return (
-    <div className="flex gap-6 overflow-hidden" aria-hidden="true">
+    <div className={`flex gap-6 overflow-hidden ${className}`} aria-hidden="true">
       {Array.from({ length: count }, (_, i) => (
         <Bar key={i} className={`h-4 shrink-0 ${widths[i % widths.length]}`} />
       ))}

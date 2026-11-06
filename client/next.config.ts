@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  experimental: {
+    // Next 16 keeps a persistent Turbopack cache on disk in dev. Here it grew
+    // to ~1 GB in .next/dev/cache and each flush took over a minute of heavy
+    // disk and CPU on Windows, which crashed `next dev`. Off: a cold start
+    // recompiles, but the machine stays responsive.
+    turbopackFileSystemCacheForDev: false,
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

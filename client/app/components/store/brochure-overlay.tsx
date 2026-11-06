@@ -1,5 +1,7 @@
 // brochure-overlay.tsx
-// Email capture for the franchise brochure. Same overlay family as the
+// Name and email capture for the franchise brochure. Nothing is sent here:
+// the details go on to the franchise application, and the brochure is
+// emailed once that application is submitted. Same overlay family as the
 // franchise application and delivery popups: black panel, hairline border,
 // circular close button, red accent, Korolev headings over Inter body.
 "use client";
@@ -15,24 +17,21 @@ const INTER = "font-[family-name:var(--font-inter),Inter,sans-serif]";
 const INPUT_CLS =
   "w-full rounded-[10px] border border-[#2b2b2b] bg-[#161616] px-4 py-3.5 text-[15px] text-white outline-none transition-colors placeholder:text-[#6b6b6b] focus:border-[#FF0931]";
 
-type Status = "idle" | "sending" | "error";
 type Step = "name" | "email";
 
 export default function BrochureOverlay({
   onClose,
-  onSent,
+  onDone,
 }: {
   onClose: () => void;
-  /** Called after the brochure is sent, with what the visitor typed. */
-  onSent: (details: { name: string; email: string }) => void;
+  /** Called once both name and email are entered. */
+  onDone: (details: { name: string; email: string }) => void;
 }) {
   const { locale, t } = useLocale();
   const lenis = useLenis();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [step, setStep] = useState<Step>("name");
-  const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const headingId = useId();
@@ -58,30 +57,13 @@ export default function BrochureOverlay({
     if (step === "email") emailRef.current?.focus();
   }, [step]);
 
-  async function handleSubmit(event: React.FormEvent) {
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (step === "name") {
       if (name.trim()) setStep("email");
       return;
     }
-    if (status === "sending") return;
-    setStatus("sending");
-    setError("");
-    try {
-      const res = await fetch("/api/franchise/brochure", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, locale }),
-      });
-      const body = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null;
-      if (!res.ok || !body?.success) {
-        throw new Error(body?.error || t("brochure.error"));
-      }
-      onSent({ name: name.trim(), email: email.trim() });
-    } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : t("brochure.error"));
-    }
+    if (email.trim()) onDone({ name: name.trim(), email: email.trim() });
   }
 
   const isArabic = locale === "ar";
@@ -199,17 +181,11 @@ export default function BrochureOverlay({
                     placeholder="john@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    aria-invalid={status === "error"}
-                    aria-describedby={status === "error" ? "brochure-error" : undefined}
                     className={INPUT_CLS}
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setStep("name");
-                      setStatus("idle");
-                      setError("");
-                    }}
+                    onClick={() => setStep("name")}
                     className={`mt-2 cursor-pointer text-[12px] text-[#8f8f8f] underline-offset-2 hover:text-white hover:underline ${INTER}`}
                   >
                     {t("brochure.changeName", { name: name.trim() })}
@@ -217,31 +193,12 @@ export default function BrochureOverlay({
                 </div>
               )}
 
-              {status === "error" && (
-                <p
-                  id="brochure-error"
-                  role="alert"
-                  className={`m-0 rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-300 ${INTER}`}
-                >
-                  {error}
-                </p>
-              )}
-
               <button
                 type="submit"
-                disabled={status === "sending"}
-                className={`group mt-1 flex w-full items-center justify-center gap-3 rounded-[10px] px-6 py-4 uppercase text-white transition-colors ${KOROLEV} ${
-                  status === "sending"
-                    ? "cursor-not-allowed bg-[#B8B8B8]"
-                    : "cursor-pointer bg-[#FF0931] hover:bg-[#E0082C]"
-                }`}
+                className={`group mt-1 flex w-full items-center justify-center gap-3 rounded-[10px] px-6 py-4 uppercase text-white transition-colors cursor-pointer bg-[#FF0931] hover:bg-[#E0082C] ${KOROLEV}`}
                 style={{ fontSize: "clamp(14px, 1.8vw, 16px)", fontWeight: 800, letterSpacing: "0.54px" }}
               >
-                {step === "name"
-                  ? t("brochure.next")
-                  : status === "sending"
-                    ? t("brochure.sending")
-                    : t("brochure.submit")}
+                {step === "name" ? t("brochure.next") : t("brochure.submit")}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
