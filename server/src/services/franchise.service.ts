@@ -1,48 +1,78 @@
 import { envConfig } from "../config/env.js";
 import { logger } from "../middleware/logger.js";
-import { sendAdminEmail, sendEmail } from "./email.service.js";
-import { brochureEmail, brochureLeadAdminEmail, type BrochureLead } from "./email-templates.js";
+import { sendEmail } from "./email.service.js";
+import { assertVerifiedEmail } from "./email-verification.service.js";
+import {
+  brochureLeadAdminEmail,
+  franchiseApplicationEmail,
+  franchiseApplicationReceivedEmail,
+  type FranchiseApplication,
+} from "./email-templates.js";
 import { BadRequestException } from "../utils/app-error.js";
 
-export type BrochureRequestInput = BrochureLead;
+function brochureUrlOrNull(): string | null {
+  const url = envConfig.FRANCHISE.BROCHURE_URL;
+  if (/^https:\/\//i.test(url)) return url;
+  logger.error({ brochureUrl: url }, "FRANCHISE_BROCHURE_URL is not an https URL");
+  return null;
+}
+
+export type BrochureRequestInput = { name?: string; email: string; token: string; locale?: "en" | "ar" };
 
 /**
- * Stores the lead, emails the brochure to the visitor, and alerts the franchise
- * team. The visitor's email is the only thing that must succeed — a provider
- * outage should still look like a success to them, and the lead is already
- * saved for a manual follow-up.
+ * Hands the brochure link to a visitor whose email is verified, and tells the
+ * franchise team who downloaded it. The team alert is best effort.
  */
-export async function requestBrochure(input: BrochureRequestInput): Promise<{ email: string }> {
-  const email = input.email.trim().toLowerCase();
-  const name = input.name?.trim() ?? "";
-  const phone = input.phone?.trim() ?? "";
-  const locale = input.locale ?? "en";
+export async function requestBrochure(input: BrochureRequestInput): Promise<{ email: string; url: string }> {
+  const email = await assertVerifiedEmail(input.email, input.token);
 
-  const lead: BrochureLead = { name, email, phone, locale };
+  const url = brochureUrlOrNull();
+  if (!url) throw new BadRequestException("The brochure link is not configured correctly");
 
-  const brochureUrl = envConfig.FRANCHISE.BROCHURE_URL;
-  if (!/^https:\/\//i.test(brochureUrl)) {
-    throw new BadRequestException("The brochure link is not configured correctly");
+  const toTeam = brochureLeadAdminEmail({ name: input.name?.trim() ?? "", email, phone: "", locale: input.locale ?? "en" });
+  await sendEmail({
+    to: envConfig.FRANCHISE.INBOX,
+    subject: toTeam.subject,
+    htmlContent: toTeam.html,
+    replyTo: email,
+  }).catch((error) => logger.error({ error }, "Brochure alert email failed to send"));
+
+  return { email, url };
+}
+
+export type FranchiseApplicationInput = FranchiseApplication & { token: string };
+
+/**
+ * Emails the application to the franchise inbox, with reply-to set to the
+ * applicant. Only a verified email can apply. Nothing else stores the
+ * application, so that email must succeed. The applicant then gets a
+ * confirmation with the brochure link.
+ */
+export async function submitApplication(input: FranchiseApplicationInput): Promise<{ email: string }> {
+  const { token, ...rest } = input;
+  const email = await assertVerifiedEmail(rest.email, token);
+  const app: FranchiseApplication = { ...rest, email, locale: rest.locale ?? "en" };
+
+  const toTeam = franchiseApplicationEmail(app);
+  try {
+    await sendEmail({
+      to: envConfig.FRANCHISE.INBOX,
+      subject: toTeam.subject,
+      htmlContent: toTeam.html,
+      replyTo: app.email,
+    });
+  } catch {
+    throw new BadRequestException("We could not send your application right now. Please try again.");
   }
 
-  const toVisitor = brochureEmail(lead, brochureUrl);
-  const toAdmin = brochureLeadAdminEmail(lead);
+  // Replies go to the franchise inbox. Best effort: the team already has it.
+  const toApplicant = franchiseApplicationReceivedEmail(app, brochureUrlOrNull());
+  await sendEmail({
+    to: app.email,
+    subject: toApplicant.subject,
+    htmlContent: toApplicant.html,
+    replyTo: envConfig.FRANCHISE.INBOX,
+  }).catch((error) => logger.error({ error }, "Franchise confirmation email failed to send"));
 
-  const results = await Promise.allSettled([
-    sendEmail({ to: email, subject: toVisitor.subject, htmlContent: toVisitor.html }),
-    sendAdminEmail(toAdmin.subject, toAdmin.html),
-  ]);
-
-  for (const result of results) {
-    if (result.status === "rejected") {
-      logger.error({ error: result.reason }, "Brochure email failed to send");
-    }
-  }
-
-  const visitorFailed = results[0].status === "rejected";
-  if (visitorFailed) {
-    throw new BadRequestException("We could not send the brochure right now. Please try again.");
-  }
-
-  return { email };
+  return { email: app.email };
 }

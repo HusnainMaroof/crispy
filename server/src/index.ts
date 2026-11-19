@@ -13,6 +13,8 @@ import {
   checkoutLimiter,
   contactLimiter,
   brochureLimiter,
+  verifySendLimiter,
+  verifyCheckLimiter,
   locationResolveLimiter,
   locationRouteLimiter,
 } from "./middleware/rate-limiter.js";
@@ -87,7 +89,11 @@ app.use((req, res, next) => {
   if (req.path === "/api/orders") return checkoutLimiter(req, res, next);
   // Endpoints that send email get a much tighter cap than the general one.
   if (req.method === "POST" && req.path === "/api/contact") return contactLimiter(req, res, next);
-  if (req.method === "POST" && req.path === "/api/franchise/brochure") return brochureLimiter(req, res, next);
+  if (req.method === "POST" && req.path === "/api/franchise/verify/send") return verifySendLimiter(req, res, next);
+  if (req.method === "POST" && req.path === "/api/franchise/verify/check") return verifyCheckLimiter(req, res, next);
+  if (req.method === "POST" && (req.path === "/api/franchise/brochure" || req.path === "/api/franchise/application")) {
+    return brochureLimiter(req, res, next);
+  }
   if (req.method === "POST" && req.path === "/api/store/locations/resolve") return locationResolveLimiter(req, res, next);
   if (req.method === "POST" && req.path === "/api/store/locations/route") return locationRouteLimiter(req, res, next);
   globalLimiter(req, res, next);

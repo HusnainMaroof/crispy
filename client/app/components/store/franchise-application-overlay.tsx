@@ -197,24 +197,28 @@ const EMPTY_FORM = {
 
 export default function FranchiseApplicationOverlay({
   onClose,
-  initialName = "",
-  initialEmail = "",
-  sendBrochure = false,
+  verifiedName = "",
+  verifiedEmail,
+  verificationToken,
+  onExpired,
 }: {
   onClose: () => void;
-  /** Prefill from the brochure popup so the visitor does not type them twice. */
-  initialName?: string;
-  initialEmail?: string;
-  /** Came from the brochure popup: email the brochure when this form is submitted. */
-  sendBrochure?: boolean;
+  /** Name from the popup's first step, prefilled but still editable. */
+  verifiedName?: string;
+  /** Email verified in the popup. It is locked here, because the token only covers it. */
+  verifiedEmail: string;
+  /** Token from the verification popup. The server refuses the form without it. */
+  verificationToken: string;
+  /** The token ran out: send the visitor back to verify again. */
+  onExpired: () => void;
 }) {
   const lenis = useLenis();
   const { locale, t } = useLocale();
   const dir = locale === "ar" ? "rtl" : "ltr";
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
-    fullName: initialName,
-    email: initialEmail,
+    fullName: verifiedName,
+    email: verifiedEmail,
   }));
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [agreeComms, setAgreeComms] = useState(false);
@@ -257,28 +261,43 @@ export default function FranchiseApplicationOverlay({
       toast.error(t("franchise.app.errorConfirm"));
       return;
     }
-    if (sendBrochure) {
-      setSubmitting(true);
-      try {
-        const res = await fetch("/api/franchise/brochure", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: form.fullName.trim(),
-            email: form.email.trim(),
-            phone: form.phone.trim(),
-            locale,
-          }),
-        });
-        const body = (await res.json().catch(() => null)) as { success?: boolean } | null;
-        if (!res.ok || !body?.success) throw new Error("brochure");
-      } catch {
-        // Keep the form open with everything filled in so they can try again.
-        toast.error(t("brochure.error"));
-        setSubmitting(false);
+    setSubmitting(true);
+    let expired = false;
+    try {
+      // The server checks the token, emails the application to the franchise
+      // inbox, and sends the applicant a confirmation.
+      const res = await fetch("/api/franchise/application", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName.trim(),
+          email: verifiedEmail,
+          phone: form.phone.trim(),
+          dob: form.dob.trim(),
+          city: form.city.trim(),
+          propertyStatus: form.propertyStatus,
+          budget: form.budget,
+          occupation: form.occupation.trim(),
+          experience: form.experience,
+          ownBusinesses: form.ownBusinesses,
+          vision: form.vision.trim(),
+          token: verificationToken,
+          locale,
+        }),
+      });
+      expired = res.status === 403;
+      const body = (await res.json().catch(() => null)) as { success?: boolean } | null;
+      if (!res.ok || !body?.success) throw new Error("application");
+    } catch {
+      setSubmitting(false);
+      if (expired) {
+        toast.error(t("brochure.errorExpired"));
+        onExpired();
         return;
       }
-      toast.success(t("brochure.sentBody", { email: form.email.trim() }));
+      // Keep the form open with everything filled in so they can try again.
+      toast.error(t("franchise.app.error"));
+      return;
     }
     toast.success(t("franchise.app.success"));
     onClose();
@@ -423,8 +442,9 @@ export default function FranchiseApplicationOverlay({
                   dir="ltr"
                   placeholder={t("franchise.app.phEmail")}
                   value={form.email}
-                  onChange={(e) => set("email")(e.target.value)}
-                  className={INPUT_CLS}
+                  readOnly
+                  aria-readonly="true"
+                  className={`${INPUT_CLS} cursor-not-allowed text-[#6b6b6b]!`}
                 />
               </Field>
               <Field label={t("franchise.app.phone")}>

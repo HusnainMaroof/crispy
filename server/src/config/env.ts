@@ -26,6 +26,11 @@ type EmailConfig = {
   RESEND_API_KEY: string;
   EMAIL_FROM: string;
   ADMIN_EMAIL: string;
+  /**
+   * Optional hosted PNG for email headers. Empty means the official logo in
+   * server/assets/email-logo.png is attached inline instead.
+   */
+  LOGO_URL: string;
 };
 
 type CloudinaryConfig = {
@@ -38,6 +43,8 @@ type FranchiseConfig = {
   /** Where the emailed brochure link points. Must be an absolute https URL. */
   BROCHURE_URL: string;
   SITE_URL: string;
+  /** Inbox that receives franchise applications and brochure alerts. */
+  INBOX: string;
 };
 
 type LocationConfig = {
@@ -119,6 +126,7 @@ export const envConfig = {
     RESEND_API_KEY: required("RESEND_API_KEY"),
     EMAIL_FROM: required("EMAIL_FROM", "onboarding@resend.dev"),
     ADMIN_EMAIL: required("ADMIN_EMAIL", process.env.superADMIN_EMAIL),
+    LOGO_URL: process.env.EMAIL_LOGO_URL?.trim() || "",
   } satisfies EmailConfig,
 
   CLOUDINARY: {
@@ -128,8 +136,9 @@ export const envConfig = {
   } satisfies CloudinaryConfig,
 
   FRANCHISE: {
-    BROCHURE_URL: process.env.FRANCHISE_BROCHURE_URL || "https://crispies.co.uk/brochure.pdf",
-    SITE_URL: process.env.PUBLIC_SITE_URL || "https://crispies.co.uk",
+    BROCHURE_URL: process.env.FRANCHISE_BROCHURE_URL || "https://crispiesuk.com/brochure.pdf",
+    SITE_URL: process.env.PUBLIC_SITE_URL || "https://crispiesuk.com",
+    INBOX: process.env.FRANCHISE_EMAIL || "info@crispiesuk.co.uk",
   } satisfies FranchiseConfig,
 
   LOG: {
@@ -141,7 +150,7 @@ export const envConfig = {
     GEOCODE_TIMEOUT_MS: boundedNumber(process.env.LOCATION_GEOCODE_TIMEOUT_MS, 5000, 500, 15000),
     NOMINATIM_ENABLED: process.env.LOCATION_NOMINATIM_ENABLED !== "false",
     NOMINATIM_URL: process.env.LOCATION_NOMINATIM_URL || "https://nominatim.openstreetmap.org",
-    USER_AGENT: process.env.LOCATION_USER_AGENT || "CrispiesBranchLocator/1.0 (https://crispies.co.uk)",
+    USER_AGENT: process.env.LOCATION_USER_AGENT || "CrispiesBranchLocator/1.0 (https://crispiesuk.com)",
   } satisfies LocationConfig,
 
   ROUTING: {

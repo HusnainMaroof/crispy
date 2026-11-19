@@ -65,11 +65,29 @@ export const contactLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-/** Brochure requests email a PDF link to any address given, so they are capped tightly too. */
+/** Brochure and application need a verified email, and both send email, so they are capped too. */
 export const brochureLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: "Too many requests, please try again later", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Each call emails a code to any address given, so it is capped hard. */
+export const verifySendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
   max: 5,
-  message: { success: false, error: "Too many brochure requests, please try again later", code: "ERR_TOO_MANY" },
+  message: { success: false, error: "Too many codes sent, please try again later", code: "ERR_TOO_MANY" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** A 4-digit code has 10,000 options, so guesses per IP are capped as well as per code. */
+export const verifyCheckLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { success: false, error: "Too many tries, please try again later", code: "ERR_TOO_MANY" },
   standardHeaders: true,
   legacyHeaders: false,
 });

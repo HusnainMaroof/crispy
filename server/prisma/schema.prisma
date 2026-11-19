@@ -347,3 +347,22 @@ model cms_section_translations {
 
   @@unique([section_id, locale])
 }
+
+/// One-time email codes for the franchise popup. Only hashes are stored.
+/// A correct code issues a short-lived token that unlocks the brochure and
+/// the application form for that email.
+model email_verifications {
+  id               String    @id @default(uuid())
+  email            String
+  /// HMAC of email + code. The plain code is never stored.
+  code_hash        String
+  attempts         Int       @default(0)
+  expires_at       DateTime
+  verified_at      DateTime?
+  /// SHA-256 of the token returned after a correct code.
+  token_hash       String?   @unique
+  token_expires_at DateTime?
+  created_at       DateTime  @default(now())
+
+  @@index([email, created_at])
+}

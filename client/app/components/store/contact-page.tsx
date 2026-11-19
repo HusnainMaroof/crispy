@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/lib/i18n/locale-context";
 import Footer from "@/app/components/store/footer";
 import FranchiseApplicationOverlay from "@/app/components/store/franchise-application-overlay";
 import BrochureOverlay from "@/app/components/store/brochure-overlay";
+import { loadVerifySession, saveVerifySession, type VerifySession } from "@/lib/franchise-verification";
 import ScrollTabs from "@/app/components/store/scroll-tabs";
 import HowToGetStarted from "@/app/components/store/how-to-get-started";
 import { ArrowDown, ArrowUp, Download, FilePenLine } from "lucide-react";
@@ -106,8 +107,26 @@ function localizedItems<T extends { title: string; titleAr: string; description:
 export default function PartnerPage() {
   const [applicationOpen, setApplicationOpen] = useState(false);
   const [brochureOpen, setBrochureOpen] = useState(false);
-  // Name and email from the brochure popup, carried into the application.
-  const [lead, setLead] = useState({ name: "", email: "" });
+  // Where email verification is up to. Lives here, not in the popup, so closing
+  // the popup keeps it, and it is mirrored to sessionStorage so a reload does too.
+  const [verifySession, setVerifySessionState] = useState<VerifySession | null>(null);
+  const setVerifySession = useCallback((next: VerifySession | null) => {
+    setVerifySessionState(next);
+    saveVerifySession(next);
+  }, []);
+  // Expiry is handled by the popup timer and by the server's 403, so the stage is enough here.
+  const verified = verifySession?.stage === "verified" ? verifySession : null;
+  /**
+   * Both franchise buttons start here. The saved session is read on click
+   * (sessionStorage does not exist during server rendering), so the popup opens
+   * on the right step. The apply button skips straight to the form once verified.
+   */
+  const openFranchise = (wantsForm: boolean) => {
+    const saved = loadVerifySession();
+    setVerifySessionState(saved);
+    if (wantsForm && saved?.stage === "verified") setApplicationOpen(true);
+    else setBrochureOpen(true);
+  };
   const { locale, t } = useLocale();
   const whyItems = localizedItems(WHY_CHOOSE_ITEMS, locale);
   const startItems = localizedItems(GET_STARTED_ITEMS, locale);
@@ -177,7 +196,7 @@ export default function PartnerPage() {
        </div>
        <button
          type="button"
-         onClick={() => setBrochureOpen(true)}
+         onClick={() => openFranchise(false)}
          aria-haspopup="dialog"
          className="bg-[#FF0931] text-white py-16 px-16 text-3xl rounded-2xl hover:bg-[#ff0000] transition-colors duration-300 flex items-center gap-6 cursor-pointer"
        >
@@ -262,7 +281,8 @@ export default function PartnerPage() {
 
               <button
                 type="button"
-                onClick={() => setApplicationOpen(true)}
+                // The form needs a verified email, so verify first unless done already.
+                onClick={() => openFranchise(true)}
                 className="mt-8 inline-flex justify-between items-center gap-4 rounded-[10px] lg:rounded-2xl bg-[#FF0000]  px-2 py-3 lg:px-7 lg:py-6 text-white transition-transform hover:scale-105  w-fit  lg:w-[380px] cursor-pointer"
               >
                 <span
@@ -344,20 +364,27 @@ export default function PartnerPage() {
       <Footer />
       {brochureOpen && (
         <BrochureOverlay
+          session={verifySession}
+          onSessionChange={setVerifySession}
           onClose={() => setBrochureOpen(false)}
-          onDone={(details) => {
-            setLead(details);
+          onApply={() => {
             setBrochureOpen(false);
             setApplicationOpen(true);
           }}
         />
       )}
-      {applicationOpen && (
+      {applicationOpen && verified && (
         <FranchiseApplicationOverlay
           onClose={() => setApplicationOpen(false)}
-          initialName={lead.name}
-          initialEmail={lead.email}
-          sendBrochure={lead.email !== ""}
+          verifiedName={verified.name}
+          verifiedEmail={verified.email}
+          verificationToken={verified.token}
+          onExpired={() => {
+            // Keep the name, ask for the email again.
+            setVerifySession({ stage: "email", name: verified.name });
+            setApplicationOpen(false);
+            setBrochureOpen(true);
+          }}
         />
       )}
     </>

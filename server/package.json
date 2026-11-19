@@ -14,6 +14,9 @@
     "seed": "tsx scripts/seed.ts",
     "seed:catalogue": "tsx scripts/seed-mock-catalogue.ts",
     "seed:jobs": "tsx scripts/seed-jobs.ts",
+    "seed:superadmin": "tsx scripts/reset-superadmin.ts",
+    "hash:password": "tsx scripts/hash-password.ts",
+    "admins:list": "tsx scripts/list-admins.ts",
     "lint": "eslint src/",
     "prisma:generate": "prisma generate",
     "db:ping": "tsx scripts/neon-ping.ts"

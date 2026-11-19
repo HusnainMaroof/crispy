@@ -53,11 +53,45 @@ export const contactMessageSchema = z.object({
   type: z.enum(["general", "franchise", "careers", "press"]),
 });
 
-/** Public brochure request — only an email is required. */
-export const brochureRequestSchema = z.object({
-  email: z.string().trim().email().max(254),
+/** Token returned by /franchise/verify/check. */
+const verificationToken = z.string().trim().min(20).max(200);
+
+/** Franchise popup, after name and email: send a 4-digit code to this email. */
+export const verifySendSchema = z.object({
   name: z.string().trim().max(200).optional().default(""),
-  phone: z.string().trim().max(40).optional().default(""),
+  email: z.string().trim().email().max(254),
+  locale: z.enum(["en", "ar"]).optional().default("en"),
+});
+
+/** Franchise popup: check the code. */
+export const verifyCheckSchema = z.object({
+  email: z.string().trim().email().max(254),
+  code: z.string().trim().regex(/^\d{4}$/, "Enter the 4-digit code"),
+});
+
+/** Brochure download, only for a verified email. */
+export const brochureRequestSchema = z.object({
+  name: z.string().trim().max(200).optional().default(""),
+  email: z.string().trim().email().max(254),
+  token: verificationToken,
+  locale: z.enum(["en", "ar"]).optional().default("en"),
+});
+
+/** Public franchise application form. Every answer is required, like the form. */
+export const franchiseApplicationSchema = z.object({
+  fullName: z.string().trim().min(1).max(200),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().min(1).max(40),
+  dob: z.string().trim().min(1).max(40),
+  city: z.string().trim().min(1).max(120),
+  propertyStatus: z.string().trim().min(1).max(120),
+  budget: z.string().trim().min(1).max(120),
+  occupation: z.string().trim().min(1).max(200),
+  experience: z.string().trim().min(1).max(120),
+  ownBusinesses: z.string().trim().min(1).max(120),
+  vision: z.string().trim().min(1).max(5000),
+  /** Proves the email was verified in the popup. */
+  token: verificationToken,
   locale: z.enum(["en", "ar"]).optional().default("en"),
 });
 

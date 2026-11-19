@@ -4,7 +4,7 @@ const BRAND = {
   NAME: "Crispies",
   TAGLINE: "Good mood food. Burgers + Chicken. Made halal.",
   COPYRIGHT: `© ${new Date().getFullYear()} Crispies. All rights reserved.`,
-  SITE: "https://crispies.co.uk",
+  SITE: "https://crispiesuk.com",
 };
 
 function wrap(content: string): string {
@@ -200,4 +200,190 @@ export function brochureLeadAdminEmail(lead: BrochureLead): { subject: string; h
     ${button(`${BRAND.SITE}/franchise-inquiries`, "Open the franchise page")}
   `;
   return { subject: `Brochure request from ${lead.email}`, html: wrap(content) };
+}
+
+export type FranchiseApplication = {
+  fullName: string;
+  email: string;
+  phone: string;
+  dob: string;
+  city: string;
+  propertyStatus: string;
+  budget: string;
+  occupation: string;
+  experience: string;
+  ownBusinesses: string;
+  vision: string;
+  locale?: "en" | "ar";
+};
+
+/** Sent to the franchise inbox with every answer from the application form. */
+export function franchiseApplicationEmail(app: FranchiseApplication): { subject: string; html: string } {
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 12px 6px 0;color:rgba(255,255,255,0.5);font-size:13px;vertical-align:top;white-space:nowrap">${label}</td><td style="padding:6px 0;color:#fff;font-size:13px;text-align:right">${escapeHtml(value) || "-"}</td></tr>`;
+  const email = escapeHtml(app.email);
+  const content = `
+    <h2 style="margin:0 0 4px;font-size:22px;color:#fff;font-weight:700">New franchise application</h2>
+    <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6)">Sent from the franchise page. Reply to this email to answer the applicant.</p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${row("Full name", app.fullName)}
+      <tr><td style="padding:6px 12px 6px 0;color:rgba(255,255,255,0.5);font-size:13px">Email</td><td style="padding:6px 0;font-size:13px;text-align:right"><a href="mailto:${email}" style="color:#DC2626;text-decoration:none">${email}</a></td></tr>
+      ${row("Phone", app.phone)}
+      ${row("Date of birth", app.dob)}
+      ${row("City", app.city)}
+      ${row("Property status", app.propertyStatus)}
+      ${row("Investment budget", app.budget)}
+      ${row("Occupation", app.occupation)}
+      ${row("Food industry experience", app.experience)}
+      ${row("Owns businesses", app.ownBusinesses)}
+      ${row("Language", (app.locale ?? "en").toUpperCase())}
+    </table>
+    ${divider()}
+    <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.5)">Vision</p>
+    <p style="margin:0;font-size:14px;color:#fff;white-space:pre-wrap">${escapeHtml(app.vision)}</p>
+  `;
+  return { subject: `Franchise application from ${escapeHtml(app.fullName)}`, html: wrap(content) };
+}
+
+const OTP_COPY = {
+  en: {
+    subject: (code: string) => `${code} is your Crispies verification code`,
+    preheader: (code: string, m: number) => `Your code is ${code}. It expires in ${m} minutes.`,
+    greeting: (name: string) => (name ? `Hi ${name},` : "Hi there,"),
+    title: "Confirm your email",
+    body: "Enter this code on the Crispies franchise page.",
+    copy: "Copy code",
+    copyHint: "Tap to select, then copy",
+    expires: (m: number) => `Expires in ${m} minutes.`,
+    ignore: "Didn't ask for this? You can ignore this email.",
+  },
+  ar: {
+    subject: (code: string) => `${code} هو رمز التحقق من كريسبيز`,
+    preheader: (code: string, m: number) => `رمزك هو ${code}. ينتهي خلال ${m} دقائق.`,
+    greeting: (name: string) => (name ? `مرحباً ${name}،` : "مرحباً،"),
+    title: "أكّد بريدك الإلكتروني",
+    body: "أدخل هذا الرمز في صفحة امتياز كريسبيز.",
+    copy: "نسخ الرمز",
+    copyHint: "اضغط للتحديد ثم انسخ",
+    expires: (m: number) => `ينتهي خلال ${m} دقائق.`,
+    ignore: "لم تطلب هذا الرمز؟ يمكنك تجاهل هذه الرسالة.",
+  },
+} as const;
+
+export type VerificationEmailOptions = {
+  code: string;
+  minutes: number;
+  locale?: "en" | "ar";
+  name?: string;
+  /** `cid:` reference to the inline logo, or a public PNG URL. Empty shows a text wordmark. */
+  logoUrl: string;
+};
+
+/**
+ * One-time code that proves the visitor owns the email address. Kept plain on
+ * purpose: logo, greeting, the code, how long it lasts, and one safety line.
+ *
+ * Email apps block scripts, so a real copy-to-clipboard button cannot work.
+ * The "Copy code" chip instead holds the code with user-select:all, so one tap
+ * selects all four digits. Gmail on phones also adds its own copy button for
+ * codes it finds in the subject.
+ *
+ * Tables and inline styles only, so it renders the same in Gmail, Outlook and
+ * Apple Mail.
+ */
+export function verificationCodeEmail(opts: VerificationEmailOptions): { subject: string; html: string; text: string } {
+  const { code, minutes, locale = "en", name = "", logoUrl } = opts;
+  const c = OTP_COPY[locale];
+  const greeting = c.greeting(name.trim());
+  const dir = locale === "ar" ? "rtl" : "ltr";
+  const align = locale === "ar" ? "right" : "left";
+  const safeCode = escapeHtml(code);
+  const font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const mono = "'SF Mono',Menlo,Consolas,'Courier New',monospace";
+
+  // Digits always read left to right, even in the Arabic layout.
+  const digitCells = safeCode
+    .split("")
+    .map(
+      (d) => `<td style="padding:0 5px">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td width="58" height="70" align="center" valign="middle" style="width:58px;height:70px;border-radius:12px;background:#1a1a1a;border:1px solid #2e2e2e;font-family:${mono};font-size:34px;font-weight:700;color:#ffffff;line-height:70px">${d}</td>
+        </tr></table>
+      </td>`,
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="${locale}" dir="${dir}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark">
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+  <title>${escapeHtml(c.subject(code))}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#000000;font-family:${font};-webkit-text-size-adjust:100%">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(c.preheader(code, minutes))}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#000000" style="background-color:#000000">
+    <tr><td align="center" style="padding:40px 16px">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%">
+
+        ${
+          logoUrl
+            ? `<tr><td align="center" style="padding:0 0 32px">
+          <img src="${escapeHtml(logoUrl)}" width="120" height="103" alt="Crispies" style="display:block;width:120px;height:auto;max-width:120px;border:0;outline:none;text-decoration:none;color:#eaeaea;font-size:22px;font-weight:800">
+        </td></tr>`
+            : `<tr><td align="center" style="padding:0 0 28px;font-size:26px;font-weight:900;letter-spacing:1px;color:#eaeaea">CRISPIES</td></tr>`
+        }
+
+        <tr><td dir="${dir}" bgcolor="#111111" style="background:#111111;border:1px solid #1f1f1f;border-radius:16px;padding:36px 32px;text-align:${align}">
+          <p style="margin:0 0 8px;font-size:15px;color:rgba(255,255,255,0.7)">${escapeHtml(greeting)}</p>
+          <h1 style="margin:0 0 8px;font-size:26px;line-height:1.25;font-weight:800;color:#ffffff">${c.title}</h1>
+          <p style="margin:0;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.6)">${c.body}</p>
+
+          <table role="presentation" cellpadding="0" cellspacing="0" align="center" dir="ltr" style="margin:30px auto 0">
+            <tr>${digitCells}</tr>
+          </table>
+
+          <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:18px auto 0">
+            <tr><td style="border:1px solid #333333;border-radius:8px;padding:8px 14px;font-size:13px;color:rgba(255,255,255,0.75)" title="${c.copyHint}">
+              ${c.copy}&nbsp;&nbsp;<span dir="ltr" style="-webkit-user-select:all;user-select:all;font-family:${mono};font-size:14px;font-weight:700;letter-spacing:2px;color:#ffffff">${safeCode}</span>
+            </td></tr>
+          </table>
+
+          <p style="margin:24px 0 0;text-align:center;font-size:14px;color:rgba(255,255,255,0.6)">${c.expires(minutes)}</p>
+
+          <p style="margin:28px 0 0;padding-top:20px;border-top:1px solid #222222;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.45)">${c.ignore}</p>
+        </td></tr>
+
+        <tr><td align="center" style="padding:24px 12px 0">
+          <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,0.4)">${BRAND.TAGLINE}</p>
+          <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.3)">${BRAND.COPYRIGHT}</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [greeting, "", c.title, c.body, "", code, "", c.expires(minutes), "", c.ignore, "", "Crispies"].join("\n");
+
+  return { subject: c.subject(code), html, text };
+}
+
+/** Sent to the applicant so they know the application arrived. */
+export function franchiseApplicationReceivedEmail(
+  app: FranchiseApplication,
+  brochureUrl: string | null = null,
+): { subject: string; html: string } {
+  const greeting = app.fullName ? `Hi ${escapeHtml(app.fullName)},` : "Hi there,";
+  const content = `
+    <h2 style="margin:0 0 4px;font-size:22px;color:#fff;font-weight:700">We have your franchise application</h2>
+    <p style="margin:0 0 16px;font-size:14px;color:rgba(255,255,255,0.6)">${greeting} thank you for your interest in opening a Crispies.</p>
+    <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6)">Our franchise team will review your details and get back to you soon. If you have questions in the meantime, just reply to this email.</p>
+    ${brochureUrl ? button(brochureUrl, "Download the brochure") : ""}
+  `;
+  return { subject: "We have your Crispies franchise application", html: wrap(content) };
 }

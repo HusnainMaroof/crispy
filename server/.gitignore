@@ -4,3 +4,10 @@ dist/
 src/generated/
 *.log
 .DS_Store
+
+# Local seed and admin scripts. Kept on this machine, never committed.
+# Files that were already committed stay tracked until removed with `git rm --cached`.
+scripts/seed*.ts
+scripts/reset-superadmin.ts
+scripts/hash-password.ts
+scripts/list-admins.ts
