@@ -8,7 +8,7 @@ import { compressImage } from "@/lib/image-compress";
 
 export type CmsField = (
   | { kind: "text"; label: string; max: number; multiline?: boolean; hint?: string; default: string }
-  | { kind: "image" | "video"; label: string; hint?: string; default: string }
+  | { kind: "image" | "video" | "document"; label: string; hint?: string; default: string }
   | { kind: "link"; label: string; external?: boolean; hint?: string; default: string }
   | { kind: "url"; label: string; hosts?: string[]; hint?: string; default: string }
   | { kind: "number"; label: string; min: number; max: number; hint?: string; default: number }
@@ -25,6 +25,7 @@ const IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/avif";
 const VIDEO_TYPES = "video/mp4,video/webm,video/quicktime";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 export const fieldClass = "mt-2 w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-white/25 hover:border-white/25 focus:border-[#FF0931] focus:ring-2 focus:ring-[#FF0931]/25";
 const smallButton = "cursor-pointer rounded-lg border border-white/15 px-3 py-2 text-xs text-white/70 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent";
@@ -40,15 +41,20 @@ function Hint({ text }: { text?: string }) {
   return text ? <p className="mt-1.5 text-xs leading-relaxed text-white/40">{text}</p> : null;
 }
 
-function MediaInput({ field, value, onChange, disabled = false }: { field: Extract<CmsField, { kind: "image" | "video" }>; value: string; onChange: (value: string) => void; disabled?: boolean }) {
+function MediaInput({ field, value, onChange, disabled = false }: { field: Extract<CmsField, { kind: "image" | "video" | "document" }>; value: string; onChange: (value: string) => void; disabled?: boolean }) {
   const [uploading, setUploading] = useState(false);
   const isVideo = field.kind === "video";
+  const isPdf = field.kind === "document";
 
   async function upload(file?: File) {
     // Without this a second pick fired a second upload while the first was
     // still running, and the slower one could win.
     if (!file || uploading || disabled) return;
-    const limit = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    const limit = isPdf ? MAX_PDF_BYTES : isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (isPdf && file.type !== "application/pdf") {
+      toast.error("Choose a PDF file.");
+      return;
+    }
     if (file.size > limit) {
       toast.error(`File must be ${limit / 1024 / 1024} MB or smaller.`);
       return;
@@ -57,10 +63,10 @@ function MediaInput({ field, value, onChange, disabled = false }: { field: Extra
     try {
       // Videos are already compressed and cannot be re-encoded cheaply, so
       // only images go through the canvas pass.
-      const payload = isVideo ? file : await compressImage(file);
+      const payload = isVideo || isPdf ? file : await compressImage(file);
       const body = new FormData();
       body.append("file", payload);
-      const result = await api.upload<{ url: string }>(isVideo ? "/admin/upload-media" : "/admin/upload", body);
+      const result = await api.upload<{ url: string }>(isPdf ? "/admin/upload-document" : isVideo ? "/admin/upload-media" : "/admin/upload", body);
       onChange(result.url);
       toast.success("Uploaded. Save the section to publish it.");
     } catch (err) {
@@ -74,11 +80,14 @@ function MediaInput({ field, value, onChange, disabled = false }: { field: Extra
     <div className="block text-sm text-white/70">
       {field.label}
       <div className="mt-2 flex items-center gap-3">
-        {value && !isVideo && (
+        {value && isPdf && (
+          <a href={value} target="_blank" rel="noopener noreferrer" className={`${smallButton} shrink-0`}>Open PDF</a>
+        )}
+        {value && !isVideo && !isPdf && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" />
         )}
-        <input value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={isVideo ? "https://… or /images/video.mp4" : "https://… or /images/photo.jpg"} className={`${fieldClass} mt-0 disabled:cursor-not-allowed disabled:opacity-50`} />
+        <input value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={isPdf ? "https://…/brochure.pdf" : isVideo ? "https://… or /images/video.mp4" : "https://… or /images/photo.jpg"} className={`${fieldClass} mt-0 disabled:cursor-not-allowed disabled:opacity-50`} />
         <label
           className={`${smallButton} flex shrink-0 items-center gap-2 ${uploading ? "cursor-progress opacity-60" : ""} ${disabled ? "cursor-not-allowed opacity-40 hover:border-white/15 hover:bg-transparent" : ""}`}
         >
@@ -86,7 +95,7 @@ function MediaInput({ field, value, onChange, disabled = false }: { field: Extra
           {uploading ? "Uploading…" : "Upload"}
           <input
             type="file"
-            accept={isVideo ? VIDEO_TYPES : IMAGE_TYPES}
+            accept={isPdf ? "application/pdf" : isVideo ? VIDEO_TYPES : IMAGE_TYPES}
             disabled={uploading || disabled}
             className="hidden"
             onChange={(event) => {
@@ -96,7 +105,7 @@ function MediaInput({ field, value, onChange, disabled = false }: { field: Extra
           />
         </label>
       </div>
-      <Hint text={field.hint ?? (isVideo ? "MP4, WebM or MOV, up to 50 MB." : "JPEG, PNG, WebP or AVIF, up to 5 MB.")} />
+      <Hint text={field.hint ?? (isPdf ? "PDF, up to 10 MB." : isVideo ? "MP4, WebM or MOV, up to 50 MB." : "JPEG, PNG, WebP or AVIF, up to 5 MB.")} />
     </div>
   );
 }
@@ -104,8 +113,9 @@ function MediaInput({ field, value, onChange, disabled = false }: { field: Extra
 const lockedClass = "disabled:cursor-not-allowed disabled:opacity-50";
 
 function isSharedInput(field: CmsField | CmsListItem): boolean {
-  if ((field as { shared?: boolean }).shared === true) return true;
-  if (field.kind === "image" || field.kind === "video" || field.kind === "url" || field.kind === "link") return true;
+  const shared = (field as { shared?: boolean }).shared;
+  if (shared !== undefined) return shared;
+  if (field.kind === "image" || field.kind === "video" || field.kind === "document" || field.kind === "url" || field.kind === "link") return true;
   return field.kind === "list" && isSharedInput(field.item);
 }
 
@@ -133,6 +143,7 @@ export function FieldInput({ field, value, onChange, sharedLocale = false, readO
     }
     case "image":
     case "video":
+    case "document":
       return (
         <div>
           <MediaInput field={field} value={typeof value === "string" ? value : ""} onChange={onChange} disabled={locked} />

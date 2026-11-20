@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { usePanel } from "@/lib/admin/use-panel";
 import { PageSkeleton } from "@/app/components/admin/ui/skeleton";
 import { FieldInput, type CmsField } from "./cms-fields";
+import { BrochureEditor, readBrochures } from "./cms-brochures";
 
 type Locale = "en" | "ar";
 type Section = {
@@ -118,7 +119,15 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
   const router = useRouter();
   const panel = usePanel();
 
+  // Franchise brochures are per language with no translation to track.
+  const isFranchise = pageId === "franchise";
+
   const apply = useCallback((next: PagePayload) => {
+    // A new Arabic copy starts empty, not with the English PDFs, so publishing
+    // it never hands English brochures out as Arabic ones by mistake.
+    if (next.page.id === "franchise") {
+      next = { ...next, sections: next.sections.map((item) => item.copied_from_english ? { ...item, content: { items: [], shown: "1" } } : item) };
+    }
     setPayload(next);
     setDrafts(Object.fromEntries(next.sections.map((section) => [section.id, draftOf(section)])));
     setError("");
@@ -202,6 +211,27 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
   // Publishing is a button, not a checkbox. A checkbox that started unticked
   // let people save images as a draft and wonder why the site never changed.
   function save(section: Section, publish: boolean) {
+    if (publish && isFranchise && section.key === "brochures") {
+      const { items, shown } = readBrochures((drafts[section.id] ?? draftOf(section)).content);
+      const picked = Number(shown) > 0 ? items[Number(shown) - 1] : undefined;
+      const language = LOCALE_LABELS[locale];
+      setConfirm({
+        title: `Publish ${language} brochures`,
+        message: picked
+          ? `"${picked.title || `Brochure ${shown}`}" will be given only to visitors on the ${language} site.${locale === "en" ? " Arabic visitors get the Arabic brochure, or this one if there is none." : " English visitors keep the English brochure."}`
+          : locale === "en"
+            ? "No English brochure is switched on. Visitors get the default brochure link from the server settings."
+            : "No Arabic brochure is switched on. Arabic visitors will get the English brochure.",
+        confirmLabel: "Publish",
+        tone: "primary",
+        action: () => { setConfirm(null); saveNow(section, true); },
+      });
+      return;
+    }
+    saveNow(section, publish);
+  }
+
+  function saveNow(section: Section, publish: boolean) {
     const draft = drafts[section.id];
     const message = publish ? "Published. Live on the site in a few seconds." : "Saved as draft. Not live yet.";
     void run(section.id, () => api.patch<PagePayload>(`/admin/cms/sections/${section.id}`, { locale, ...draft, is_published: publish }), message);
@@ -293,7 +323,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
         <div className={`flex flex-wrap items-center gap-3 px-3 py-3 ${sections.length > 0 ? "border-t border-white/10" : ""}`}>
           <div role="group" aria-label="Language" className="flex items-center gap-1 rounded-full border border-white/10 bg-black p-1">
             {(["en", "ar"] as const).map((code) => {
-              const count = payload?.coverage.find((item) => item.locale === code);
+              const count = isFranchise ? undefined : payload?.coverage.find((item) => item.locale === code);
               const selected = locale === code;
               return (
                 <button key={code} type="button" aria-pressed={selected} onClick={() => switchLocale(code)} className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF0931] ${selected ? "bg-white text-black" : "text-white/55 hover:text-white"}`}>
@@ -303,7 +333,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
               );
             })}
           </div>
-          {payload && (() => {
+          {payload && !isFranchise && (() => {
             const count = payload.coverage.find((item) => item.locale === locale);
             if (!count || count.total === 0) return null;
             return (
@@ -370,12 +400,21 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
               </div>
               <div className="p-5">
 
-              {section.copied_from_english && (
+              {section.copied_from_english && !isFranchise && (
                 <p className="mb-5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
                   No {language} copy yet. The English content is filled in below as a starting point. Visitors see English until you publish.
                 </p>
               )}
 
+              {isFranchise && section.key === "brochures" ? (
+                <div className="mb-6">
+                  <BrochureEditor
+                    value={readBrochures(draft.content)}
+                    locale={locale}
+                    onChange={(next) => edit(section.id, { content: { ...draft.content, ...next } })}
+                  />
+                </div>
+              ) : (
               <div className="mb-6 grid gap-5 md:grid-cols-2">
                 {Object.entries(section.definition.fields).map(([name, field]) => {
                   const wide = field.kind === "list" || field.kind === "branches" || field.kind === "image" || field.kind === "video" || (field.kind === "text" && field.multiline) || (field.kind === "select" && field.options.length === 2);
@@ -392,6 +431,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
                   );
                 })}
               </div>
+              )}
 
               {section.key === "ordering" && (
                 <div className="mb-5">
@@ -399,7 +439,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
                 </div>
               )}
 
-              <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5">
+              {!isFranchise && <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-3.5">
                 <span className="text-sm leading-snug text-white/75">
                   Show this section on the website
                   <span className="mt-1 block text-xs font-normal text-white/40">Turn off to hide it in every language.</span>
@@ -414,7 +454,7 @@ export default function CmsEditor({ pageId }: { pageId: string }) {
                 >
                   <span aria-hidden="true" className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${draft.is_active ? "left-6" : "left-1"}`} />
                 </button>
-              </div>
+              </div>}
 
               <div className="sticky bottom-4 -mx-1 flex flex-wrap items-center gap-3 rounded-full border border-white/10 bg-black/85 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur">
                 <ActionButton type="submit" busy={busyId === section.id} busyLabel="Publishing…" disabled={busyId !== "" || (published && !edited)} className="rounded-full px-6">

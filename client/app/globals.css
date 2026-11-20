@@ -772,3 +772,98 @@ html::-webkit-scrollbar {
   background: #000;
   border-radius: 9999px;
 }
+
+/* --- Franchise form: date of birth calendar and "inquiry received" popup --- */
+.dob-pop {
+  animation: dob-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top left;
+}
+
+@keyframes dob-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.received-backdrop {
+  animation: overlay-fade 0.3s ease both;
+}
+
+.received-pop {
+  animation: received-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes received-pop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.received-ring {
+  animation: received-ring 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+@keyframes received-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.received-check {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: received-check 0.45s cubic-bezier(0.65, 0, 0.35, 1) 0.3s forwards;
+}
+
+@keyframes received-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.received-text {
+  animation: overlay-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+.received-timer {
+  animation: received-timer 8s linear both;
+}
+
+@keyframes received-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dob-pop,
+  .received-backdrop,
+  .received-pop,
+  .received-ring,
+  .received-text,
+  .received-timer {
+    animation: none !important;
+  }
+  .received-check {
+    animation: none !important;
+    stroke-dashoffset: 0;
+  }
+}

@@ -50,7 +50,21 @@ export function emailLogo(): { src: string; attachments: EmailAttachment[] } {
   };
 }
 
-export async function sendEmail({ to, subject, htmlContent, replyTo, text, attachments }: SendEmailProps) {
+/**
+ * Emails built with the shared layout point at cid:crispies-logo. Attach the
+ * logo for them, or swap in EMAIL_LOGO_URL when one is set.
+ */
+function withLogo(html: string, attachments: EmailAttachment[] = []): { html: string; attachments: EmailAttachment[] } {
+  const placeholder = `cid:${LOGO_CID}`;
+  if (!html.includes(placeholder) || attachments.some((file) => file.contentId === LOGO_CID)) return { html, attachments };
+  const logo = emailLogo();
+  if (!logo.src) return { html, attachments };
+  if (logo.attachments.length === 0) return { html: html.split(placeholder).join(logo.src), attachments };
+  return { html, attachments: [...attachments, ...logo.attachments] };
+}
+
+export async function sendEmail({ to, subject, htmlContent, replyTo, text, attachments: extra }: SendEmailProps) {
+  const { html: withLogoHtml, attachments } = withLogo(htmlContent, extra);
   try {
     // Resend resolves with an { error } payload instead of throwing, so both
     // failure shapes have to be checked or a bad send looks like a success.
@@ -58,7 +72,7 @@ export async function sendEmail({ to, subject, htmlContent, replyTo, text, attac
       from: envConfig.EMAIL.EMAIL_FROM,
       to: [to],
       subject,
-      html: htmlContent,
+      html: withLogoHtml,
       ...(replyTo ? { replyTo } : {}),
       ...(text ? { text } : {}),
       ...(attachments?.length ? { attachments } : {}),

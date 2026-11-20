@@ -9,6 +9,48 @@ import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 import { useLenis } from "../providers/smooth-scroll";
 import { Check } from "lucide-react";
 import { useLocale } from "@/lib/i18n/locale-context";
+import DateOfBirthPicker from "@/app/components/store/date-of-birth-picker";
+
+/** Small animated card shown once the application is sent. */
+function ReceivedPopup({ name, email, onDone }: { name: string; email: string; onDone: () => void }) {
+  const { t } = useLocale();
+  useEffect(() => {
+    // Close on its own after a while, or straight away with Done.
+    const timer = window.setTimeout(onDone, 8000);
+    return () => window.clearTimeout(timer);
+  }, [onDone]);
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="received-title" aria-describedby="received-body">
+      <div className="received-backdrop absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onDone} aria-hidden="true" />
+      <div className="received-pop relative w-full max-w-[380px] overflow-hidden rounded-[22px] bg-white px-7 pb-7 pt-9 text-center shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
+        <div className="relative mx-auto flex size-20 items-center justify-center">
+          <span aria-hidden className="received-ring absolute inset-0 rounded-full bg-[#FF0931]/25" />
+          <span className="relative flex size-20 items-center justify-center rounded-full bg-[#FF0931] shadow-[0_10px_30px_rgba(255,9,49,0.45)]">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path className="received-check" d="M5 12.5l4.2 4.2L19 7" stroke="white" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </div>
+        <h2 id="received-title" className={`received-text m-0 mt-6 uppercase text-black ${KOROLEV}`} style={{ fontSize: 30, fontWeight: 900, lineHeight: "100%" }}>
+          {t("franchise.app.receivedTitle")}
+        </h2>
+        <p id="received-body" className={`received-text m-0 mt-3 text-[14px] leading-[155%] text-[#555] ${INTER}`} style={{ animationDelay: "0.38s" }}>
+          {t("franchise.app.receivedBody", { name: name.split(" ")[0] || name, email })}
+        </p>
+        <button
+          type="button"
+          autoFocus
+          onClick={onDone}
+          className={`received-text mt-6 h-12 w-full cursor-pointer rounded-[12px] bg-black text-[15px] font-semibold text-white transition-colors hover:bg-[#FF0931] ${INTER}`}
+          style={{ animationDelay: "0.46s" }}
+        >
+          {t("franchise.app.receivedDone")}
+        </button>
+        <span aria-hidden className="received-timer absolute inset-x-0 bottom-0 h-1 origin-left bg-[#FF0931]" />
+      </div>
+    </div>
+  );
+}
 
 const KOROLEV = "font-[family-name:var(--font-korolev),Korolev,sans-serif]";
 const INTER = "font-[family-name:var(--font-inter),Inter,sans-serif]";
@@ -223,6 +265,7 @@ export default function FranchiseApplicationOverlay({
   const [confirmAccurate, setConfirmAccurate] = useState(false);
   const [agreeComms, setAgreeComms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [received, setReceived] = useState(false);
 
   useEffect(() => {
     lockBodyScroll({
@@ -299,8 +342,8 @@ export default function FranchiseApplicationOverlay({
       toast.error(t("franchise.app.error"));
       return;
     }
-    toast.success(t("franchise.app.success"));
-    onClose();
+    setSubmitting(false);
+    setReceived(true);
   };
 
   return (
@@ -459,14 +502,11 @@ export default function FranchiseApplicationOverlay({
                 />
               </Field>
               <Field label={t("franchise.app.dob")}>
-                <input
-                  type="text"
-                  required
-                  dir="ltr"
-                  placeholder={t("franchise.app.phDob")}
+                <DateOfBirthPicker
                   value={form.dob}
-                  onChange={(e) => set("dob")(e.target.value)}
-                  className={INPUT_CLS}
+                  onChange={set("dob")}
+                  placeholder={t("franchise.app.phDob")}
+                  inputClassName={`${INPUT_CLS} cursor-pointer`}
                 />
               </Field>
             </Section>
@@ -638,6 +678,7 @@ export default function FranchiseApplicationOverlay({
           </div>
         </form>
       </div>
+      {received && <ReceivedPopup name={form.fullName.trim()} email={verifiedEmail} onDone={onClose} />}
     </div>
   );
 }

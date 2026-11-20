@@ -22,9 +22,20 @@ export const uploadMedia = multer({
   },
 });
 
+/** Brochure PDFs for the CMS. Up to 25 MB comes in, and it must be 10 MB or less after compression. */
+export const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, file.mimetype === "application/pdf");
+  },
+});
+
 const router = Router();
 
 router.post("/upload", requireRole("superadmin"), upload.single("file"), asyncHandler(UploadController.upload));
 router.post("/upload-media", requireRole("superadmin"), requireTab("content"), uploadMedia.single("file"), asyncHandler(UploadController.upload));
+router.post("/upload-document", requireRole("superadmin"), requireTab("content"), uploadPdf.single("file"), asyncHandler(UploadController.uploadDocument));
+router.post("/upload-document/open", requireRole("superadmin"), requireTab("content"), asyncHandler(UploadController.openDocument));
 
 export default router;

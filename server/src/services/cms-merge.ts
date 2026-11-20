@@ -2,7 +2,7 @@ import { isLocked, type CmsField, type CmsListItem, type CmsSection } from "../c
 
 export type CmsShape = CmsField | CmsListItem;
 
-const SHARED_KINDS = new Set(["image", "video", "url", "link"]);
+const SHARED_KINDS = new Set(["image", "video", "document", "url", "link"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -13,7 +13,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * of images, so the whole list is shared too.
  */
 export function isSharedField(field: CmsShape): boolean {
-  if ((field as { shared?: boolean }).shared === true) return true;
+  const shared = (field as { shared?: boolean }).shared;
+  // An explicit false keeps a per-language copy, e.g. a brochure PDF per language.
+  if (shared !== undefined) return shared;
   if (SHARED_KINDS.has(field.kind)) return true;
   return field.kind === "list" && isSharedField(field.item);
 }

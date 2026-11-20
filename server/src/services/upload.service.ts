@@ -39,9 +39,9 @@ export function uploadVideo(buffer: Buffer, folder = "uploads"): Promise<UploadR
  * public id because a raw upload keeps that id verbatim: without it the
  * "View CV" link would point at a URL no browser can preview.
  */
-export function uploadDocument(buffer: Buffer, extension = "pdf", folder = "cvs"): Promise<UploadResult> {
+export function uploadDocument(buffer: Buffer, extension = "pdf", folder = "cvs", prefix = "cv"): Promise<UploadResult> {
   return uploadMedia(buffer, folder, "raw", {
-    public_id: `${folder}/cv-${crypto.randomUUID()}.${extension}`,
+    public_id: `${folder}/${prefix}-${crypto.randomUUID()}.${extension}`,
   });
 }
 
@@ -132,4 +132,51 @@ export async function destroyCloudinaryAsset(url: string): Promise<void> {
   } catch (error) {
     logger.error({ err: error, publicId }, "Failed to delete Cloudinary asset");
   }
+}
+
+/**
+ * Public id of a raw upload (a PDF) on this project's own cloud, or null.
+ * Raw ids keep their extension, unlike image ids.
+ */
+export function rawPublicIdFromUrl(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.hostname !== "res.cloudinary.com") return null;
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  if (segments.length < 5) return null;
+  if (segments[0] !== envConfig.CLOUDINARY.CLOUD_NAME || segments[1] !== "raw" || segments[2] !== "upload") return null;
+  if (!/^v\d+$/.test(segments[3])) return null;
+  return decodeURIComponent(segments.slice(4).join("/"));
+}
+
+/** Best-effort delete of an uploaded PDF. Failures are logged, never thrown. */
+export async function destroyRawAsset(url: string): Promise<void> {
+  const publicId = rawPublicIdFromUrl(url);
+  if (!publicId) return;
+  try {
+    await cloudinary.uploader.destroy(publicId, { resource_type: "raw", invalidate: true });
+    logger.info({ publicId }, "Deleted uploaded document");
+  } catch (error) {
+    logger.error({ err: error, publicId }, "Failed to delete uploaded document");
+  }
+}
+
+/**
+ * A time-limited download link for one of our uploaded PDFs. The account does
+ * not deliver PDFs from plain public URLs (401 "deny or ACL failure"), so every
+ * brochure is handed out through a signed link instead. Any other URL is
+ * returned unchanged.
+ */
+export function signedDocumentUrl(url: string, validSeconds: number): string {
+  const publicId = rawPublicIdFromUrl(url);
+  if (!publicId) return url;
+  return cloudinary.utils.private_download_url(publicId, "", {
+    resource_type: "raw",
+    type: "upload",
+    expires_at: Math.floor(Date.now() / 1000) + validSeconds,
+  });
 }

@@ -8,6 +8,7 @@ import {
   findCmsSection,
   publicDefinition,
   lockedFieldNames,
+  privateFieldNames,
   sectionDefaults,
   sectionDefinition,
   type CmsPage,
@@ -15,6 +16,8 @@ import {
 } from "../config/cms-registry.js";
 import { hasTranslatableFields, mergeSectionContent, stripSharedFields } from "./cms-merge.js";
 import { sectionContentSchema } from "../validators/cms.schema.js";
+import { destroyRawAsset } from "./upload.service.js";
+import type { CmsField, CmsListItem } from "../config/cms-registry.js";
 import { resolveTabs } from "../config/admin-tabs.js";
 import { BadRequestException, ForbiddenException, NotFoundException } from "../utils/app-error.js";
 import { serialize } from "../utils/db.js";
@@ -153,7 +156,21 @@ async function ensureSections(page: CmsPage) {
   ensuredPages.add(page.id);
 }
 
+/** What the storefront gets: the published page without its private fields. */
 export async function getPublicCmsPage(pageId: string, requested?: unknown): Promise<PublicCmsPage> {
+  const page = requirePage(pageId);
+  const full = await getCmsContent(page.id, requested);
+  const sections = Object.fromEntries(Object.entries(full.sections).map(([key, content]) => {
+    const section = page.sections.find((item) => item.key === key);
+    const hidden = section ? privateFieldNames(section) : [];
+    if (hidden.length === 0) return [key, content];
+    return [key, Object.fromEntries(Object.entries(content).filter(([name]) => !hidden.includes(name)))];
+  }));
+  return { ...full, sections };
+}
+
+/** Server-side only. The published page including private fields. */
+export async function getCmsContent(pageId: string, requested?: unknown): Promise<PublicCmsPage> {
   const page = requirePage(pageId);
   const locale = resolveLocale(requested);
   // Outer shared cache (utils/cache.ts), invalidated by every CMS write. The
@@ -271,17 +288,44 @@ function restoreLocked(section: CmsSection, incoming: Record<string, unknown>, s
   return result;
 }
 
+/** Every uploaded document URL in one copy of a section, e.g. brochure PDFs. */
+function documentUrls(section: CmsSection, content: Record<string, unknown>): Set<string> {
+  const found = new Set<string>();
+  const walk = (field: CmsField | CmsListItem, value: unknown) => {
+    if (field.kind === "document" && typeof value === "string" && value) found.add(value);
+    else if (field.kind === "list" && Array.isArray(value)) value.forEach((item) => walk(field.item, item));
+    else if (field.kind === "object" && value && typeof value === "object") {
+      for (const [name, child] of Object.entries(field.fields)) walk(child, (value as Record<string, unknown>)[name]);
+    }
+  };
+  for (const [name, field] of Object.entries(section.fields)) walk(field, content[name]);
+  return found;
+}
+
+/**
+ * Deletes uploaded documents that were in a copy before a save or reset and
+ * are now used by no language of the section. Best effort, after the write.
+ */
+async function deleteDroppedDocuments(sectionId: string, section: CmsSection, before: Set<string>) {
+  if (before.size === 0) return;
+  const rows = await getPrisma().cms_section_translations.findMany({ where: { section_id: sectionId }, select: { content: true } });
+  const inUse = new Set(rows.flatMap((item) => [...documentUrls(section, asObject(item.content))]));
+  await Promise.all([...before].filter((url) => !inUse.has(url)).map((url) => destroyRawAsset(url)));
+}
+
 export async function updateCmsSection(actor: Actor, id: string, input: CmsSectionInput) {
   await assertCmsEditor(actor);
   const locale = requireLocale(input.locale ?? DEFAULT_LOCALE);
   const { row, section } = await requireSection(id);
   if (section.hidden) throw new BadRequestException("This section is managed by the store");
   let content: Prisma.InputJsonValue | undefined;
+  let previousDocuments = new Set<string>();
   if (input.content !== undefined) {
     const current = await getPrisma().cms_section_translations.findUnique({
       where: { section_id_locale: { section_id: id, locale } },
       select: { content: true },
     });
+    previousDocuments = documentUrls(section, asObject(current?.content));
     const restored = restoreLocked(section, input.content, asObject(current?.content));
     // A translation stores only what is translated; media and links stay in English.
     const cleaned = locale === DEFAULT_LOCALE ? restored : stripSharedFields(section, restored);
@@ -301,6 +345,7 @@ export async function updateCmsSection(actor: Actor, id: string, input: CmsSecti
     });
   }
   clearPublicCmsCache(row.page);
+  await deleteDroppedDocuments(id, section, previousDocuments);
   return getCmsPageForEditing(actor, row.page, locale);
 }
 
@@ -330,8 +375,13 @@ export async function moveCmsSection(actor: Actor, id: string, direction: "up" |
 export async function resetCmsSection(actor: Actor, id: string, requested: unknown) {
   await assertCmsEditor(actor);
   const locale = requireLocale(requested);
-  const { row } = await requireSection(id);
+  const { row, section } = await requireSection(id);
+  const current = await getPrisma().cms_section_translations.findUnique({
+    where: { section_id_locale: { section_id: id, locale } },
+    select: { content: true },
+  });
   await getPrisma().cms_section_translations.deleteMany({ where: { section_id: id, locale } });
   clearPublicCmsCache(row.page);
+  await deleteDroppedDocuments(id, section, documentUrls(section, asObject(current?.content)));
   return getCmsPageForEditing(actor, row.page, locale);
 }

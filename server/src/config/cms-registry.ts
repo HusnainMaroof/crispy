@@ -11,9 +11,16 @@ type Lockable = { locked?: boolean };
  */
 type Sharable = { shared?: boolean };
 
+/**
+ * A private field is edited in the panel and read by the server, but never
+ * sent by the public CMS endpoint. Used for the gated brochure files and the
+ * franchise inbox. Works on top-level section fields only.
+ */
+type Privatable = { private?: boolean };
+
 export type CmsField = (
   | { kind: "text"; label: string; max: number; multiline?: boolean; hint?: string; default: string }
-  | { kind: "image" | "video"; label: string; hint?: string; default: string }
+  | { kind: "image" | "video" | "document"; label: string; hint?: string; default: string }
   | { kind: "link"; label: string; external?: boolean; hint?: string; default: string }
   | { kind: "url"; label: string; hosts?: string[]; hint?: string; default: string }
   | { kind: "number"; label: string; min: number; max: number; hint?: string; default: number }
@@ -21,7 +28,7 @@ export type CmsField = (
   | { kind: "toggle"; label: string; hint?: string; default: boolean }
   | { kind: "branches"; label: string; max: number; hint?: string; default: string[] }
   | { kind: "list"; label: string; max: number; item: CmsListItem; hint?: string; default: unknown[] }
-) & Lockable & Sharable;
+) & Lockable & Sharable & Privatable;
 
 export type CmsListItem = Exclude<CmsField, { kind: "list" } | { kind: "branches" }> | { kind: "object"; label: string; fields: Record<string, CmsField> };
 
@@ -232,6 +239,56 @@ export const CMS_PAGES: CmsPage[] = [
   },
 ];
 
+CMS_PAGES.push({
+  id: "franchise",
+  label: "Franchise",
+  detail: "Brochures handed out on the franchise inquiries page after a visitor verifies their email.",
+  path: "/franchise-inquiries",
+  sortable: false,
+  sections: [
+    {
+      key: "brochures",
+      label: "Brochures",
+      hint: "Each language has its own brochures. English ones go to English visitors, Arabic ones to Arabic visitors. With no Arabic brochure, Arabic visitors get the English one.",
+      fields: {
+        items: {
+          kind: "list",
+          label: "Brochures",
+          max: 4,
+          // Each language keeps its own files, and they are handed out only
+          // after email verification, so they never reach the public API.
+          shared: false,
+          private: true,
+          item: {
+            kind: "object",
+            label: "Brochure",
+            fields: {
+              title: text("Name", 80, ""),
+              file: { kind: "document", label: "PDF file", shared: false, default: "" },
+            },
+          },
+          default: [],
+        },
+        shown: {
+          kind: "select",
+          label: "Brochure shown on the website",
+          // "0" means every brochure is switched off for this language.
+          options: [{ value: "0", label: "None" }, ...[1, 2, 3, 4].map((number) => ({ value: String(number), label: `Brochure ${number}` }))],
+          default: "1",
+        },
+      },
+      check: (content) => {
+        const items = Array.isArray(content.items) ? content.items as { file?: unknown }[] : [];
+        if (items.some((item) => typeof item.file !== "string" || !item.file)) return { path: ["items"], message: "Every brochure needs a PDF file. Upload one or remove the empty brochure." };
+        const shown = Number(content.shown ?? "1");
+        if (items.length === 0 || shown === 0) return null;
+        if (!items[shown - 1]) return { path: ["shown"], message: "Pick which brochure is shown on the website." };
+        return null;
+      },
+    },
+  ],
+});
+
 export function findCmsPage(id: string) {
   return CMS_PAGES.find((page) => page.id === id) ?? null;
 }
@@ -246,6 +303,11 @@ export function sectionDefaults(section: CmsSection): Record<string, unknown> {
 
 export function isLocked(field: CmsField) {
   return field.locked === true;
+}
+
+/** Field names the public CMS endpoint leaves out. */
+export function privateFieldNames(section: CmsSection): string[] {
+  return Object.entries(section.fields).filter(([, field]) => field.private === true).map(([name]) => name);
 }
 
 /** Field names the admin panel must not send, because it cannot edit them. */

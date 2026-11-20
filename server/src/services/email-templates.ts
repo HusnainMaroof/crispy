@@ -7,6 +7,12 @@ const BRAND = {
   SITE: "https://crispiesuk.com",
 };
 
+/**
+ * Placeholder src for the official logo. sendEmail() turns it into the inline
+ * attachment (or EMAIL_LOGO_URL), so every email shows the real logo.
+ */
+export const EMAIL_LOGO_SRC = "cid:crispies-logo";
+
 function wrap(content: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -16,8 +22,7 @@ function wrap(content: string): string {
     <tr><td align="center" style="padding:40px 16px">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
         <tr><td style="padding:0 0 32px 0;text-align:center">
-          <h1 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#DC2626;font-family:inherit">CRISPIES</h1>
-          <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase">Good mood food</p>
+          <img src="${EMAIL_LOGO_SRC}" width="120" height="103" alt="CRISPIES" style="display:block;margin:0 auto;width:120px;height:auto;max-width:120px;border:0;outline:none;text-decoration:none;color:#DC2626;font-size:28px;font-weight:800">
         </td></tr>
         <tr><td style="background:#111111;border-radius:12px;padding:40px 32px">
           ${content}
@@ -217,32 +222,93 @@ export type FranchiseApplication = {
   locale?: "en" | "ar";
 };
 
+/** "14/05/1992" to an age in years, or null when the date cannot be read. */
+function ageFrom(dob: string): number | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dob.trim());
+  if (!match) return null;
+  const [day, month, year] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  if (today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day)) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+}
+
+/** WhatsApp wants the number with country code and no +. A UK 07 number gets 44. */
+function whatsappNumber(phone: string): string {
+  const digits = phone.replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) return digits.slice(1);
+  if (digits.startsWith("00")) return digits.slice(2);
+  if (digits.startsWith("0")) return `44${digits.slice(1)}`;
+  return digits;
+}
+
 /** Sent to the franchise inbox with every answer from the application form. */
 export function franchiseApplicationEmail(app: FranchiseApplication): { subject: string; html: string } {
-  const row = (label: string, value: string) =>
-    `<tr><td style="padding:6px 12px 6px 0;color:rgba(255,255,255,0.5);font-size:13px;vertical-align:top;white-space:nowrap">${label}</td><td style="padding:6px 0;color:#fff;font-size:13px;text-align:right">${escapeHtml(value) || "-"}</td></tr>`;
-  const email = escapeHtml(app.email);
+  const safe = (value: string) => escapeHtml(value.trim()) || "-";
+  const email = escapeHtml(app.email.trim());
+  const firstName = escapeHtml(app.fullName.trim().split(/\s+/)[0] ?? "") || "the applicant";
+  const phone = app.phone.replace(/[^\d+]/g, "");
+  const whatsapp = whatsappNumber(app.phone);
+  const age = ageFrom(app.dob);
+  const received = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/London" }).format(new Date());
+
+  const caps = "font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase";
+  const heading = (text: string) => `<p style="margin:28px 0 10px;${caps};color:rgba(255,255,255,0.45)">${text}</p>`;
+  const line = "border-bottom:1px solid rgba(255,255,255,0.07);";
+  const row = (name: string, value: string, last = false) =>
+    `<tr><td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.55);${last ? "" : line}">${name}</td><td style="padding:12px 16px;font-size:13px;font-weight:600;color:#fff;text-align:right;${last ? "" : line}">${value}</td></tr>`;
+  const card = (rows: string) =>
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;border-collapse:separate">${rows}</table>`;
+  const stat = (name: string, value: string) =>
+    `<td width="32%" valign="top" style="padding:14px;background:#1a1a1a;border:1px solid rgba(255,255,255,0.08);border-radius:10px"><p style="margin:0 0 6px;${caps};color:rgba(255,255,255,0.45)">${name}</p><p style="margin:0;font-size:14px;font-weight:700;line-height:1.3;color:#fff">${safe(value)}</p></td>`;
+  const action = (href: string, text: string, primary: boolean) =>
+    `<td style="padding:0 8px 8px 0"><a href="${href}" style="display:inline-block;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;color:#fff;${primary ? "background:#DC2626" : "background:#1a1a1a;border:1px solid rgba(255,255,255,0.15)"}">${text}</a></td>`;
+
+  const dob = `${safe(app.dob)}${age !== null ? ` <span style="font-weight:400;color:rgba(255,255,255,0.45)">(age ${age})</span>` : ""}`;
+
   const content = `
-    <h2 style="margin:0 0 4px;font-size:22px;color:#fff;font-weight:700">New franchise application</h2>
-    <p style="margin:0 0 24px;font-size:14px;color:rgba(255,255,255,0.6)">Sent from the franchise page. Reply to this email to answer the applicant.</p>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${row("Full name", app.fullName)}
-      <tr><td style="padding:6px 12px 6px 0;color:rgba(255,255,255,0.5);font-size:13px">Email</td><td style="padding:6px 0;font-size:13px;text-align:right"><a href="mailto:${email}" style="color:#DC2626;text-decoration:none">${email}</a></td></tr>
-      ${row("Phone", app.phone)}
-      ${row("Date of birth", app.dob)}
-      ${row("City", app.city)}
-      ${row("Property status", app.propertyStatus)}
-      ${row("Investment budget", app.budget)}
-      ${row("Occupation", app.occupation)}
-      ${row("Food industry experience", app.experience)}
-      ${row("Owns businesses", app.ownBusinesses)}
-      ${row("Language", (app.locale ?? "en").toUpperCase())}
-    </table>
-    ${divider()}
-    <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.5)">Vision</p>
-    <p style="margin:0;font-size:14px;color:#fff;white-space:pre-wrap">${escapeHtml(app.vision)}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><span style="display:inline-block;padding:6px 11px;border-radius:999px;background:rgba(220,38,38,0.16);${caps};color:#F87171">New franchise application</span></td>
+      <td style="text-align:right;font-size:12px;color:rgba(255,255,255,0.4)">${received}</td>
+    </tr></table>
+    <h2 style="margin:18px 0 6px;font-size:26px;line-height:1.2;font-weight:800;color:#fff">${safe(app.fullName)}</h2>
+    <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6)">Wants to open a Crispies in <strong style="color:#fff">${safe(app.city)}</strong></p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0 0"><tr>
+      ${action(`mailto:${email}`, `Reply to ${firstName}`, true)}
+      ${phone ? action(`tel:${escapeHtml(phone)}`, "Call", false) : ""}
+      ${whatsapp ? action(`https://wa.me/${escapeHtml(whatsapp)}`, "WhatsApp", false) : ""}
+    </tr></table>
+
+    ${heading("At a glance")}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate"><tr>
+      ${stat("Budget", app.budget)}<td width="2%"></td>
+      ${stat("Property", app.propertyStatus)}<td width="2%"></td>
+      ${stat("Experience", app.experience)}
+    </tr></table>
+
+    ${heading("Contact")}
+    ${card(
+      row("Email", `<a href="mailto:${email}" style="color:#F87171;text-decoration:none">${email}</a>`) +
+      row("Phone", safe(app.phone)) +
+      row("Date of birth", dob, true),
+    )}
+
+    ${heading("Background")}
+    ${card(
+      row("Occupation", safe(app.occupation)) +
+      row("Owns businesses", safe(app.ownBusinesses)) +
+      row("Applied in", app.locale === "ar" ? "Arabic" : "English", true),
+    )}
+
+    ${heading("Their vision")}
+    <div style="padding:16px 18px;background:#1a1a1a;border-left:3px solid #DC2626;border-radius:0 10px 10px 0">
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#fff;white-space:pre-wrap">${safe(app.vision)}</p>
+    </div>
+
+    <p style="margin:28px 0 0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.4)">Replying to this email goes straight to ${firstName} at ${email}.</p>
   `;
-  return { subject: `Franchise application from ${escapeHtml(app.fullName)}`, html: wrap(content) };
+  return { subject: `Franchise application: ${app.fullName.trim()}, ${app.city.trim()}`, html: wrap(content) };
 }
 
 const OTP_COPY = {

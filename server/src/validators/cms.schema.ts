@@ -17,6 +17,12 @@ const media = z.string().max(500).refine(
   "Media must be an https URL or a local /images path",
 );
 
+/** Uploaded PDFs live on Cloudinary, so only https links are allowed. */
+const document = z.string().max(500).refine(
+  (value) => value === "" || /^https:\/\/[^\s]+$/i.test(value),
+  "Document must be an https URL",
+);
+
 function httpsUrl(hosts?: string[]) {
   return z.string().max(500).refine((value) => {
     if (value === "") return true;
@@ -42,6 +48,7 @@ function fieldSchema(field: CmsField | CmsListItem): z.ZodTypeAny {
     case "text": return plain(field.max);
     case "image":
     case "video": return media;
+    case "document": return document;
     case "link": return link(field.external);
     case "url": return httpsUrl(field.hosts);
     case "number": return z.number().int().min(field.min).max(field.max);
