@@ -867,3 +867,13 @@ html::-webkit-scrollbar {
     stroke-dashoffset: 0;
   }
 }
+
+/* --- Menu page: the category sidebar scrolls with no visible scrollbar --- */
+@media (min-width: 1024px) {
+  .menu-sidebar {
+    scrollbar-width: none;
+  }
+  .menu-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -22,6 +22,7 @@ export default function ConfirmModal({
   message,
   confirmLabel = "Delete",
   busyLabel = "Deleting…",
+  cancelLabel = "Cancel",
   onConfirm,
   onClose,
 }: {
@@ -29,6 +30,7 @@ export default function ConfirmModal({
   message: string;
   confirmLabel?: string;
   busyLabel?: string;
+  cancelLabel?: string;
   onConfirm: () => Promise<void> | void;
   onClose: () => void;
 }) {
@@ -58,7 +60,7 @@ export default function ConfirmModal({
       )}
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         <button type="button" className={secondaryButton} onClick={onClose} disabled={busy}>
-          Cancel
+          {cancelLabel}
         </button>
         <button type="button" className={dangerButton} onClick={() => void run()} disabled={busy}>
           {busy ? busyLabel : confirmLabel}

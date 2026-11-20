@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useLenis } from "@/app/components/providers/smooth-scroll";
 import { useDispatch, useSelector } from "react-redux";
 import { addItem, clearCartBranch } from "@/lib/redux/slices/cartSlice";
 import { fetchDeals, fetchFullMenu } from "@/lib/redux/slices/menuSlice";
@@ -73,6 +74,12 @@ function ChevronDown({ className = "" }: { className?: string }) {
   );
 }
 
+/** Old items were saved with "/placeholder.jpg", a file that never existed. */
+function usableImage(src: string | null | undefined): boolean {
+  const value = src?.trim() ?? "";
+  return value !== "" && value !== "/placeholder.jpg";
+}
+
 export default function MenuPage() {
   const dispatch = useDispatch<AppDispatch>();
   const menu = useSelector((state: RootState) => state.menu);
@@ -85,6 +92,43 @@ export default function MenuPage() {
   const categoryLabel = (cat: string) =>
     cat === "All" ? t("menu.dietary.all") : localizedName(locale, cat, menu.categories.find((category) => titleCase(category.title) === cat)?.titleAr);
   const [activeCategory, setActiveCategory] = useState("All");
+  const lenis = useLenis();
+  // The sidebar and grid row, and the sidebar itself, for the scroll fixes below.
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
+
+  // The navbar height changes with the screen size, so the sidebar is pinned
+  // just under the measured navbar instead of a fixed offset.
+  useEffect(() => {
+    const header = document.querySelector("header");
+    const aside = asideRef.current;
+    if (!header || !aside) return;
+    const place = () => aside.style.setProperty("--menu-sidebar-top", `${Math.round(header.getBoundingClientRect().height) + 24}px`);
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
+  /**
+   * Switching category while scrolled far down left the reader looking at the
+   * app banner under a short list. Bring the top of the list back into view.
+   */
+  const pickCategory = (category: string) => {
+    setActiveCategory(category);
+    const layout = layoutRef.current;
+    const header = document.querySelector("header");
+    if (!layout) return;
+    const offset = (header?.getBoundingClientRect().height ?? 0) + 24;
+    if (layout.getBoundingClientRect().top >= offset) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.scrollTo({ top: window.scrollY + layout.getBoundingClientRect().top - offset });
+      return;
+    }
+    lenis.scrollTo(layout, { offset: -offset });
+  };
+  // Items whose photo failed to load, shown as the plain tile instead.
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   // What is typed and what is searched are kept apart: typing alone never
   // filters the grid. The search runs when the Search button is pressed (or
   // Enter), and clearing the box brings the full list back.
@@ -213,8 +257,15 @@ export default function MenuPage() {
             grid on the right. Below lg the sidebar stacks on top and the
             categories scroll sideways. */}
         <div className="px-4 pb-10 pt-6 sm:px-6 md:px-12 xl:px-25">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
-            <aside className="w-full lg:sticky lg:top-28 lg:w-[240px] lg:shrink-0 xl:w-[260px]">
+          <div ref={layoutRef} className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
+            {/* On large screens the list can be taller than the window, so it
+                scrolls on its own inside the space left under the navbar.
+                data-lenis-prevent lets the mouse wheel scroll it. */}
+            <aside
+              ref={asideRef}
+              data-lenis-prevent
+              className="menu-sidebar w-full lg:sticky lg:top-[var(--menu-sidebar-top,8rem)] lg:max-h-[calc(100dvh-var(--menu-sidebar-top,8rem)-1.5rem)] lg:py-1 lg:w-[240px] lg:shrink-0 lg:overflow-y-auto lg:overscroll-contain xl:w-[260px]"
+            >
               {/* Categories: a sideways row on small screens, a vertical list
                   on large ones. The active one carries a red bar and red text. */}
               <div>
@@ -231,9 +282,9 @@ export default function MenuPage() {
                         <button
                           key={cat}
                           type="button"
-                          onClick={() => setActiveCategory(cat)}
+                          onClick={() => pickCategory(cat)}
                           aria-pressed={isActive}
-                          className={`shrink-0 cursor-pointer whitespace-nowrap border-b-2 px-3 py-2.5 text-start font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 sm:text-base lg:whitespace-normal lg:rounded-e-lg lg:border-b-0 lg:border-s-2 lg:px-4 ${
+                          className={`shrink-0 cursor-pointer whitespace-nowrap border-b-2 px-3 py-2.5 text-start font-[family-name:var(--font-inter),Inter,sans-serif] text-sm font-medium transition-colors duration-200 sm:text-base lg:whitespace-normal lg:rounded-e-lg lg:border-b-0 lg:border-s-2 lg:px-4 lg:py-2 lg:text-[14px] lg:leading-snug ${
                             isActive
                               ? "border-[#FF0931] text-[#FF0931] lg:bg-[#FF0931]/5"
                               : "border-transparent text-black/55 hover:text-black lg:hover:bg-black/[0.03]"
@@ -342,15 +393,17 @@ export default function MenuPage() {
                 >
                   {/* Image */}
                   <div className="relative  overflow-hidden bg-[#F5F5F5] ">
-                    {item.image ? (
+                    {usableImage(item.image) && !failedImages.has(item.id) ? (
                       <img
                         src={item.image}
                         alt={localizedName(locale, item.name, item.nameAr)}
                         className=" w-full h-[180px] sm:h-[264px] lg:h-[240px] object-cover transition-transform duration-300 group-hover:scale-105"
                         loading="lazy"
+                        // A missing or deleted photo falls back to the plain tile below.
+                        onError={() => setFailedImages((current) => new Set(current).add(item.id))}
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[#CCC]">
+                      <div role="img" aria-label={localizedName(locale, item.name, item.nameAr)} className="flex h-[180px] w-full items-center justify-center text-[#CCC] sm:h-[264px] lg:h-[240px]">
                         <svg
                           className="h-12 w-12"
                           fill="none"

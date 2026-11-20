@@ -6,6 +6,7 @@ import { Check, ImagePlus, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import PageHeader from "@/app/components/admin/ui/page-header";
 import Modal from "@/app/components/admin/ui/modal";
+import ConfirmModal from "@/app/components/admin/ui/confirm-modal";
 import Dropdown from "@/app/components/admin/ui/dropdown";
 import ActionButton from "@/app/components/admin/ui/action-button";
 import SearchableSelect from "@/app/components/admin/ui/searchable-select";
@@ -577,7 +578,10 @@ function MenuForm({
     existing?.redirects ?? { uberEats: "", deliveroo: "", justEat: "" }
   );
   const [categoryId, setCategoryId] = useState(existing?.categoryId || initialCategoryId || categories[0]?.id || "");
-  const [image, setImage] = useState(existing?.image || "");
+  // "/placeholder.jpg" was saved for dishes with no photo. It never existed.
+  const [image, setImage] = useState(existing?.image && existing.image !== "/placeholder.jpg" ? existing.image : "");
+  // Asks before a dish is saved with no photo.
+  const [confirmNoPhoto, setConfirmNoPhoto] = useState(false);
   const [showPrice, setShowPrice] = useState(existing?.showPrice ?? true);
   // A new dish starts with no branch ticked. Defaulting to every branch meant a
   // dish silently went on sale everywhere the moment it was saved, which is
@@ -630,6 +634,15 @@ function MenuForm({
       setRedirectError(`Use a https:// link for ${invalid.map((platform) => platform.name).join(", ")}.`);
       return;
     }
+    // Allowed, but easy to do by mistake, so ask first.
+    if (!image.trim()) {
+      setConfirmNoPhoto(true);
+      return;
+    }
+    await save();
+  };
+
+  const save = async () => {
     const priceValue = parseFloat(price) || 0;
     setSubmitting(true);
     try {
@@ -642,7 +655,8 @@ function MenuForm({
         priceValue,
         showPrice,
         categoryId,
-        image: image || "/placeholder.jpg",
+        // No photo yet stays empty. "/placeholder.jpg" never existed and showed a broken image.
+        image: image.trim(),
         // The dietary picker is gone from this form. Keep any tags a dish already has.
         badge: existing?.badge ?? null,
         badgeVariant: existing?.badgeVariant === "vegan" ? "vegan" : null,
@@ -1061,6 +1075,17 @@ function MenuForm({
           </div>
         </div>
       </form>
+      {confirmNoPhoto && (
+        <ConfirmModal
+          title="No photo for this dish"
+          message={`"${name.trim() || "This dish"}" has no photo. On the menu it shows a plain grey tile instead. You can add a photo later from Edit.`}
+          confirmLabel={itemId ? "Save without photo" : "Add without photo"}
+          busyLabel={itemId ? "Saving…" : "Adding…"}
+          cancelLabel="Add a photo"
+          onConfirm={save}
+          onClose={() => setConfirmNoPhoto(false)}
+        />
+      )}
     </Modal>
   );
 }

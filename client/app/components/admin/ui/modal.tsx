@@ -4,6 +4,10 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-scroll-lock";
 
+/** Open dialogs, newest last. Only the top one handles Escape and Tab, so a
+ *  confirm opened over a form does not close the form underneath. */
+const openModals: string[] = [];
+
 export default function Modal({ children, onClose, title, busy = false, size = "default" }: { children: React.ReactNode; onClose: () => void; title: string; busy?: boolean; size?: "default" | "wide" }) {
   const id = useId();
   const content = useRef<HTMLDivElement>(null);
@@ -14,7 +18,9 @@ export default function Modal({ children, onClose, title, busy = false, size = "
     const previous = document.activeElement as HTMLElement | null;
     lockBodyScroll();
     (content.current?.querySelector<HTMLElement>("input:not([disabled])") ?? content.current?.querySelector<HTMLElement>("button:not([disabled])"))?.focus();
+    openModals.push(id);
     const handleKey = (event: KeyboardEvent) => {
+      if (openModals[openModals.length - 1] !== id) return;
       if ((event.target as HTMLElement)?.closest("[data-radix-popper-content-wrapper]")) return;
       if (event.key === "Escape" && !event.defaultPrevented && !busyRef.current) { event.preventDefault(); close.current(); }
       if (event.key !== "Tab") return;
@@ -25,7 +31,8 @@ export default function Modal({ children, onClose, title, busy = false, size = "
       else if (!event.shiftKey && (document.activeElement === last || !content.current?.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", handleKey);
-    return () => { document.removeEventListener("keydown", handleKey); unlockBodyScroll(); previous?.focus(); };
+    return () => { openModals.splice(openModals.indexOf(id), 1); document.removeEventListener("keydown", handleKey); unlockBodyScroll(); previous?.focus(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return createPortal(<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6" onClick={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <div ref={content} role="dialog" aria-modal="true" aria-labelledby={id} aria-busy={busy} tabIndex={-1} className={`flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b0b0b] text-white shadow-2xl ${size === "wide" ? "max-w-3xl" : "max-w-xl"}`}>

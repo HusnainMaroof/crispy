@@ -56,7 +56,8 @@ export const menuItemSchema = z.object({
   // min(0): a menu item can be free, and the admin form saves 0 for that.
   price: z.number().min(0),
   show_price: z.boolean().optional(),
-  image: z.string().min(1),
+  // Empty means no photo yet. The storefront then shows a plain tile.
+  image: z.string().trim().max(1000),
   badge: z.string().max(50).nullable().optional(),
   badge_variant: z.enum(["default", "vegan"]).nullable().optional(),
   sort_order: z.number().int().min(0).optional(),
